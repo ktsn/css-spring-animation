@@ -5,14 +5,14 @@ const demo = document.getElementById('demo')!
 setInterval(() => {
   animate(
     demo,
-    {
-      from: 0,
-      to: 800,
-      velocity: 20,
+    ['0px', '300px'],
+    (el, value) => {
+      el.style.translate = `${value} ${value}`
     },
     {
-      duration: 10000,
-      bounce: -0.7,
+      velocity: 20,
+      duration: 1000,
+      bounce: -0.1,
     },
   )
-}, 1000)
+}, 2000)
