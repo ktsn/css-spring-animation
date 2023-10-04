@@ -7,12 +7,12 @@ setInterval(() => {
     demo,
     {
       from: 0,
-      to: 200,
+      to: 800,
       velocity: 20,
     },
     {
-      duration: 2000,
-      bounce: 0,
+      duration: 10000,
+      bounce: -0.7,
     },
   )
 }, 1000)

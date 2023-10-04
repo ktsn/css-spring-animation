@@ -32,6 +32,11 @@ export function animate(
     const b = Math.atan2(-c + velocity, a)
     const A = 1 / Math.cos(b)
     el.style.translate = `calc(${P}px * ${A} * cos(${a}rad * var(--t) + ${b}rad) * exp(-${c} * var(--t)) + ${Q}px)`
+  } else {
+    const a = 1 - bounce
+    const A = 1 / 2 - velocity / (2 * (a - c))
+    const B = 1 / 2 + velocity / (2 * (a - c))
+    el.style.translate = `calc(${P}px * (${A} * exp(${a} * var(--t)) + ${B} * exp(-${a} * var(--t))) * exp(-${c} * var(--t)) + ${Q}px)`
   }
 
   forceReflow()
