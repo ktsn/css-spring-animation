@@ -1,5 +1,5 @@
 /**
- * https://developer.apple.com/videos/play/wwdc2023/10158/Z
+ * https://developer.apple.com/videos/play/wwdc2023/10158/
  */
 export function animate(
   el: HTMLElement,
@@ -25,7 +25,6 @@ export function animate(
   if (bounce === 0) {
     const B = 1
     const A = -velocity + B * c
-
     el.style.translate = `calc(${P}px * (${A} * var(--t) + ${B}) * exp(-${c} * var(--t)) + ${Q}px)`
   } else if (bounce > 0) {
     const a = 2 * Math.PI
