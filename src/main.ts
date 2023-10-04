@@ -21,7 +21,7 @@ export function animate(
   const Q = animation.to
 
   const a = 2 * Math.PI
-  const c = 10
+  const c = 10 * (1 - bounce)
   const b = Math.atan2(-c + velocity, a)
   const A = 1 / Math.cos(b)
 
