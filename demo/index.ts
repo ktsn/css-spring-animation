@@ -12,6 +12,7 @@ setInterval(() => {
     },
     {
       duration: 2000,
+      bounce: 0,
     },
   )
 }, 1000)

@@ -20,12 +20,19 @@ export function animate(
   const P = animation.from - animation.to
   const Q = animation.to
 
-  const a = 2 * Math.PI
   const c = 10 * (1 - bounce)
-  const b = Math.atan2(-c + velocity, a)
-  const A = 1 / Math.cos(b)
 
-  el.style.translate = `calc(${P}px * ${A} * cos(${a}rad * var(--t) + ${b}rad) * exp(-${c} * var(--t)) + ${Q}px)`
+  if (bounce === 0) {
+    const B = 1
+    const A = -velocity + B * c
+
+    el.style.translate = `calc(${P}px * (${A} * var(--t) + ${B}) * exp(-${c} * var(--t)) + ${Q}px)`
+  } else if (bounce > 0) {
+    const a = 2 * Math.PI
+    const b = Math.atan2(-c + velocity, a)
+    const A = 1 / Math.cos(b)
+    el.style.translate = `calc(${P}px * ${A} * cos(${a}rad * var(--t) + ${b}rad) * exp(-${c} * var(--t)) + ${Q}px)`
+  }
 
   forceReflow()
 
