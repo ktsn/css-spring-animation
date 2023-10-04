@@ -1,0 +1,31 @@
+{
+  "name": "css-spring-animation",
+  "version": "0.0.0",
+  "description": "Spring Animation with CSS",
+  "author": "Katashin",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "main": "./dist/css-spring-animation.umd.cjs",
+  "module": "./dist/css-spring-animation.js",
+  "types": "./types/main.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/css-spring-animation.js",
+      "require": "./dist/css-spring-animation.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.2",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5"
+  }
+}
