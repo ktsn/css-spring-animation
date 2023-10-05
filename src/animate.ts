@@ -1,5 +1,5 @@
 import { registerPropertyIfNeeded, t, wait } from './time'
-import { createSpringStyle } from './spring'
+import { calcSpringValue, createSpringStyle, springVelocity } from './spring'
 
 export interface AnimateOptions<Values> {
   velocity?: Partial<AnimateVelocities<Values>>
@@ -13,28 +13,46 @@ export type AnimateVelocities<Values = unknown> =
   | number
   | { [K in keyof Values]: number }
 
-export type AnimateValues<Values = unknown> = Values extends Record<
+export type AnimateValues<Values = unknown, T = string> = Values extends Record<
   string,
   unknown
 >
-  ? { [K in keyof Values]: string }
-  : string
+  ? { [K in keyof Values]: T }
+  : T
 
-export async function animate<FromTo extends AnimateFromTo>(
+export interface AnimateContext<FromTo> {
+  current: AnimateValues<FromTo, number>
+  velocity: AnimateVelocities<FromTo>
+  completed: boolean
+  promise: Promise<void>
+  stop: () => void
+}
+
+interface AnimateContextInner<FromTo> extends AnimateContext<FromTo> {
+  __onEnd: () => void
+}
+
+export function animate<FromTo extends AnimateFromTo>(
   fromTo: FromTo,
   set: (
     values: AnimateValues<FromTo>,
     additionalStyle: Record<string, string>,
   ) => void,
   options: AnimateOptions<FromTo>,
-): Promise<void> {
+): AnimateContext<FromTo> {
   registerPropertyIfNeeded()
 
   const duration = options?.duration ?? 1000
   const bounce = options?.bounce ?? 0
 
   const values = mapFromTo(fromTo, options.velocity, ([from, to], velocity) => {
-    return createSpringStyle(from, to, bounce, velocity)
+    return createSpringStyle({
+      from,
+      to,
+      bounce,
+      duration,
+      initialVelocity: velocity,
+    })
   })
 
   set(values, {
@@ -49,13 +67,150 @@ export async function animate<FromTo extends AnimateFromTo>(
     [t]: '1',
   })
 
-  await wait(duration)
+  const startTime = performance.now()
 
-  const toValues = mapFromTo(fromTo, undefined, ([_, to]) => `${to}px`)
-  set(toValues, {
-    transition: '',
-    [t]: '',
-  })
+  const ctx: AnimateContextInner<FromTo> = {
+    __onEnd: onEnd,
+    promise: wait(duration).then(onEnd),
+    completed: false,
+    stop,
+
+    get current() {
+      if (Array.isArray(fromTo)) {
+        const time = (performance.now() - startTime) / duration
+        const [from, to] = fromTo
+        const initialVelocity =
+          typeof options.velocity === 'number' ? options.velocity : 0
+        return calcSpringValue({
+          from,
+          to,
+          bounce,
+          initialVelocity,
+          duration,
+          time,
+        }) as AnimateValues<FromTo, number>
+      }
+
+      const result: Record<string, number> = {}
+      for (const key of Object.keys(fromTo)) {
+        const initialVelocity =
+          typeof options.velocity === 'number'
+            ? options.velocity
+            : (options.velocity as Record<string, number> | undefined)?.[key] ??
+              0
+        const fromToValue = fromTo[key]
+        if (!fromToValue) {
+          continue
+        }
+
+        const [from, to] = fromToValue
+
+        Object.defineProperty(result, key, {
+          configurable: true,
+          enumerable: true,
+          get() {
+            const time = (performance.now() - startTime) / duration
+            return calcSpringValue({
+              from,
+              to,
+              bounce,
+              initialVelocity,
+              duration,
+              time,
+            })
+          },
+        })
+      }
+
+      return result as AnimateValues<FromTo, number>
+    },
+
+    get velocity() {
+      if (Array.isArray(fromTo)) {
+        const time = (performance.now() - startTime) / duration
+        const [from, to] = fromTo
+        const initialVelocity =
+          typeof options.velocity === 'number' ? options.velocity : 0
+
+        return springVelocity({
+          time,
+          from,
+          to,
+          bounce,
+          duration,
+          initialVelocity,
+        })
+      }
+
+      const result: Record<string, number> = {}
+      for (const key of Object.keys(fromTo)) {
+        const initialVelocity =
+          typeof options.velocity === 'number'
+            ? options.velocity
+            : (options.velocity as Record<string, number> | undefined)?.[key] ??
+              0
+        const fromToValue = fromTo[key]
+        if (!fromToValue) {
+          continue
+        }
+
+        const [from, to] = fromToValue
+
+        Object.defineProperty(result, key, {
+          configurable: true,
+          enumerable: true,
+          get() {
+            const time = (performance.now() - startTime) / duration
+            return springVelocity({
+              time,
+              from,
+              to,
+              bounce,
+              duration,
+              initialVelocity,
+            })
+          },
+        })
+      }
+
+      return result as AnimateVelocities<FromTo>
+    },
+  }
+
+  function stop(): void {
+    if (ctx.completed) {
+      return
+    }
+    ctx.completed = true
+
+    const values = (
+      typeof ctx.current === 'number'
+        ? `${ctx.current}px`
+        : Object.fromEntries(
+            Object.entries(ctx.current).map(([k, v]) => [k, `${v}px`]),
+          )
+    ) as AnimateValues<FromTo>
+
+    set(values, {
+      transition: '',
+      [t]: '',
+    })
+  }
+
+  function onEnd(): void {
+    if (ctx.completed) {
+      return
+    }
+    ctx.completed = true
+
+    const toValues = mapFromTo(fromTo, undefined, ([_, to]) => `${to}px`)
+    set(toValues, {
+      transition: '',
+      [t]: '',
+    })
+  }
+
+  return ctx
 }
 
 function mapFromTo<FromTo extends AnimateFromTo>(

@@ -2,6 +2,7 @@ import { t } from './time'
 import {
   Expression,
   add,
+  calculate,
   cos,
   exp,
   generateCSSValue,
@@ -13,61 +14,103 @@ import {
 /**
  * https://developer.apple.com/videos/play/wwdc2023/10158/
  */
-export function createSpringStyle(
-  from: number,
-  to: number,
-  bounce: number,
-  velocity: number,
-): string {
-  if (bounce > 0) {
-    return createStyle(
-      from,
-      to,
-      generateCSSValue(bouncySpring(bounce, velocity)),
-    )
-  } else if (bounce < 0) {
-    return createStyle(
-      from,
-      to,
-      generateCSSValue(flattenedSpring(bounce, velocity)),
-    )
+export function createSpringStyle(data: {
+  from: number
+  to: number
+  bounce: number
+  initialVelocity: number
+  duration: number
+}): string {
+  const wrap = (exp: string) => `calc(1px * ${exp})`
+
+  if (data.bounce > 0) {
+    return wrap(generateCSSValue(bouncySpring(data)))
+  } else if (data.bounce < 0) {
+    return wrap(generateCSSValue(flattenedSpring(data)))
   } else {
-    return createStyle(
-      from,
-      to,
-      generateCSSValue(smoothSpring(bounce, velocity)),
-    )
+    return wrap(generateCSSValue(smoothSpring(data)))
   }
 }
 
-export function springVelocity(
-  t: number,
-  bounce: number,
-  initialVelocity: number,
-): number {
-  if (bounce > 0) {
-    return bouncySpringVelocity(t, bounce, initialVelocity)
-  } else if (bounce < 0) {
-    return flattenedSpringVelocity(t, bounce, initialVelocity)
+export function calcSpringValue(data: {
+  from: number
+  to: number
+  bounce: number
+  initialVelocity: number
+  duration: number
+  time: number
+}): number {
+  const variables = {
+    [t]: data.time,
+  }
+
+  if (data.bounce > 0) {
+    return calculate(bouncySpring(data), variables)
+  } else if (data.bounce < 0) {
+    return calculate(flattenedSpring(data), variables)
   } else {
-    return smoothSpringVelocity(t, bounce, initialVelocity)
+    return calculate(smoothSpring(data), variables)
   }
 }
 
-function createStyle(from: number, to: number, spring: string): string {
-  const P = `(${from}px - ${to}px)`
-  const Q = `${to}px`
-  return `calc(${P} * ${spring} + ${Q})`
+export function springVelocity(data: {
+  time: number
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): number {
+  if (data.bounce > 0) {
+    return bouncySpringVelocity(data)
+  } else if (data.bounce < 0) {
+    return flattenedSpringVelocity(data)
+  } else {
+    return smoothSpringVelocity(data)
+  }
 }
 
 function constant(bounce: number): number {
   return 10 * (1 - bounce)
 }
 
-function bouncySpringConstants(bounce: number, velocity: number) {
+/**
+ * Convert velocity (px / s) to normalized velocity (ratio / duration)
+ */
+function normalizeVelocity(
+  velocity: number,
+  { from, to, duration }: { from: number; to: number; duration: number },
+): number {
+  return (velocity / (from - to)) * (1000 / duration)
+}
+
+/**
+ * Convert normalized velocity (ratio / duration) to velocity (px / s)
+ */
+function denormalizeVelocity(
+  v: number,
+  { from, to, duration }: { from: number; to: number; duration: number },
+): number {
+  return v * (from - to) * (duration / 1000)
+}
+
+function bouncySpringConstants({
+  from,
+  to,
+  bounce,
+  duration,
+  initialVelocity,
+}: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}) {
+  const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
   const a = 2 * Math.PI
-  const b = Math.atan2(-c + velocity, a)
+  const b = Math.atan2(-c - v, a)
   const A = 1 / Math.cos(b)
 
   return {
@@ -78,10 +121,23 @@ function bouncySpringConstants(bounce: number, velocity: number) {
   }
 }
 
-function smoothSpringConstants(bounce: number, velocity: number) {
+function smoothSpringConstants({
+  from,
+  to,
+  bounce,
+  duration,
+  initialVelocity,
+}: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}) {
+  const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
   const B = 1
-  const A = -velocity + B * c
+  const A = v + B * c
 
   return {
     A,
@@ -90,11 +146,24 @@ function smoothSpringConstants(bounce: number, velocity: number) {
   }
 }
 
-function flattenedSpringConstants(bounce: number, velocity: number) {
+function flattenedSpringConstants({
+  from,
+  to,
+  bounce,
+  duration,
+  initialVelocity,
+}: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}) {
+  const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
   const a = 1 - bounce
-  const A = 1 / 2 - velocity / (2 * (a - c))
-  const B = 1 / 2 + velocity / (2 * (a - c))
+  const A = 1 / 2 + v / (2 * (a - c))
+  const B = 1 / 2 - v / (2 * (a - c))
 
   return {
     A,
@@ -107,77 +176,117 @@ function flattenedSpringConstants(bounce: number, velocity: number) {
 /**
  * Spring expression when bounce > 0
  */
-function bouncySpring(bounce: number, velocity: number): Expression {
-  const { A, a, b, c } = bouncySpringConstants(bounce, velocity)
+function bouncySpring(data: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): Expression {
+  const { A, a, b, c } = bouncySpringConstants(data)
 
   // A * cos(a * t + b) * e ^ (-c * t)
   const cosPart = cos(add(mul(v(a), var_(t)), v(b)))
   const expPart = exp(mul(v(-c), var_(t)))
-  return mul(v(A), mul(cosPart, expPart))
+  const curve = mul(v(A), mul(cosPart, expPart))
+
+  return add(mul(v(data.from - data.to), curve), v(data.to))
 }
 
-function bouncySpringVelocity(
-  t: number,
-  bounce: number,
-  initialVelocity: number,
-): number {
-  const { A, a, b, c } = bouncySpringConstants(bounce, initialVelocity)
+function bouncySpringVelocity(data: {
+  time: number
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): number {
+  const t = data.time
+  const { A, a, b, c } = bouncySpringConstants(data)
 
   // Derivative of bouncy spring expression
-  return (
+  const v =
     -A *
     Math.E ** (-c * t) *
     (c * Math.cos(a * t + b) + a * Math.sin(a * t + b))
-  )
+
+  return denormalizeVelocity(v, data)
 }
 
 /**
  * Spring expression when bounce = 0
  */
-function smoothSpring(bounce: number, velocity: number): Expression {
-  const { A, B, c } = smoothSpringConstants(bounce, velocity)
+function smoothSpring(data: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): Expression {
+  const { A, B, c } = smoothSpringConstants(data)
 
   // (A * t + B) * e ^ (-c * t)
   const linearPart = add(mul(v(A), var_(t)), v(B))
   const expPart = exp(mul(v(-c), var_(t)))
-  return mul(linearPart, expPart)
+  const curve = mul(linearPart, expPart)
+
+  return add(mul(v(data.from - data.to), curve), v(data.to))
 }
 
-function smoothSpringVelocity(
-  t: number,
-  bounce: number,
-  initialVelocity: number,
-): number {
-  const { A, B, c } = smoothSpringConstants(bounce, initialVelocity)
+function smoothSpringVelocity(data: {
+  time: number
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): number {
+  const t = data.time
+  const { A, B, c } = smoothSpringConstants(data)
 
   // Derivative of smooth spring expression
-  return Math.E ** (-c * t) * (A * -c * t + A - B * c)
+  const v = Math.E ** (-c * t) * (A * -c * t + A - B * c)
+
+  return denormalizeVelocity(v, data)
 }
 
 /**
  * Spring expression when bounce < 0
  */
-function flattenedSpring(bounce: number, velocity: number): Expression {
-  const { A, B, a, c } = flattenedSpringConstants(bounce, velocity)
+function flattenedSpring(data: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): Expression {
+  const { A, B, a, c } = flattenedSpringConstants(data)
 
   // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
   const pullPart = mul(v(A), exp(mul(v(a), var_(t))))
   const pushPart = mul(v(B), exp(mul(v(-a), var_(t))))
   const expPart = exp(mul(v(-c), var_(t)))
-  return mul(add(pullPart, pushPart), expPart)
+  const curve = mul(add(pullPart, pushPart), expPart)
+
+  return add(mul(v(data.from - data.to), curve), v(data.to))
 }
 
-function flattenedSpringVelocity(
-  t: number,
-  bounce: number,
-  initialVelocity: number,
-): number {
-  const { A, B, a, c } = flattenedSpringConstants(bounce, initialVelocity)
+function flattenedSpringVelocity(data: {
+  time: number
+  from: number
+  to: number
+  bounce: number
+  duration: number
+  initialVelocity: number
+}): number {
+  const t = data.time
+  const { A, B, a, c } = flattenedSpringConstants(data)
 
   // Derivative of flattened spring expression
-  return (
+  const v =
     Math.E ** (-c * t) *
       (a * A * Math.E ** (a * t) - a * B * Math.E ** (-a * t)) -
     c * Math.E ** (-c * t) * (A * Math.E ** (a * t) + B * Math.E ** (-a * t))
-  )
+
+  return denormalizeVelocity(v, data)
 }

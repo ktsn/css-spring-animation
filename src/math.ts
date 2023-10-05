@@ -72,3 +72,37 @@ export function generateCSSValue(expression: Expression): string {
       } ${generateCSSValue(expression.right)})`
   }
 }
+
+export function calculate(
+  expression: Expression,
+  variables?: Record<string, number>,
+): number {
+  switch (expression.type) {
+    case 'value':
+      return expression.value
+    case 'variable': {
+      const v = variables?.[expression.name]
+      if (v === undefined) {
+        throw new Error(`variable '${expression.name}' is not provided`)
+      }
+      return v
+    }
+    case 'cosine':
+      return Math.cos(calculate(expression.radian, variables))
+    case 'exponential':
+      return Math.exp(calculate(expression.exponent, variables))
+    case 'binary':
+      switch (expression.operator) {
+        case '+':
+          return (
+            calculate(expression.left, variables) +
+            calculate(expression.right, variables)
+          )
+        case '*':
+          return (
+            calculate(expression.left, variables) *
+            calculate(expression.right, variables)
+          )
+      }
+  }
+}

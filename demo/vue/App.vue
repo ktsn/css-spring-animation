@@ -7,16 +7,22 @@ const to = ref({
   y: 0,
 })
 
-const style = useSpringStyle(to, (values) => {
-  return {
-    translate: `${values.x} ${values.y}`,
-  }
-})
+const style = useSpringStyle(
+  to,
+  (values) => {
+    return {
+      translate: `${values.x} ${values.y}`,
+    }
+  },
+  {
+    duration: 5000,
+  },
+)
 
 function onPointerDown(event: PointerEvent): void {
   to.value = {
-    x: event.clientX,
-    y: event.clientY,
+    x: event.clientX - 15,
+    y: event.clientY - 15,
   }
 }
 </script>
