@@ -16,23 +16,8 @@ export function registerPropertyIfNeeded() {
   registered = true
 }
 
-export function setTimeTransition(el: HTMLElement, duration: number): void {
-  el.style.transition = `${t} ${duration}ms linear`
-}
-
-export function setTimeProperty(el: HTMLElement, value: number | null): void {
-  el.style.setProperty(t, value === null ? null : String(value))
-}
-
-export function waitForTimeTransition(el: HTMLElement, onEnd: () => void) {
-  function onTransitionEnd(event: TransitionEvent) {
-    if (event.target !== el || event.propertyName !== t) {
-      return
-    }
-
-    el.removeEventListener('transitionend', onTransitionEnd)
-    onEnd()
-  }
-
-  el.addEventListener('transitionend', onTransitionEnd)
+export function wait(duration: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(), duration)
+  })
 }

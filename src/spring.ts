@@ -1,5 +1,8 @@
 import { t } from './time'
 
+/**
+ * https://developer.apple.com/videos/play/wwdc2023/10158/
+ */
 export function createSpringStyle(
   from: string,
   to: string,
