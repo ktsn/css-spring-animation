@@ -7,23 +7,17 @@ const to = ref({
   y: 0,
 })
 
-const style = useSpringStyle(
-  () => {
-    return {
-      x: `${to.value.x}px`,
-      y: `${to.value.y}px`,
-    }
-  },
-  (values) => {
-    return {
-      translate: `${values.x} ${values.y}`,
-    }
-  },
-)
+const style = useSpringStyle(to, (values) => {
+  return {
+    translate: `${values.x} ${values.y}`,
+  }
+})
 
 function onPointerDown(event: PointerEvent): void {
-  to.value.x = event.clientX
-  to.value.y = event.clientY
+  to.value = {
+    x: event.clientX,
+    y: event.clientY,
+  }
 }
 </script>
 

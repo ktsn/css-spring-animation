@@ -4,7 +4,7 @@ const demo = document.getElementById('demo')!
 
 setInterval(() => {
   animate(
-    ['0px', '300px'],
+    [0, 300],
     (value, styles) => {
       demo.style.translate = `${value} ${value}`
       Object.entries(styles).forEach(([k, v]) => {

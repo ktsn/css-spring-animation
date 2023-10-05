@@ -7,7 +7,7 @@ export interface AnimateOptions<Values> {
   bounce?: number
 }
 
-export type AnimateFromTo = [string, string] | Record<string, [string, string]>
+export type AnimateFromTo = [number, number] | Record<string, [number, number]>
 
 export type AnimateVelocities<Values = unknown> =
   | number
@@ -51,7 +51,7 @@ export async function animate<FromTo extends AnimateFromTo>(
 
   await wait(duration)
 
-  const toValues = mapFromTo(fromTo, undefined, ([_, to]) => to)
+  const toValues = mapFromTo(fromTo, undefined, ([_, to]) => `${to}px`)
   set(toValues, {
     transition: '',
     [t]: '',
@@ -61,7 +61,7 @@ export async function animate<FromTo extends AnimateFromTo>(
 function mapFromTo<FromTo extends AnimateFromTo>(
   fromTo: FromTo,
   velocities: Partial<AnimateVelocities<FromTo>> | undefined,
-  fn: (value: [string, string], velocity: number) => string,
+  fn: (value: [number, number], velocity: number) => string,
 ): AnimateValues<FromTo> {
   if (Array.isArray(fromTo)) {
     const v = typeof velocities === 'number' ? velocities : 0

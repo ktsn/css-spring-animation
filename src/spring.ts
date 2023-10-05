@@ -4,8 +4,8 @@ import { t } from './time'
  * https://developer.apple.com/videos/play/wwdc2023/10158/
  */
 export function createSpringStyle(
-  from: string,
-  to: string,
+  from: number,
+  to: number,
   bounce: number,
   velocity: number,
 ): string {
@@ -18,9 +18,9 @@ export function createSpringStyle(
   }
 }
 
-function createStyle(from: string, to: string, spring: string): string {
-  const P = `(${from} - ${to})`
-  const Q = to
+function createStyle(from: number, to: number, spring: string): string {
+  const P = `(${from}px - ${to}px)`
+  const Q = `${to}px`
   return `calc(${P} * ${spring} + ${Q})`
 }
 
