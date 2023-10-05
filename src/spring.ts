@@ -206,9 +206,7 @@ function bouncySpringVelocity(data: {
 
   // Derivative of bouncy spring expression
   const v =
-    -A *
-    Math.E ** (-c * t) *
-    (c * Math.cos(a * t + b) + a * Math.sin(a * t + b))
+    -A * Math.exp(-c * t) * (c * Math.cos(a * t + b) + a * Math.sin(a * t + b))
 
   return denormalizeVelocity(v, data)
 }
@@ -245,7 +243,7 @@ function smoothSpringVelocity(data: {
   const { A, B, c } = smoothSpringConstants(data)
 
   // Derivative of smooth spring expression
-  const v = Math.E ** (-c * t) * (A * -c * t + A - B * c)
+  const v = Math.exp(-c * t) * (A * -c * t + A - B * c)
 
   return denormalizeVelocity(v, data)
 }
@@ -284,9 +282,8 @@ function flattenedSpringVelocity(data: {
 
   // Derivative of flattened spring expression
   const v =
-    Math.E ** (-c * t) *
-      (a * A * Math.E ** (a * t) - a * B * Math.E ** (-a * t)) -
-    c * Math.E ** (-c * t) * (A * Math.E ** (a * t) + B * Math.E ** (-a * t))
+    Math.exp(-c * t) * (a * A * Math.exp(a * t) - a * B * Math.exp(-a * t)) -
+    c * Math.exp(-c * t) * (A * Math.exp(a * t) + B * Math.exp(-a * t))
 
   return denormalizeVelocity(v, data)
 }
