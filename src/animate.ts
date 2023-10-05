@@ -28,10 +28,6 @@ export interface AnimateContext<FromTo> {
   stop: () => void
 }
 
-interface AnimateContextInner<FromTo> extends AnimateContext<FromTo> {
-  __onEnd: () => void
-}
-
 export function animate<FromTo extends AnimateFromTo>(
   fromTo: FromTo,
   set: (
@@ -69,8 +65,7 @@ export function animate<FromTo extends AnimateFromTo>(
 
   const startTime = performance.now()
 
-  const ctx: AnimateContextInner<FromTo> = {
-    __onEnd: onEnd,
+  const ctx: AnimateContext<FromTo> = {
     promise: wait(duration).then(onEnd),
     completed: false,
     stop,
