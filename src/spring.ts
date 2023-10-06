@@ -22,14 +22,7 @@ export function createSpringStyle(data: {
   duration: number
 }): string {
   const wrap = (exp: string) => `calc(1px * ${exp})`
-
-  if (data.bounce > 0) {
-    return wrap(generateCSSValue(bouncySpring(data)))
-  } else if (data.bounce < 0) {
-    return wrap(generateCSSValue(flattenedSpring(data)))
-  } else {
-    return wrap(generateCSSValue(smoothSpring(data)))
-  }
+  return wrap(generateCSSValue(createSpring(data)))
 }
 
 export function calcSpringValue(data: {
@@ -43,13 +36,22 @@ export function calcSpringValue(data: {
   const variables = {
     [t]: data.time,
   }
+  return calculate(createSpring(data), variables)
+}
 
+export function createSpring(data: {
+  from: number
+  to: number
+  bounce: number
+  initialVelocity: number
+  duration: number
+}): Expression {
   if (data.bounce > 0) {
-    return calculate(bouncySpring(data), variables)
+    return bouncySpring(data)
   } else if (data.bounce < 0) {
-    return calculate(flattenedSpring(data), variables)
+    return flattenedSpring(data)
   } else {
-    return calculate(smoothSpring(data), variables)
+    return smoothSpring(data)
   }
 }
 

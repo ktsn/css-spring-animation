@@ -5,3 +5,5 @@ export type {
   AnimateVelocities,
   AnimateContext,
 } from './animate'
+
+export { createSpring, calcSpringValue } from './spring'
