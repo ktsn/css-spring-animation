@@ -7,13 +7,8 @@ import {
   toValue,
   watch,
 } from 'vue'
-import {
-  AnimateContext,
-  AnimateOptions,
-  AnimateValues,
-  AnimateVelocities,
-  animate,
-} from '../main'
+import { AnimateContext, AnimateOptions, AnimateValues, animate } from '../main'
+import { mapValues } from '../utils'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
@@ -36,33 +31,35 @@ export function useSpringStyle<T extends SpringValues>(
   const optionsRef = computed(() => toValue(options) ?? {})
 
   const style = ref<Record<string, string>>(
-    styleMapper(current.value as unknown as AnimateValues<T>),
+    styleMapper(valueToStyle(current.value)),
   )
 
   let ctx: AnimateContext<T> | null = null
 
+  function valueToStyle(value: T): AnimateValues<T> {
+    return (
+      typeof value === 'number'
+        ? `${value}px`
+        : mapValues(value, (v) => `${v}px`)
+    ) as AnimateValues<T>
+  }
+
   watch(current, async (next, prev) => {
     if (optionsRef.value.disabled) {
-      style.value = styleMapper(next as unknown as AnimateValues<T>)
+      style.value = styleMapper(valueToStyle(next))
       return
     }
 
     let velocity =
       typeof next === 'number'
         ? optionsRef.value.velocity ?? 0
-        : Object.fromEntries(
-            Object.keys(next).map((key) => {
-              const velocity =
-                typeof optionsRef.value.velocity === 'number'
-                  ? optionsRef.value.velocity
-                  : (
-                      optionsRef.value.velocity as
-                        | Record<string, number>
-                        | undefined
-                    )?.[key] ?? 0
-              return [key, velocity]
-            }),
-          )
+        : mapValues(next, (_, key) => {
+            const velocity =
+              typeof optionsRef.value.velocity === 'number'
+                ? optionsRef.value.velocity
+                : optionsRef.value.velocity?.[key] ?? 0
+            return velocity
+          })
 
     if (ctx && !ctx.completed) {
       prev = ctx.current as any
@@ -70,12 +67,14 @@ export function useSpringStyle<T extends SpringValues>(
       if (typeof velocity === 'number') {
         velocity += ctx.velocity as number
       } else {
-        velocity = Object.fromEntries(
-          Object.entries(ctx.velocity).map(([k, v]: [string, number]) => [
-            k,
-            v + ((velocity as Record<string, number>)[k] ?? 0),
-          ]),
-        ) as AnimateVelocities<T>
+        velocity = mapValues(
+          ctx.velocity as { [K in keyof T]: number },
+          (v, k) => {
+            const originalVelocity =
+              typeof velocity === 'number' ? velocity : velocity[k] ?? 0
+            return originalVelocity + v
+          },
+        )
       }
 
       ctx.stop()
@@ -86,15 +85,9 @@ export function useSpringStyle<T extends SpringValues>(
       typeof next === 'number' && typeof prev === 'number'
         ? ([prev, next] as [number, number])
         : typeof next === 'object' && typeof prev === 'object'
-        ? Object.fromEntries(
-            Object.entries(prev).flatMap(([k, v]) => {
-              const nextV = (next as Record<string, number>)[k]
-              if (nextV === undefined) {
-                return []
-              }
-              return [[k, [v, nextV] as [number, number]]]
-            }),
-          )
+        ? mapValues(prev, (prevV, key) => {
+            return [prevV, next[key]] as [number, number]
+          })
         : null
     if (!fromTo) {
       return
