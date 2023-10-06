@@ -73,7 +73,10 @@ export function springVelocity(data: {
 }
 
 function constant(bounce: number): number {
-  return 10 * (1 - bounce)
+  if (bounce < 0) {
+    return 2 * (2 + bounce)
+  }
+  return 8 * (1 - bounce)
 }
 
 /**
@@ -163,7 +166,7 @@ function flattenedSpringConstants({
 }) {
   const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
-  const a = 1 - bounce
+  const a = 1
   const A = 1 / 2 + v / (2 * (a - c))
   const B = 1 / 2 - v / (2 * (a - c))
 

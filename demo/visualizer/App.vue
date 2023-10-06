@@ -44,7 +44,7 @@ function render(): void {
   ctx.beginPath()
   ctx.moveTo(0, h)
 
-  for (let i = 0; i < w; i++) {
+  for (let i = 0; i < w * 2; i++) {
     const t = i / w
     const value = calcSpringValue({
       time: t,
@@ -55,7 +55,7 @@ function render(): void {
     })
 
     const y = (2 - value / (to - from)) * (h / 2)
-    ctx.lineTo(i, y)
+    ctx.lineTo(i / 2, y)
   }
 
   ctx.stroke()
