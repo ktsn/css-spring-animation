@@ -44,6 +44,15 @@ export function useSpringStyle<T extends SpringValues>(
     ) as AnimateValues<T>
   }
 
+  watch(
+    () => optionsRef.value.disabled,
+    (disabled) => {
+      if (disabled && ctx && !ctx.completed) {
+        ctx.stop()
+      }
+    },
+  )
+
   watch(current, async (next, prev) => {
     if (optionsRef.value.disabled) {
       style.value = styleMapper(valueToStyle(next))
