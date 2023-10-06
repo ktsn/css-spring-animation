@@ -19,6 +19,10 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 
 export type SpringValues = number | Record<string, number>
 
+interface UseSpringOptions<T> extends AnimateOptions<T> {
+  disabled?: boolean
+}
+
 function raf(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
@@ -26,16 +30,23 @@ function raf(): Promise<void> {
 export function useSpringStyle<T extends SpringValues>(
   values: RefOrGetter<T>,
   styleMapper: (values: AnimateValues<T>) => Record<string, string>,
-  options?: MaybeRefOrGetter<AnimateOptions<T>>,
+  options?: MaybeRefOrGetter<UseSpringOptions<T>>,
 ): Readonly<Ref<Record<string, string>>> {
   const current = computed(() => toValue(values))
   const optionsRef = computed(() => toValue(options) ?? {})
 
-  const style = ref<Record<string, string>>({})
+  const style = ref<Record<string, string>>(
+    styleMapper(current.value as unknown as AnimateValues<T>),
+  )
 
   let ctx: AnimateContext<T> | null = null
 
   watch(current, async (next, prev) => {
+    if (optionsRef.value.disabled) {
+      style.value = styleMapper(next as unknown as AnimateValues<T>)
+      return
+    }
+
     let velocity =
       typeof next === 'number'
         ? optionsRef.value.velocity ?? 0
