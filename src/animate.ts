@@ -1,5 +1,6 @@
 import { registerPropertyIfNeeded, t, wait } from './time'
 import { calcSpringValue, createSpringStyle, springVelocity } from './spring'
+import { mapValues } from './utils'
 
 export interface AnimateOptions<Values> {
   velocity?: Partial<AnimateVelocities<Values>>
@@ -181,9 +182,7 @@ export function animate<FromTo extends AnimateFromTo>(
     const values = (
       typeof ctx.current === 'number'
         ? `${ctx.current}px`
-        : Object.fromEntries(
-            Object.entries(ctx.current).map(([k, v]) => [k, `${v}px`]),
-          )
+        : mapValues(ctx.current, (v) => `${v}px`)
     ) as AnimateValues<FromTo>
 
     set(values, {
@@ -218,14 +217,11 @@ function mapFromTo<FromTo extends AnimateFromTo>(
     return fn(fromTo, v) as AnimateValues<FromTo>
   }
 
-  return Object.fromEntries(
-    Object.entries(fromTo).map(([key, value]) => {
-      const k = key as keyof FromTo
-      const v =
-        typeof velocities === 'number' ? velocities : velocities?.[k] ?? 0
-      return [key, fn(value, v)]
-    }),
-  ) as AnimateValues<FromTo>
+  return mapValues(fromTo, (value, key) => {
+    const v =
+      typeof velocities === 'number' ? velocities : velocities?.[key] ?? 0
+    return fn(value as [number, number], v)
+  }) as AnimateValues<FromTo>
 }
 
 function forceReflow(): void {
