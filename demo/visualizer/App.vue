@@ -76,6 +76,9 @@ function render(time: number): void {
   ctx.beginPath()
   ctx.moveTo(0, h - p)
 
+  let currentX: number = -1
+  let currentY: number = -1
+
   for (let i = 0; i < w * 2; i++) {
     const t = i / w
     const value = calcSpringValue({
@@ -88,6 +91,11 @@ function render(time: number): void {
 
     const y = (2 - value / (to - from)) * (h / 2 - p) + p
     ctx.lineTo(i / 2, y)
+
+    if (Math.floor(time * w) === i) {
+      currentX = i / 2
+      currentY = y
+    }
   }
   ctx.stroke()
 
@@ -98,6 +106,12 @@ function render(time: number): void {
   ctx.moveTo((time * w) / 2, 0)
   ctx.lineTo((time * w) / 2, h)
   ctx.stroke()
+
+  ctx.fillStyle = '#f00'
+
+  ctx.beginPath()
+  ctx.ellipse(currentX, currentY, 4, 4, 0, 0, Math.PI * 2)
+  ctx.fill()
 }
 
 let intervalTimer: number | undefined
