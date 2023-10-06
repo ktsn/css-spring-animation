@@ -47,41 +47,34 @@ watchEffect(() => {
     <div class="parameter">
       <label>Velocity</label>
       <input
-        type="range"
+        type="number"
         min="-10000"
         max="10000"
+        step="100"
         v-model.number="parameters.velocity"
       />
-      <output>
-        {{ parameters.velocity }}
-      </output>
     </div>
 
     <div class="parameter">
       <label>Bounce</label>
       <input
-        type="range"
+        type="number"
         min="-1"
         max="1"
-        step="0.01"
+        step="0.1"
         v-model.number="parameters.bounce"
       />
-      <output>
-        {{ parameters.bounce }}
-      </output>
     </div>
 
     <div class="parameter">
       <label>Duration</label>
       <input
-        type="range"
-        min="10"
+        type="number"
+        min="100"
         max="5000"
+        step="100"
         v-model.number="parameters.duration"
       />
-      <output>
-        {{ parameters.duration }}
-      </output>
     </div>
   </div>
 </template>
