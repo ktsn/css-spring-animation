@@ -66,6 +66,15 @@ export function animate<FromTo extends AnimateFromTo>(
 
   const startTime = performance.now()
 
+  const ctx = createContext({
+    spring,
+    fromTo,
+    velocity: options.velocity,
+    startTime,
+    duration,
+    settlingDuration,
+  })
+
   if (isBrowserSupported()) {
     animateWithCssTransition({
       spring,
@@ -78,24 +87,10 @@ export function animate<FromTo extends AnimateFromTo>(
   } else {
     // Graceful degradation
     animateWithRaf({
-      spring,
-      fromTo,
-      velocity: options.velocity,
-      startTime,
-      duration,
-      settlingDuration,
+      context: ctx,
       set,
     })
   }
-
-  const ctx = createContext({
-    spring,
-    fromTo,
-    velocity: options.velocity,
-    startTime,
-    duration,
-    settlingDuration,
-  })
 
   ctx.settlingPromise.then(() => {
     const values = (
@@ -155,64 +150,28 @@ function animateWithCssTransition<FromTo extends AnimateFromTo>({
 }
 
 function animateWithRaf<FromTo extends AnimateFromTo>({
-  spring,
-  fromTo,
-  velocity,
-  startTime,
-  duration,
-  settlingDuration,
+  context,
   set,
 }: {
-  spring: Spring
-  fromTo: FromTo
-  velocity: Partial<AnimateVelocities<FromTo>> | undefined
-  startTime: number
-  duration: number
-  settlingDuration: number
+  context: AnimateContext<FromTo>
   set: (
     values: AnimateValues<FromTo>,
     additionalStyle: Record<string, string>,
   ) => void
 }): void {
-  function render(now: number): void {
-    const elapsed = now - startTime
-    if (elapsed >= settlingDuration) {
+  function render(): void {
+    if (context.settled) {
       return
     }
 
-    const time = elapsed / duration
-    const wrapWithPx = (value: number) => `${value}px`
-    const values = Array.isArray(fromTo)
-      ? wrapWithPx(
-          springValue(spring, {
-            time,
-            from: fromTo[0],
-            to: fromTo[1],
-            initialVelocity: typeof velocity === 'number' ? velocity : 0,
-          }),
-        )
-      : mapValues(
-          fromTo as Record<keyof FromTo, [number, number]>,
-          (value, key) => {
-            return wrapWithPx(
-              springValue(spring, {
-                time,
-                from: value[0],
-                to: value[1],
-                initialVelocity:
-                  typeof velocity === 'number'
-                    ? velocity
-                    : (velocity as Record<typeof key, number> | undefined)?.[
-                        key
-                      ] ?? 0,
-              }),
-            )
-          },
-        )
+    const values = (
+      typeof context.current === 'number'
+        ? `${context.current}px`
+        : mapValues(context.current, (v) => `${v}px`)
+    ) as AnimateValues<FromTo>
 
-    set(values as AnimateValues<FromTo>, {
+    set(values, {
       transition: 'none',
-      [t]: String(time),
     })
 
     requestAnimationFrame(render)
