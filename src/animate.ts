@@ -4,6 +4,7 @@ import {
   springStyle,
   springVelocity,
   createSpring,
+  springSettlingDuration,
 } from './spring'
 import { mapValues } from './utils'
 
@@ -29,8 +30,10 @@ export type AnimateValues<Values = unknown, T = string> = Values extends Record<
 export interface AnimateContext<FromTo> {
   current: AnimateValues<FromTo, number>
   velocity: AnimateVelocities<FromTo>
-  completed: boolean
-  promise: Promise<void>
+  finished: boolean
+  settled: boolean
+  finishingPromise: Promise<void>
+  settlingPromise: Promise<void>
   stop: () => void
 }
 
@@ -52,6 +55,16 @@ export function animate<FromTo extends AnimateFromTo>(
     duration,
   })
 
+  const fromToList = Array.isArray(fromTo)
+    ? ([fromTo] as [number, number][])
+    : Object.values(fromTo)
+
+  const settlingDuration = Math.max(
+    ...fromToList.map(([from, to]) =>
+      springSettlingDuration(spring, { from, to }),
+    ),
+  )
+
   const values = mapFromTo(fromTo, options.velocity, ([from, to], velocity) => {
     return springStyle(spring, {
       from,
@@ -68,15 +81,19 @@ export function animate<FromTo extends AnimateFromTo>(
   forceReflow()
 
   set(values, {
-    transition: `${t} ${duration}ms linear`,
-    [t]: '1',
+    transition: `${t} ${settlingDuration}ms linear`,
+    [t]: String(settlingDuration / duration),
   })
 
   const startTime = performance.now()
 
   const ctx: AnimateContext<FromTo> = {
-    promise: wait(duration).then(onEnd),
-    completed: false,
+    finishingPromise: wait(duration).then(onFinished),
+    settlingPromise: wait(settlingDuration).then(onSettled),
+
+    finished: false,
+    settled: false,
+
     stop,
 
     get current() {
@@ -174,10 +191,10 @@ export function animate<FromTo extends AnimateFromTo>(
   }
 
   function stop(): void {
-    if (ctx.completed) {
+    if (ctx.settled) {
       return
     }
-    ctx.completed = true
+    ctx.finished = ctx.settled = true
 
     const values = (
       typeof ctx.current === 'number'
@@ -191,11 +208,15 @@ export function animate<FromTo extends AnimateFromTo>(
     })
   }
 
-  function onEnd(): void {
-    if (ctx.completed) {
+  function onFinished(): void {
+    ctx.finished = true
+  }
+
+  function onSettled(): void {
+    if (ctx.settled) {
       return
     }
-    ctx.completed = true
+    ctx.finished = ctx.settled = true
 
     const toValues = mapFromTo(fromTo, undefined, ([_, to]) => `${to}px`)
     set(toValues, {

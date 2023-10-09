@@ -47,7 +47,7 @@ export function useSpringStyle<T extends SpringValues>(
   watch(
     () => optionsRef.value.disabled,
     (disabled) => {
-      if (disabled && ctx && !ctx.completed) {
+      if (disabled && ctx && !ctx.settled) {
         ctx.stop()
       }
     },
@@ -70,7 +70,7 @@ export function useSpringStyle<T extends SpringValues>(
             return velocity
           })
 
-    if (ctx && !ctx.completed) {
+    if (ctx && !ctx.settled) {
       prev = ctx.current as any
 
       if (typeof velocity === 'number') {
