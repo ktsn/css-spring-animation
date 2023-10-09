@@ -16,8 +16,26 @@ export function registerPropertyIfNeeded() {
   registered = true
 }
 
-export function wait(duration: number): Promise<void> {
+export function wait(
+  duration: number,
+  forceResolve?: { fn: (() => void)[] },
+): Promise<void> {
+  let resolved = false
+  let timer: ReturnType<typeof setTimeout>
+
   return new Promise((resolve) => {
-    setTimeout(() => resolve(), duration)
+    function onEnd() {
+      if (resolved) {
+        return
+      }
+      resolved = true
+      clearTimeout(timer)
+      resolve()
+    }
+
+    if (forceResolve) {
+      forceResolve.fn.push(onEnd)
+    }
+    timer = setTimeout(onEnd, duration)
   })
 }

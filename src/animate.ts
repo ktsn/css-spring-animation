@@ -5,8 +5,9 @@ import {
   springVelocity,
   createSpring,
   springSettlingDuration,
+  Spring,
 } from './spring'
-import { mapValues } from './utils'
+import { forceReflow, mapValues } from './utils'
 
 export interface AnimateOptions<Values> {
   velocity?: Partial<AnimateVelocities<Values>>
@@ -43,12 +44,12 @@ export function animate<FromTo extends AnimateFromTo>(
     values: AnimateValues<FromTo>,
     additionalStyle: Record<string, string>,
   ) => void,
-  options: AnimateOptions<FromTo>,
+  options: AnimateOptions<FromTo> = {},
 ): AnimateContext<FromTo> {
   registerPropertyIfNeeded()
 
-  const duration = options?.duration ?? 1000
-  const bounce = options?.bounce ?? 0
+  const duration = options.duration ?? 1000
+  const bounce = options.bounce ?? 0
 
   const spring = createSpring({
     bounce,
@@ -87,9 +88,59 @@ export function animate<FromTo extends AnimateFromTo>(
 
   const startTime = performance.now()
 
+  const ctx = createContext({
+    spring,
+    fromTo,
+    velocity: options.velocity,
+    startTime,
+    duration,
+    settlingDuration,
+  })
+
+  ctx.settlingPromise.then(() => {
+    const values = (
+      typeof ctx.current === 'number'
+        ? `${ctx.current}px`
+        : mapValues(ctx.current, (v) => `${v}px`)
+    ) as AnimateValues<FromTo>
+
+    set(values, {
+      transition: '',
+      [t]: '',
+    })
+  })
+
+  return ctx
+}
+
+function createContext<FromTo extends AnimateFromTo>({
+  spring,
+  fromTo,
+  velocity,
+  startTime,
+  duration,
+  settlingDuration,
+}: {
+  spring: Spring
+  fromTo: FromTo
+  velocity: Partial<AnimateVelocities<FromTo>> | undefined
+  startTime: number
+  duration: number
+  settlingDuration: number
+}): AnimateContext<FromTo> {
+  const forceResolve: { fn: (() => void)[] } = { fn: [] }
+
+  function stop() {
+    if (ctx.settled) {
+      return
+    }
+    ctx.finished = ctx.settled = true
+    forceResolve.fn.forEach((fn) => fn())
+  }
+
   const ctx: AnimateContext<FromTo> = {
-    finishingPromise: wait(duration).then(onFinished),
-    settlingPromise: wait(settlingDuration).then(onSettled),
+    finishingPromise: wait(duration + 1, forceResolve),
+    settlingPromise: wait(settlingDuration + 1, forceResolve),
 
     finished: false,
     settled: false,
@@ -98,10 +149,14 @@ export function animate<FromTo extends AnimateFromTo>(
 
     get current() {
       if (Array.isArray(fromTo)) {
-        const time = (performance.now() - startTime) / duration
+        const elapsed = performance.now() - startTime
         const [from, to] = fromTo
-        const initialVelocity =
-          typeof options.velocity === 'number' ? options.velocity : 0
+        if (elapsed >= settlingDuration) {
+          return to as AnimateValues<FromTo, number>
+        }
+
+        const time = elapsed / duration
+        const initialVelocity = typeof velocity === 'number' ? velocity : 0
         return springValue(spring, {
           from,
           to,
@@ -113,10 +168,9 @@ export function animate<FromTo extends AnimateFromTo>(
       const result: Record<string, number> = {}
       for (const key of Object.keys(fromTo)) {
         const initialVelocity =
-          typeof options.velocity === 'number'
-            ? options.velocity
-            : (options.velocity as Record<string, number> | undefined)?.[key] ??
-              0
+          typeof velocity === 'number'
+            ? velocity
+            : (velocity as Record<string, number> | undefined)?.[key] ?? 0
         const fromToValue = fromTo[key]
         if (!fromToValue) {
           continue
@@ -127,8 +181,13 @@ export function animate<FromTo extends AnimateFromTo>(
         Object.defineProperty(result, key, {
           configurable: true,
           enumerable: true,
-          get() {
-            const time = (performance.now() - startTime) / duration
+          get(): number {
+            const elapsed = performance.now() - startTime
+            if (elapsed >= settlingDuration) {
+              return to
+            }
+
+            const time = elapsed / duration
             return springValue(spring, {
               from,
               to,
@@ -144,10 +203,14 @@ export function animate<FromTo extends AnimateFromTo>(
 
     get velocity() {
       if (Array.isArray(fromTo)) {
-        const time = (performance.now() - startTime) / duration
+        const elapsed = performance.now() - startTime
+        if (elapsed >= settlingDuration) {
+          return 0
+        }
+
+        const time = elapsed / duration
         const [from, to] = fromTo
-        const initialVelocity =
-          typeof options.velocity === 'number' ? options.velocity : 0
+        const initialVelocity = typeof velocity === 'number' ? velocity : 0
 
         return springVelocity(spring, {
           time,
@@ -160,10 +223,9 @@ export function animate<FromTo extends AnimateFromTo>(
       const result: Record<string, number> = {}
       for (const key of Object.keys(fromTo)) {
         const initialVelocity =
-          typeof options.velocity === 'number'
-            ? options.velocity
-            : (options.velocity as Record<string, number> | undefined)?.[key] ??
-              0
+          typeof velocity === 'number'
+            ? velocity
+            : (velocity as Record<string, number> | undefined)?.[key] ?? 0
         const fromToValue = fromTo[key]
         if (!fromToValue) {
           continue
@@ -174,8 +236,13 @@ export function animate<FromTo extends AnimateFromTo>(
         Object.defineProperty(result, key, {
           configurable: true,
           enumerable: true,
-          get() {
-            const time = (performance.now() - startTime) / duration
+          get(): number {
+            const elapsed = performance.now() - startTime
+            if (elapsed >= settlingDuration) {
+              return 0
+            }
+
+            const time = elapsed / duration
             return springVelocity(spring, {
               time,
               from,
@@ -190,40 +257,13 @@ export function animate<FromTo extends AnimateFromTo>(
     },
   }
 
-  function stop(): void {
-    if (ctx.settled) {
-      return
-    }
-    ctx.finished = ctx.settled = true
-
-    const values = (
-      typeof ctx.current === 'number'
-        ? `${ctx.current}px`
-        : mapValues(ctx.current, (v) => `${v}px`)
-    ) as AnimateValues<FromTo>
-
-    set(values, {
-      transition: '',
-      [t]: '',
-    })
-  }
-
-  function onFinished(): void {
+  ctx.finishingPromise.then(() => {
     ctx.finished = true
-  }
+  })
 
-  function onSettled(): void {
-    if (ctx.settled) {
-      return
-    }
+  ctx.settlingPromise.then(() => {
     ctx.finished = ctx.settled = true
-
-    const toValues = mapFromTo(fromTo, undefined, ([_, to]) => `${to}px`)
-    set(toValues, {
-      transition: '',
-      [t]: '',
-    })
-  }
+  })
 
   return ctx
 }
@@ -243,8 +283,4 @@ function mapFromTo<FromTo extends AnimateFromTo>(
       typeof velocities === 'number' ? velocities : velocities?.[key] ?? 0
     return fn(value as [number, number], v)
   }) as AnimateValues<FromTo>
-}
-
-function forceReflow(): void {
-  document.body.offsetHeight
 }

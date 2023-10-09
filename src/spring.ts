@@ -11,7 +11,7 @@ import {
   var_,
 } from './math'
 
-interface Spring {
+export interface Spring {
   expression: (data: {
     from: number
     to: number

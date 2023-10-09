@@ -8,3 +8,7 @@ export function mapValues<T, U>(
   }
   return result
 }
+
+export function forceReflow(): void {
+  document.body.offsetHeight
+}
