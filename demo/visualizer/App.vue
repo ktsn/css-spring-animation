@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, watchEffect } from 'vue'
-import { calcSpringValue } from '../../src/main'
+import { createSpring, springValue } from '../../src/main'
 import { useSpringStyle } from '../../src/vue/main'
 
 const from = 0
@@ -79,14 +79,17 @@ function render(time: number): void {
   let currentX: number = -1
   let currentY: number = -1
 
+  const spring = createSpring({
+    ...parameters.value,
+  })
+
   for (let i = 0; i < w * 2; i++) {
     const t = i / w
-    const value = calcSpringValue({
+    const value = springValue(spring, {
       time: t,
       from,
       to,
       initialVelocity: parameters.value.velocity,
-      ...parameters.value,
     })
 
     const y = (2 - value / (to - from)) * (h / 2 - p) + p

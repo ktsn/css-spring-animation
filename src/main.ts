@@ -6,4 +6,4 @@ export type {
   AnimateContext,
 } from './animate'
 
-export { createSpring, calcSpringValue } from './spring'
+export { createSpring, springValue } from './spring'

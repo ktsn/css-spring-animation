@@ -1,5 +1,10 @@
 import { registerPropertyIfNeeded, t, wait } from './time'
-import { calcSpringValue, createSpringStyle, springVelocity } from './spring'
+import {
+  springValue,
+  springStyle,
+  springVelocity,
+  createSpring,
+} from './spring'
 import { mapValues } from './utils'
 
 export interface AnimateOptions<Values> {
@@ -42,12 +47,15 @@ export function animate<FromTo extends AnimateFromTo>(
   const duration = options?.duration ?? 1000
   const bounce = options?.bounce ?? 0
 
+  const spring = createSpring({
+    bounce,
+    duration,
+  })
+
   const values = mapFromTo(fromTo, options.velocity, ([from, to], velocity) => {
-    return createSpringStyle({
+    return springStyle(spring, {
       from,
       to,
-      bounce,
-      duration,
       initialVelocity: velocity,
     })
   })
@@ -77,12 +85,10 @@ export function animate<FromTo extends AnimateFromTo>(
         const [from, to] = fromTo
         const initialVelocity =
           typeof options.velocity === 'number' ? options.velocity : 0
-        return calcSpringValue({
+        return springValue(spring, {
           from,
           to,
-          bounce,
           initialVelocity,
-          duration,
           time,
         }) as AnimateValues<FromTo, number>
       }
@@ -106,12 +112,10 @@ export function animate<FromTo extends AnimateFromTo>(
           enumerable: true,
           get() {
             const time = (performance.now() - startTime) / duration
-            return calcSpringValue({
+            return springValue(spring, {
               from,
               to,
-              bounce,
               initialVelocity,
-              duration,
               time,
             })
           },
@@ -128,12 +132,10 @@ export function animate<FromTo extends AnimateFromTo>(
         const initialVelocity =
           typeof options.velocity === 'number' ? options.velocity : 0
 
-        return springVelocity({
+        return springVelocity(spring, {
           time,
           from,
           to,
-          bounce,
-          duration,
           initialVelocity,
         })
       }
@@ -157,12 +159,10 @@ export function animate<FromTo extends AnimateFromTo>(
           enumerable: true,
           get() {
             const time = (performance.now() - startTime) / duration
-            return springVelocity({
+            return springVelocity(spring, {
               time,
               from,
               to,
-              bounce,
-              duration,
               initialVelocity,
             })
           },
