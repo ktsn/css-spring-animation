@@ -121,7 +121,7 @@ function bouncySpringConstants({
 }) {
   const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
-  const a = 2 * Math.PI
+  const a = 1.7 * Math.PI
   const b = Math.atan2(-c - v, a)
   const A = 1 / Math.cos(b)
 
