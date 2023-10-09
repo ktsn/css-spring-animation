@@ -369,6 +369,16 @@ function flattenedSpringVelocity(data: {
   return denormalizeVelocity(v, data)
 }
 
+/**
+ * Naive implementation to find the settling duration.
+ * Check what time value makes the decay part of the spring expression under settlingThreshold.
+ * Solving this equation for t:
+ *
+ * position = distance * e ^ (-c * t) (= settlingThreshold)
+ * t = log(distance / settlingThreshold) / c
+ *
+ * Since t is normalized time with duration, we have to multiply it by actual duration.
+ */
 function settlingDuration(data: {
   from: number
   to: number
