@@ -12,14 +12,11 @@ import {
 } from './math'
 
 interface Spring {
-  expressions: (data: {
+  expression: (data: {
     from: number
     to: number
     initialVelocity: number
-  }) => {
-    complete: Expression
-    decay: Expression
-  }
+  }) => Expression
 
   velocity: (data: {
     time: number
@@ -27,6 +24,8 @@ interface Spring {
     to: number
     initialVelocity: number
   }) => number
+
+  settlingDuration: (data: { from: number; to: number }) => number
 }
 
 export function springStyle(
@@ -34,7 +33,7 @@ export function springStyle(
   data: { from: number; to: number; initialVelocity: number },
 ): string {
   const wrap = (exp: string) => `calc(1px * ${exp})`
-  return wrap(generateCSSValue(spring.expressions(data).complete))
+  return wrap(generateCSSValue(spring.expression(data)))
 }
 
 export function springValue(
@@ -44,7 +43,7 @@ export function springValue(
   const variables = {
     [t]: data.time,
   }
-  return calculate(spring.expressions(data).complete, variables)
+  return calculate(spring.expression(data), variables)
 }
 
 export function springVelocity(
@@ -52,6 +51,16 @@ export function springVelocity(
   data: { time: number; from: number; to: number; initialVelocity: number },
 ): number {
   return spring.velocity(data)
+}
+
+export function springSettlingDuration(
+  spring: Spring,
+  data: {
+    from: number
+    to: number
+  },
+): number {
+  return spring.settlingDuration(data)
 }
 
 /**
@@ -188,7 +197,7 @@ function bouncySpring({
 }): Spring {
   return {
     // A * cos(a * t + b) * e ^ (-c * t)
-    expressions: (data) => {
+    expression: (data) => {
       const { A, a, b, c } = bouncySpringConstants({
         ...data,
         bounce,
@@ -199,10 +208,7 @@ function bouncySpring({
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(v(A), mul(bouncePart, decayPart))
 
-      return {
-        complete: add(mul(v(data.from - data.to), easing), v(data.to)),
-        decay: decayPart,
-      }
+      return add(mul(v(data.from - data.to), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -212,6 +218,13 @@ function bouncySpring({
         duration,
       })
     },
+
+    settlingDuration: (data) =>
+      settlingDuration({
+        ...data,
+        bounce,
+        duration,
+      }),
   }
 }
 
@@ -245,7 +258,7 @@ function smoothSpring({
 }): Spring {
   return {
     // (A * t + B) * e ^ (-c * t)
-    expressions: (data) => {
+    expression: (data) => {
       const { A, B, c } = smoothSpringConstants({
         ...data,
         bounce,
@@ -256,10 +269,7 @@ function smoothSpring({
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(bouncePart, decayPart)
 
-      return {
-        complete: add(mul(v(data.from - data.to), easing), v(data.to)),
-        decay: decayPart,
-      }
+      return add(mul(v(data.from - data.to), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -269,6 +279,13 @@ function smoothSpring({
         duration,
       })
     },
+
+    settlingDuration: (data) =>
+      settlingDuration({
+        ...data,
+        bounce,
+        duration,
+      }),
   }
 }
 
@@ -300,23 +317,20 @@ function flattenedSpring({
   duration: number
 }): Spring {
   return {
-    expressions: (data) => {
+    // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
+    expression: (data) => {
       const { A, B, a, c } = flattenedSpringConstants({
         ...data,
         bounce,
         duration,
       })
 
-      // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
       const pullPart = mul(v(A), exp(mul(v(a), var_(t))))
       const pushPart = mul(v(B), exp(mul(v(-a), var_(t))))
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(add(pullPart, pushPart), decayPart)
 
-      return {
-        complete: add(mul(v(data.from - data.to), easing), v(data.to)),
-        decay: decayPart,
-      }
+      return add(mul(v(data.from - data.to), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -326,6 +340,13 @@ function flattenedSpring({
         duration,
       })
     },
+
+    settlingDuration: (data) =>
+      settlingDuration({
+        ...data,
+        bounce,
+        duration,
+      }),
   }
 }
 
@@ -346,4 +367,16 @@ function flattenedSpringVelocity(data: {
     c * Math.exp(-c * t) * (A * Math.exp(a * t) + B * Math.exp(-a * t))
 
   return denormalizeVelocity(v, data)
+}
+
+function settlingDuration(data: {
+  from: number
+  to: number
+  bounce: number
+  duration: number
+}): number {
+  const c = constant(data.bounce)
+  const distance = Math.abs(data.to - data.from)
+  const settlingThreshold = 0.0001
+  return (Math.log(distance / settlingThreshold) * data.duration) / c
 }

@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { createSpring, springValue, springVelocity } from '../src/spring'
 
-function toMostlyEqual(actual: number, expected: number) {
-  expect(Math.abs(actual - expected)).toBeLessThan(0.000001)
+function toMostlyEqual(actual: number, expected: number, tolerance = 0.000001) {
+  expect(actual).toBeLessThan(expected + tolerance)
+  expect(actual).toBeGreaterThan(expected - tolerance)
 }
 
 describe('spring', () => {
@@ -171,6 +172,126 @@ describe('spring', () => {
             time: 0,
           }),
           1000,
+        )
+      })
+    })
+  })
+
+  describe('settling duration constraints', () => {
+    describe('value when time = settlingDuration must mostly equal to "to" value', () => {
+      test('bounce > 0', () => {
+        const duration = 3000
+
+        const spring = createSpring({
+          bounce: 0.2,
+          duration,
+        })
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 0,
+            time:
+              spring.settlingDuration({
+                from: 0,
+                to: 100,
+              }) / duration,
+          }),
+          100,
+          0.01,
+        )
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 6000,
+            time:
+              spring.settlingDuration({
+                from: 0,
+                to: 100,
+              }) / duration,
+          }),
+          100,
+          0.01,
+        )
+      })
+
+      test('bounce = 0', () => {
+        const duration = 3000
+
+        const spring = createSpring({
+          bounce: 0,
+          duration,
+        })
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 0,
+            time:
+              spring.settlingDuration({
+                from: 0,
+                to: 100,
+              }) / duration,
+          }),
+          100,
+          0.01,
+        )
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 6000,
+            time: spring.settlingDuration({
+              from: 0,
+              to: 100,
+            }),
+          }),
+          100,
+          0.01,
+        )
+      })
+
+      test('bounce < 0', () => {
+        const duration = 3000
+
+        const spring = createSpring({
+          bounce: -0.2,
+          duration,
+        })
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 0,
+            time:
+              spring.settlingDuration({
+                from: 0,
+                to: 100,
+              }) / duration,
+          }),
+          100,
+          0.01,
+        )
+
+        toMostlyEqual(
+          springValue(spring, {
+            from: 0,
+            to: 100,
+            initialVelocity: 6000,
+            time:
+              spring.settlingDuration({
+                from: 0,
+                to: 100,
+              }) / duration,
+          }),
+          100,
+          0.01,
         )
       })
     })
