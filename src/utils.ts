@@ -9,6 +9,14 @@ export function mapValues<T, U>(
   return result
 }
 
+export function isBrowserSupported(): boolean {
+  return (
+    typeof CSS !== 'undefined' &&
+    typeof CSS.registerProperty === 'function' &&
+    CSS.supports('width', 'calc(1px * exp(0))')
+  )
+}
+
 export function forceReflow(): void {
   document.body.offsetHeight
 }

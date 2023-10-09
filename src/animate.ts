@@ -7,7 +7,7 @@ import {
   springSettlingDuration,
   Spring,
 } from './spring'
-import { forceReflow, mapValues } from './utils'
+import { forceReflow, isBrowserSupported, mapValues } from './utils'
 
 export interface AnimateOptions<Values> {
   velocity?: Partial<AnimateVelocities<Values>>
@@ -46,8 +46,6 @@ export function animate<FromTo extends AnimateFromTo>(
   ) => void,
   options: AnimateOptions<FromTo> = {},
 ): AnimateContext<FromTo> {
-  registerPropertyIfNeeded()
-
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
 
@@ -66,27 +64,29 @@ export function animate<FromTo extends AnimateFromTo>(
     ),
   )
 
-  const values = mapFromTo(fromTo, options.velocity, ([from, to], velocity) => {
-    return springStyle(spring, {
-      from,
-      to,
-      initialVelocity: velocity,
-    })
-  })
-
-  set(values, {
-    transition: 'none',
-    [t]: '0',
-  })
-
-  forceReflow()
-
-  set(values, {
-    transition: `${t} ${settlingDuration}ms linear`,
-    [t]: String(settlingDuration / duration),
-  })
-
   const startTime = performance.now()
+
+  if (isBrowserSupported()) {
+    animateWithCssTransition({
+      spring,
+      fromTo,
+      velocity: options.velocity,
+      duration,
+      settlingDuration,
+      set,
+    })
+  } else {
+    // Graceful degradation
+    animateWithRaf({
+      spring,
+      fromTo,
+      velocity: options.velocity,
+      startTime,
+      duration,
+      settlingDuration,
+      set,
+    })
+  }
 
   const ctx = createContext({
     spring,
@@ -111,6 +111,114 @@ export function animate<FromTo extends AnimateFromTo>(
   })
 
   return ctx
+}
+
+function animateWithCssTransition<FromTo extends AnimateFromTo>({
+  spring,
+  fromTo,
+  velocity,
+  duration,
+  settlingDuration,
+  set,
+}: {
+  spring: Spring
+  fromTo: FromTo
+  velocity: Partial<AnimateVelocities<FromTo>> | undefined
+  duration: number
+  settlingDuration: number
+  set: (
+    values: AnimateValues<FromTo>,
+    additionalStyle: Record<string, string>,
+  ) => void
+}): void {
+  registerPropertyIfNeeded()
+
+  const values = mapFromTo(fromTo, velocity, ([from, to], velocity) => {
+    return springStyle(spring, {
+      from,
+      to,
+      initialVelocity: velocity,
+    })
+  })
+
+  set(values, {
+    transition: 'none',
+    [t]: '0',
+  })
+
+  forceReflow()
+
+  set(values, {
+    transition: `${t} ${settlingDuration}ms linear`,
+    [t]: String(settlingDuration / duration),
+  })
+}
+
+function animateWithRaf<FromTo extends AnimateFromTo>({
+  spring,
+  fromTo,
+  velocity,
+  startTime,
+  duration,
+  settlingDuration,
+  set,
+}: {
+  spring: Spring
+  fromTo: FromTo
+  velocity: Partial<AnimateVelocities<FromTo>> | undefined
+  startTime: number
+  duration: number
+  settlingDuration: number
+  set: (
+    values: AnimateValues<FromTo>,
+    additionalStyle: Record<string, string>,
+  ) => void
+}): void {
+  function render(now: number): void {
+    const elapsed = now - startTime
+    if (elapsed >= settlingDuration) {
+      return
+    }
+
+    const time = elapsed / duration
+    const wrapWithPx = (value: number) => `${value}px`
+    const values = Array.isArray(fromTo)
+      ? wrapWithPx(
+          springValue(spring, {
+            time,
+            from: fromTo[0],
+            to: fromTo[1],
+            initialVelocity: typeof velocity === 'number' ? velocity : 0,
+          }),
+        )
+      : mapValues(
+          fromTo as Record<keyof FromTo, [number, number]>,
+          (value, key) => {
+            return wrapWithPx(
+              springValue(spring, {
+                time,
+                from: value[0],
+                to: value[1],
+                initialVelocity:
+                  typeof velocity === 'number'
+                    ? velocity
+                    : (velocity as Record<typeof key, number> | undefined)?.[
+                        key
+                      ] ?? 0,
+              }),
+            )
+          },
+        )
+
+    set(values as AnimateValues<FromTo>, {
+      transition: 'none',
+      [t]: String(time),
+    })
+
+    requestAnimationFrame(render)
+  }
+
+  requestAnimationFrame(render)
 }
 
 function createContext<FromTo extends AnimateFromTo>({
