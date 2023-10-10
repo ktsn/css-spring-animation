@@ -10,7 +10,6 @@ describe('animate type', () => {
       },
       {
         velocity: 10,
-        unit: 'em',
       },
     )
 
@@ -31,10 +30,6 @@ describe('animate type', () => {
         velocity: {
           x: 10,
           y: 10,
-        },
-        unit: {
-          x: 'em',
-          y: 'em',
         },
       },
     )
@@ -73,7 +68,7 @@ describe('animate type', () => {
     )
   })
 
-  test('multiple value: disallow single velocity or unit', () => {
+  test('multiple value: disallow single velocity', () => {
     // @ts-expect-error Type 'number' is not assignable to type 'Record<"x" | "y", number>'
     animate(
       {
@@ -85,20 +80,6 @@ describe('animate type', () => {
       },
       {
         velocity: 10,
-      },
-    )
-
-    // @ts-expect-error Type 'string' has no properties in common with type 'Partial<Record<"x" | "y", string>>'
-    animate(
-      {
-        x: [0, 100],
-        y: [0, 100],
-      },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
-      {
-        unit: 'em',
       },
     )
   })
@@ -121,24 +102,6 @@ describe('animate type', () => {
         },
       },
     )
-
-    // @ts-expect-error Type '{ x: string; y: string; z: string; }' is not assignable to type 'Partial<Record<"x" | "y", string>>'.
-    animate(
-      {
-        x: [0, 100],
-        y: [0, 100],
-      },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
-      {
-        unit: {
-          x: 'em',
-          y: 'em',
-          z: 'em',
-        },
-      },
-    )
   })
 
   test('multiple value: velocity properties are optional', () => {
@@ -152,21 +115,6 @@ describe('animate type', () => {
       },
       {
         velocity: {},
-      },
-    )
-  })
-
-  test('multiple value: unit properties are optional', () => {
-    animate(
-      {
-        x: [0, 100],
-        y: [0, 100],
-      },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
-      {
-        unit: {},
       },
     )
   })

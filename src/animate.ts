@@ -11,10 +11,8 @@ import { forceReflow, isBrowserSupported, mapValues } from './utils'
 
 export interface AnimateOptions<
   Velocity extends Partial<MaybeRecord<string, number>>,
-  Unit extends Partial<MaybeRecord<string, string>>,
 > {
   velocity?: Velocity
-  unit?: Unit
   duration?: number
   bounce?: number
 }
@@ -35,7 +33,7 @@ export interface AnimateContext<Values extends MaybeRecord<string, number>> {
 export function animate(
   fromTo: [number, number],
   set: (values: string, additionalStyle: Record<string, string>) => void,
-  options?: AnimateOptions<number, string>,
+  options?: AnimateOptions<number>,
 ): AnimateContext<number>
 
 // Animate multiple values in an object.
@@ -45,16 +43,13 @@ export function animate<FromTo extends Record<string, [number, number]>>(
     values: Record<keyof FromTo, string>,
     additionalStyle: Record<string, string>,
   ) => void,
-  options?: AnimateOptions<
-    Partial<Record<keyof FromTo, number>>,
-    Partial<Record<keyof FromTo, string>>
-  >,
+  options?: AnimateOptions<Partial<Record<keyof FromTo, number>>>,
 ): AnimateContext<Record<keyof FromTo, number>>
 
 export function animate(
   fromTo: MaybeRecord<string, [number, number]>,
   set: (values: any, additionalStyle: Record<string, string>) => void,
-  options: AnimateOptions<any, any> = {},
+  options: AnimateOptions<any> = {},
 ): AnimateContext<MaybeRecord<string, number>> {
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
@@ -90,7 +85,6 @@ export function animate(
       spring,
       fromTo,
       velocity: options.velocity,
-      unit: options.unit,
       duration,
       settlingDuration,
       set,
@@ -99,24 +93,15 @@ export function animate(
     // Graceful degradation
     animateWithRaf({
       context: ctx,
-      unit: options.unit,
       set,
     })
   }
 
   ctx.settlingPromise.then(() => {
-    const unit = options.unit
-
-    let values: MaybeRecord<string, string>
-    if (typeof ctx.current === 'number') {
-      const unitValue = typeof unit === 'string' ? unit : 'px'
-      values = `${ctx.current}${unitValue}`
-    } else {
-      values = mapValues(ctx.current, (v, key) => {
-        const unitValue = typeof unit === 'string' ? unit : unit?.[key] ?? 'px'
-        return `${v}${unitValue}`
-      })
-    }
+    const values =
+      typeof ctx.current === 'number'
+        ? String(ctx.current)
+        : mapValues(ctx.current, (v) => String(v))
 
     set(values, {
       transition: '',
@@ -131,7 +116,6 @@ function animateWithCssTransition({
   spring,
   fromTo,
   velocity,
-  unit,
   duration,
   settlingDuration,
   set,
@@ -139,7 +123,6 @@ function animateWithCssTransition({
   spring: Spring
   fromTo: MaybeRecord<string, [number, number]>
   velocity: Partial<MaybeRecord<string, number>> | undefined
-  unit: Partial<MaybeRecord<string, string>> | undefined
   duration: number
   settlingDuration: number
   set: (values: any, additionalStyle: Record<string, string>) => void
@@ -151,18 +134,15 @@ function animateWithCssTransition({
         from: fromTo[0],
         to: fromTo[1],
         initialVelocity: typeof velocity === 'number' ? velocity : 0,
-        unit: typeof unit === 'string' ? unit : 'px',
       })
     : mapValues(fromTo, ([from, to], key) => {
         const initialVelocity =
           typeof velocity === 'number' ? velocity : velocity?.[key] ?? 0
-        const unitValue = typeof unit === 'string' ? unit : unit?.[key] ?? 'px'
 
         return springStyle(spring, {
           from,
           to,
           initialVelocity,
-          unit: unitValue,
         })
       })
 
@@ -181,11 +161,9 @@ function animateWithCssTransition({
 
 function animateWithRaf({
   context,
-  unit,
   set,
 }: {
   context: AnimateContext<any>
-  unit: Partial<MaybeRecord<keyof any, string>> | undefined
   set: (values: any, additionalStyle: Record<string, string>) => void
 }): void {
   function render(): void {
@@ -193,16 +171,10 @@ function animateWithRaf({
       return
     }
 
-    let values: MaybeRecord<string, string>
-    if (typeof context.current === 'number') {
-      const unitValue = typeof unit === 'string' ? unit : 'px'
-      values = `${context.current}${unitValue}`
-    } else {
-      values = mapValues(context.current, (v, key) => {
-        const unitValue = typeof unit === 'string' ? unit : unit?.[key] ?? 'px'
-        return `${v}${unitValue}`
-      })
-    }
+    const values =
+      typeof context.current === 'number'
+        ? String(context.current)
+        : mapValues(context.current, (v) => String(v))
 
     set(values, {
       transition: 'none',
@@ -367,4 +339,11 @@ function createContext({
   })
 
   return ctx
+}
+
+export function unit(value: string, unit: string): string {
+  const trimmed = value.trim()
+  return Number.isNaN(Number(trimmed))
+    ? `calc(1${unit} * (${trimmed}))`
+    : `${trimmed}${unit}`
 }

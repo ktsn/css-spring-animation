@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, shallowRef, watchEffect } from 'vue'
-import { createSpring, springValue } from '../../src/main'
+import { createSpring, springValue, unit } from '../../src/main'
 import { useSpringStyle } from '../../src/vue/main'
 
 const from = 0
@@ -22,7 +22,7 @@ const style = useSpringStyle(
   x,
   (value) => {
     return {
-      translate: value,
+      translate: unit(value, 'px'),
     }
   },
   () => {

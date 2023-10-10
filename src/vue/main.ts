@@ -1,6 +1,7 @@
 export { useSpringStyle } from './use-spring'
 export {
   animate,
+  unit,
   createSpring,
   springValue,
   springVelocity,

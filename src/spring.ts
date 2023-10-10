@@ -30,9 +30,9 @@ export interface Spring {
 
 export function springStyle(
   spring: Spring,
-  data: { from: number; to: number; initialVelocity: number; unit: string },
+  data: { from: number; to: number; initialVelocity: number },
 ): string {
-  const wrap = (exp: string) => `calc(1${data.unit} * ${exp})`
+  const wrap = (exp: string) => `calc(${exp})`
   return wrap(generateCSSValue(spring.expression(data)))
 }
 

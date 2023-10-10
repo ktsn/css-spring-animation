@@ -1,4 +1,4 @@
-import { animate } from '../../src/main'
+import { animate, unit } from '../../src/main'
 
 const demo = document.getElementById('demo')!
 
@@ -6,7 +6,7 @@ setInterval(() => {
   animate(
     [0, 300],
     (value, styles) => {
-      demo.style.translate = `${value} ${value}`
+      demo.style.translate = `${unit(value, 'px')} ${unit(value, 'px')}`
       Object.entries(styles).forEach(([k, v]) => {
         demo.style.setProperty(k, v)
       })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSpringStyle } from '../../src/vue/main'
+import { unit, useSpringStyle } from '../../src/vue/main'
 
 const to = ref({
   x: 0,
@@ -11,7 +11,7 @@ const style = useSpringStyle(
   to,
   (values) => {
     return {
-      translate: `${values.x} ${values.y}`,
+      translate: `${unit(values.x, 'px')} ${unit(values.y, 'px')}`,
     }
   },
   {

@@ -1,5 +1,5 @@
 import { describe, expect, test, vitest } from 'vitest'
-import { animate } from '../src/animate'
+import { animate, unit } from '../src/animate'
 
 vitest.mock('../src/utils', async () => {
   const actual = await vitest.importActual<object>('../src/utils')
@@ -118,7 +118,7 @@ describe('animate', () => {
     })
   })
 
-  test('pass style value with unit px', async () => {
+  test('pass style value with no unit', async () => {
     let value: string | undefined
     const ctx = animate(
       [0, 10],
@@ -130,61 +130,20 @@ describe('animate', () => {
       },
     )
 
-    expect(value).toMatch(/\d+px/)
+    expect(value).not.toMatch(/\d+px/)
     await ctx.settlingPromise
-    expect(value).toBe('10px')
-  })
-
-  test('pass style value with specified unit', async () => {
-    let value: string | undefined
-    const ctx = animate(
-      [0, 10],
-      (v) => {
-        value = v
-      },
-      {
-        duration: 10,
-        unit: '%',
-      },
-    )
-
-    expect(value).toMatch(/\d+%/)
-    await ctx.settlingPromise
-    expect(value).toBe('10%')
-  })
-
-  test('allow to remove unit', async () => {
-    let value: string | undefined
-    const ctx1 = animate(
-      [0, 10],
-      (v) => {
-        value = v
-      },
-      {
-        duration: 10,
-        unit: '',
-      },
-    )
-
-    await ctx1.settlingPromise
     expect(value).toBe('10')
+  })
+})
 
-    const ctx2 = animate(
-      {
-        scale: [0, 1],
-      },
-      (v) => {
-        value = v.scale
-      },
-      {
-        duration: 10,
-        unit: {
-          scale: '',
-        },
-      },
-    )
+describe('unit', () => {
+  test('add unit directly to numeric value', () => {
+    const actual = unit('10.123', 'px')
+    expect(actual).toBe('10.123px')
+  })
 
-    await ctx2.settlingPromise
-    expect(value).toBe('1')
+  test('wrap with calc() if value is likely an expression', () => {
+    const actual = unit('1 + exp(3)', 'px')
+    expect(actual).toBe('calc(1px * (1 + exp(3)))')
   })
 })

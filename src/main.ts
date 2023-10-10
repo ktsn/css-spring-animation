@@ -1,4 +1,4 @@
-export { animate } from './animate'
+export { animate, unit } from './animate'
 export type { AnimateOptions, AnimateContext, MaybeRecord } from './animate'
 
 export {
