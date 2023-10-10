@@ -93,6 +93,33 @@ describe('spring', () => {
   })
 
   describe('velocity constraints', () => {
+    test('return actual number when there is no gap between from and to', () => {
+      const spring = createSpring({
+        bounce: 0.2,
+        duration: 1000,
+      })
+
+      toMostlyEqual(
+        springVelocity(spring, {
+          from: 100,
+          to: 100,
+          initialVelocity: 0,
+          time: 0,
+        }),
+        0,
+      )
+
+      toMostlyEqual(
+        springVelocity(spring, {
+          from: 100,
+          to: 100,
+          initialVelocity: 1000,
+          time: 0,
+        }),
+        1000,
+      )
+    })
+
     describe('velocity when time = 0 must mostly equal to initialVelocity value', () => {
       test('bounce > 0', () => {
         const spring = createSpring({

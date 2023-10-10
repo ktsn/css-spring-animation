@@ -93,7 +93,9 @@ function normalizeVelocity(
   velocity: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  return (velocity / (from - to)) * (1000 / duration)
+  // use non-zero very small value when from and to are same to avoid division by zero
+  const volume = from - to === 0 ? 0.0001 : from - to
+  return (velocity / volume) * (1000 / duration)
 }
 
 /**
@@ -103,7 +105,9 @@ function denormalizeVelocity(
   v: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  return v * (from - to) * (duration / 1000)
+  // use non-zero very small value when from and to are same to avoid velocity lost
+  const volume = from - to === 0 ? 0.0001 : from - to
+  return v * volume * (duration / 1000)
 }
 
 function bouncySpringConstants({
