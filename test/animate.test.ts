@@ -134,4 +134,22 @@ describe('animate', () => {
     await ctx.settlingPromise
     expect(value).toBe('10px')
   })
+
+  test('pass style value with specified unit', async () => {
+    let value: string | undefined
+    const ctx = animate(
+      [0, 10],
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+        unit: '%',
+      },
+    )
+
+    expect(value).toMatch(/\d+%/)
+    await ctx.settlingPromise
+    expect(value).toBe('10%')
+  })
 })

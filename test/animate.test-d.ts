@@ -10,6 +10,7 @@ describe('animate type', () => {
       },
       {
         velocity: 10,
+        unit: 'em',
       },
     )
 
@@ -31,6 +32,10 @@ describe('animate type', () => {
           x: 10,
           y: 10,
         },
+        unit: {
+          x: 'em',
+          y: 'em',
+        },
       },
     )
 
@@ -38,7 +43,7 @@ describe('animate type', () => {
     expectTypeOf(ctx.velocity).toEqualTypeOf<{ x: number; y: number }>()
   })
 
-  test('single value: disallow multiple velocity', () => {
+  test('single value: disallow multiple velocity or unit', () => {
     animate(
       [0, 100],
       (value) => {
@@ -52,9 +57,23 @@ describe('animate type', () => {
         },
       },
     )
+
+    animate(
+      [0, 100],
+      (value) => {
+        expectTypeOf(value).toEqualTypeOf<string>()
+      },
+      {
+        // @ts-expect-error Type '{ x: number; y: number; }' is not assignable to type 'string'.
+        unit: {
+          x: 'em',
+          y: 'em',
+        },
+      },
+    )
   })
 
-  test('multiple value: disallow single velocity', () => {
+  test('multiple value: disallow single velocity or unit', () => {
     // @ts-expect-error Type 'number' is not assignable to type 'Record<"x" | "y", number>'
     animate(
       {
@@ -66,6 +85,20 @@ describe('animate type', () => {
       },
       {
         velocity: 10,
+      },
+    )
+
+    // @ts-expect-error Type 'string' has no properties in common with type 'Partial<Record<"x" | "y", string>>'
+    animate(
+      {
+        x: [0, 100],
+        y: [0, 100],
+      },
+      (values) => {
+        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
+      },
+      {
+        unit: 'em',
       },
     )
   })
@@ -88,6 +121,24 @@ describe('animate type', () => {
         },
       },
     )
+
+    // @ts-expect-error Type '{ x: string; y: string; z: string; }' is not assignable to type 'Partial<Record<"x" | "y", string>>'.
+    animate(
+      {
+        x: [0, 100],
+        y: [0, 100],
+      },
+      (values) => {
+        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
+      },
+      {
+        unit: {
+          x: 'em',
+          y: 'em',
+          z: 'em',
+        },
+      },
+    )
   })
 
   test('multiple value: velocity properties are optional', () => {
@@ -101,6 +152,21 @@ describe('animate type', () => {
       },
       {
         velocity: {},
+      },
+    )
+  })
+
+  test('multiple value: unit properties are optional', () => {
+    animate(
+      {
+        x: [0, 100],
+        y: [0, 100],
+      },
+      (values) => {
+        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
+      },
+      {
+        unit: {},
       },
     )
   })

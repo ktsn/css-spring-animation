@@ -14,8 +14,10 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 
 export type SpringValues = number | Record<string, number>
 
-interface UseSpringOptions<Velocity extends MaybeRecord<string, number>>
-  extends AnimateOptions<Velocity> {
+interface UseSpringOptions<
+  Velocity extends Partial<MaybeRecord<string, number>>,
+  Unit extends Partial<MaybeRecord<string, string>>,
+> extends AnimateOptions<Velocity, Unit> {
   disabled?: boolean
 }
 
@@ -26,41 +28,58 @@ function raf(): Promise<void> {
 export function useSpringStyle(
   value: RefOrGetter<number>,
   styleMapper: (value: string) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<number>>,
+  options?: MaybeRefOrGetter<UseSpringOptions<number, string>>,
 ): Readonly<Ref<Record<string, string>>>
 
 export function useSpringStyle<T extends Record<string, number>>(
   value: RefOrGetter<T>,
   styleMapper: (value: Record<keyof T, string>) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<T>>,
+  options?: MaybeRefOrGetter<
+    UseSpringOptions<Partial<T>, Partial<Record<keyof T, string>>>
+  >,
 ): Readonly<Ref<Record<string, string>>>
 
 export function useSpringStyle(
   values: RefOrGetter<MaybeRecord<string, number>>,
   styleMapper: (values: any) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<MaybeRecord<string, number>>>,
+  options?: MaybeRefOrGetter<
+    UseSpringOptions<
+      Partial<MaybeRecord<string, number>>,
+      Partial<MaybeRecord<string, string>>
+    >
+  >,
 ): Readonly<Ref<Record<string, string>>> {
   const current = computed(() => toValue(values))
   const optionsRef = computed(() => toValue(options) ?? {})
 
   const style = ref<Record<string, string>>(
-    styleMapper(valueToStyle(current.value)),
+    styleMapper(valueToStyle(current.value, optionsRef.value.unit)),
   )
 
   let ctx: AnimateContext<MaybeRecord<string, number>> | null = null
 
   function valueToStyle(
     value: MaybeRecord<string, number>,
+    unit: Partial<MaybeRecord<string, string>> | undefined,
   ): MaybeRecord<string, string> {
-    return typeof value === 'number'
-      ? `${value}px`
-      : mapValues(value, (v) => `${v}px`)
+    const defaultUnit = 'px'
+
+    if (typeof value === 'number') {
+      const u = typeof unit === 'string' ? unit : defaultUnit
+      return `${value}${u}`
+    } else {
+      return mapValues(value, (v, key) => {
+        const u =
+          typeof unit === 'object' ? unit[key] ?? defaultUnit : defaultUnit
+        return `${v}${u}`
+      })
+    }
   }
 
   function calculateCurrentSingleValues(
     next: number,
     prev: number,
-  ): { fromTo: [number, number]; velocity: number } {
+  ): { fromTo: [number, number]; velocity: number; unit: string | undefined } {
     const velocityOption = optionsRef.value.velocity
     let velocity = typeof velocityOption === 'number' ? velocityOption : 0
 
@@ -71,6 +90,10 @@ export function useSpringStyle(
     return {
       fromTo: [prev, next],
       velocity,
+      unit:
+        typeof optionsRef.value.unit === 'number'
+          ? optionsRef.value.unit
+          : undefined,
     }
   }
 
@@ -80,6 +103,7 @@ export function useSpringStyle(
   ): {
     fromTo: Record<string, [number, number]>
     velocity: Record<string, number>
+    unit: Partial<Record<string, string>> | undefined
   } {
     const velocityOption = optionsRef.value.velocity
 
@@ -105,6 +129,10 @@ export function useSpringStyle(
     return {
       fromTo,
       velocity,
+      unit:
+        typeof optionsRef.value.unit === 'object'
+          ? optionsRef.value.unit
+          : undefined,
     }
   }
 
@@ -119,7 +147,7 @@ export function useSpringStyle(
 
   watch(current, async (next, prev) => {
     if (optionsRef.value.disabled) {
-      style.value = styleMapper(valueToStyle(next))
+      style.value = styleMapper(valueToStyle(next, optionsRef.value.unit))
       return
     }
 
@@ -143,25 +171,33 @@ export function useSpringStyle(
     }
 
     if (typeof next === 'number' && typeof prev === 'number') {
-      const { fromTo, velocity } = calculateCurrentSingleValues(next, prev)
+      const { fromTo, velocity, unit } = calculateCurrentSingleValues(
+        next,
+        prev,
+      )
 
       await stop()
 
       ctx = animate(fromTo, mapper, {
         ...optionsRef.value,
         velocity,
+        unit,
       })
       return
     }
 
     if (typeof next === 'object' && typeof prev === 'object') {
-      const { fromTo, velocity } = calculateCurrentMultipleValues(next, prev)
+      const { fromTo, velocity, unit } = calculateCurrentMultipleValues(
+        next,
+        prev,
+      )
 
       await stop()
 
       ctx = animate(fromTo, mapper, {
         ...optionsRef.value,
         velocity,
+        unit,
       })
       return
     }
