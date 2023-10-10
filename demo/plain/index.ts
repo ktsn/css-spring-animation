@@ -8,11 +8,7 @@ setInterval(() => {
     (value, styles) => {
       demo.style.translate = `${value} ${value}`
       Object.entries(styles).forEach(([k, v]) => {
-        if (k.startsWith('--')) {
-          demo.style.setProperty(k, v)
-        } else {
-          demo.style[k as any] = v as any
-        }
+        demo.style.setProperty(k, v)
       })
     },
     {
