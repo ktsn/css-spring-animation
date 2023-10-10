@@ -34,10 +34,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "typecheck": "vitest typecheck",
     "test": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepublishOnly": "pnpm run test --run && pnpm build"
+    "prepublishOnly": "pnpm run typecheck --run && pnpm run test --run && pnpm build"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",

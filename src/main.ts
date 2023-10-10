@@ -1,10 +1,5 @@
 export { animate } from './animate'
-export type {
-  AnimateOptions,
-  AnimateValues,
-  AnimateVelocities,
-  AnimateContext,
-} from './animate'
+export type { AnimateOptions, AnimateContext, MaybeRecord } from './animate'
 
 export {
   createSpring,

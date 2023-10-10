@@ -7,9 +7,4 @@ export {
   springSettlingDuration,
 } from '../main'
 
-export type {
-  AnimateContext,
-  AnimateOptions,
-  AnimateValues,
-  AnimateVelocities,
-} from '../main'
+export type { AnimateContext, AnimateOptions } from '../main'

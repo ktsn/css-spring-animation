@@ -9,28 +9,19 @@ import {
 } from './spring'
 import { forceReflow, isBrowserSupported, mapValues } from './utils'
 
-export interface AnimateOptions<Values> {
-  velocity?: Partial<AnimateVelocities<Values>>
+export interface AnimateOptions<
+  Velocity extends Partial<MaybeRecord<string, number>>,
+> {
+  velocity?: Velocity
   duration?: number
   bounce?: number
 }
 
-export type AnimateFromTo = [number, number] | Record<string, [number, number]>
+export type MaybeRecord<K extends keyof any, V> = V | Record<K, V>
 
-export type AnimateVelocities<Values = unknown> =
-  | number
-  | { [K in keyof Values]: number }
-
-export type AnimateValues<Values = unknown, T = string> = Values extends Record<
-  string,
-  unknown
->
-  ? { [K in keyof Values]: T }
-  : T
-
-export interface AnimateContext<FromTo> {
-  current: AnimateValues<FromTo, number>
-  velocity: AnimateVelocities<FromTo>
+export interface AnimateContext<Values extends MaybeRecord<string, number>> {
+  current: Values
+  velocity: Values
   finished: boolean
   settled: boolean
   finishingPromise: Promise<void>
@@ -38,14 +29,28 @@ export interface AnimateContext<FromTo> {
   stop: () => void
 }
 
-export function animate<FromTo extends AnimateFromTo>(
+// Animate a single value.
+export function animate(
+  fromTo: [number, number],
+  set: (values: string, additionalStyle: Record<string, string>) => void,
+  options?: AnimateOptions<number>,
+): AnimateContext<number>
+
+// Animate multiple values in an object.
+export function animate<FromTo extends Record<string, [number, number]>>(
   fromTo: FromTo,
   set: (
-    values: AnimateValues<FromTo>,
+    values: Record<keyof FromTo, string>,
     additionalStyle: Record<string, string>,
   ) => void,
-  options: AnimateOptions<FromTo> = {},
-): AnimateContext<FromTo> {
+  options?: AnimateOptions<Partial<Record<keyof FromTo, number>>>,
+): AnimateContext<Record<keyof FromTo, number>>
+
+export function animate(
+  fromTo: MaybeRecord<string, [number, number]>,
+  set: (values: any, additionalStyle: Record<string, string>) => void,
+  options: AnimateOptions<any> = {},
+): AnimateContext<MaybeRecord<string, number>> {
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
 
@@ -93,11 +98,10 @@ export function animate<FromTo extends AnimateFromTo>(
   }
 
   ctx.settlingPromise.then(() => {
-    const values = (
+    const values =
       typeof ctx.current === 'number'
         ? `${ctx.current}px`
         : mapValues(ctx.current, (v) => `${v}px`)
-    ) as AnimateValues<FromTo>
 
     set(values, {
       transition: '',
@@ -108,7 +112,7 @@ export function animate<FromTo extends AnimateFromTo>(
   return ctx
 }
 
-function animateWithCssTransition<FromTo extends AnimateFromTo>({
+function animateWithCssTransition({
   spring,
   fromTo,
   velocity,
@@ -117,14 +121,11 @@ function animateWithCssTransition<FromTo extends AnimateFromTo>({
   set,
 }: {
   spring: Spring
-  fromTo: FromTo
-  velocity: Partial<AnimateVelocities<FromTo>> | undefined
+  fromTo: MaybeRecord<string, [number, number]>
+  velocity: Partial<MaybeRecord<string, number>> | undefined
   duration: number
   settlingDuration: number
-  set: (
-    values: AnimateValues<FromTo>,
-    additionalStyle: Record<string, string>,
-  ) => void
+  set: (values: any, additionalStyle: Record<string, string>) => void
 }): void {
   registerPropertyIfNeeded()
 
@@ -149,26 +150,22 @@ function animateWithCssTransition<FromTo extends AnimateFromTo>({
   })
 }
 
-function animateWithRaf<FromTo extends AnimateFromTo>({
+function animateWithRaf({
   context,
   set,
 }: {
-  context: AnimateContext<FromTo>
-  set: (
-    values: AnimateValues<FromTo>,
-    additionalStyle: Record<string, string>,
-  ) => void
+  context: AnimateContext<any>
+  set: (values: any, additionalStyle: Record<string, string>) => void
 }): void {
   function render(): void {
     if (context.settled) {
       return
     }
 
-    const values = (
+    const values =
       typeof context.current === 'number'
         ? `${context.current}px`
         : mapValues(context.current, (v) => `${v}px`)
-    ) as AnimateValues<FromTo>
 
     set(values, {
       transition: 'none',
@@ -180,7 +177,7 @@ function animateWithRaf<FromTo extends AnimateFromTo>({
   requestAnimationFrame(render)
 }
 
-function createContext<FromTo extends AnimateFromTo>({
+function createContext({
   spring,
   fromTo,
   velocity,
@@ -189,12 +186,12 @@ function createContext<FromTo extends AnimateFromTo>({
   settlingDuration,
 }: {
   spring: Spring
-  fromTo: FromTo
-  velocity: Partial<AnimateVelocities<FromTo>> | undefined
+  fromTo: MaybeRecord<string, [number, number]>
+  velocity: Partial<MaybeRecord<string, number>> | undefined
   startTime: number
   duration: number
   settlingDuration: number
-}): AnimateContext<FromTo> {
+}): AnimateContext<any> {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
   function stop() {
@@ -205,7 +202,7 @@ function createContext<FromTo extends AnimateFromTo>({
     forceResolve.fn.forEach((fn) => fn())
   }
 
-  const ctx: AnimateContext<FromTo> = {
+  const ctx: AnimateContext<any> = {
     finishingPromise: wait(duration + 1, forceResolve),
     settlingPromise: wait(settlingDuration + 1, forceResolve),
 
@@ -219,7 +216,7 @@ function createContext<FromTo extends AnimateFromTo>({
         const elapsed = performance.now() - startTime
         const [from, to] = fromTo
         if (elapsed >= settlingDuration) {
-          return to as AnimateValues<FromTo, number>
+          return to
         }
 
         const time = elapsed / duration
@@ -229,7 +226,7 @@ function createContext<FromTo extends AnimateFromTo>({
           to,
           initialVelocity,
           time,
-        }) as AnimateValues<FromTo, number>
+        })
       }
 
       const result: Record<string, number> = {}
@@ -265,7 +262,7 @@ function createContext<FromTo extends AnimateFromTo>({
         })
       }
 
-      return result as AnimateValues<FromTo, number>
+      return result
     },
 
     get velocity() {
@@ -320,7 +317,7 @@ function createContext<FromTo extends AnimateFromTo>({
         })
       }
 
-      return result as AnimateVelocities<FromTo>
+      return result
     },
   }
 
@@ -335,19 +332,19 @@ function createContext<FromTo extends AnimateFromTo>({
   return ctx
 }
 
-function mapFromTo<FromTo extends AnimateFromTo>(
-  fromTo: FromTo,
-  velocities: Partial<AnimateVelocities<FromTo>> | undefined,
+function mapFromTo(
+  fromTo: MaybeRecord<string, [number, number]>,
+  velocities: Partial<MaybeRecord<string, number>> | undefined,
   fn: (value: [number, number], velocity: number) => string,
-): AnimateValues<FromTo> {
+): MaybeRecord<string, string> {
   if (Array.isArray(fromTo)) {
     const v = typeof velocities === 'number' ? velocities : 0
-    return fn(fromTo, v) as AnimateValues<FromTo>
+    return fn(fromTo, v)
   }
 
   return mapValues(fromTo, (value, key) => {
     const v =
       typeof velocities === 'number' ? velocities : velocities?.[key] ?? 0
     return fn(value as [number, number], v)
-  }) as AnimateValues<FromTo>
+  })
 }
