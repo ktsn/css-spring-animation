@@ -32,6 +32,22 @@ describe('useSpringStyle', () => {
     expect(style.value.width).toBe('10%')
   })
 
+  test('remove unit', () => {
+    const style = useSpringStyle(
+      () => 1,
+      (opacity) => {
+        return {
+          opacity,
+        }
+      },
+      {
+        unit: '',
+      },
+    )
+
+    expect(style.value.opacity).toBe('1')
+  })
+
   test('specify different units for multiple values', () => {
     const style = useSpringStyle(
       () => {
@@ -59,6 +75,28 @@ describe('useSpringStyle', () => {
     expect(style.value.width).toBe('10%')
     expect(style.value.height).toBe('10em')
     expect(style.value.top).toBe('10px')
+  })
+
+  test('remove unit from multiple value', () => {
+    const style = useSpringStyle(
+      () => {
+        return {
+          scale: 1,
+        }
+      },
+      (value) => {
+        return {
+          scale: value.scale,
+        }
+      },
+      {
+        unit: {
+          scale: '',
+        },
+      },
+    )
+
+    expect(style.value.scale).toBe('1')
   })
 
   test('update style value immediately when disabled', async () => {

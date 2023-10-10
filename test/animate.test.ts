@@ -152,4 +152,39 @@ describe('animate', () => {
     await ctx.settlingPromise
     expect(value).toBe('10%')
   })
+
+  test('allow to remove unit', async () => {
+    let value: string | undefined
+    const ctx1 = animate(
+      [0, 10],
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+        unit: '',
+      },
+    )
+
+    await ctx1.settlingPromise
+    expect(value).toBe('10')
+
+    const ctx2 = animate(
+      {
+        scale: [0, 1],
+      },
+      (v) => {
+        value = v.scale
+      },
+      {
+        duration: 10,
+        unit: {
+          scale: '',
+        },
+      },
+    )
+
+    await ctx2.settlingPromise
+    expect(value).toBe('1')
+  })
 })
