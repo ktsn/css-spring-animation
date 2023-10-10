@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest'
-import { createSpring, springValue, springVelocity } from '../src/spring'
+import {
+  createSpring,
+  springSettlingDuration,
+  springValue,
+  springVelocity,
+} from '../src/spring'
 
 function toMostlyEqual(actual: number, expected: number, tolerance = 0.000001) {
   expect(actual).toBeLessThan(expected + tolerance)
@@ -8,6 +13,22 @@ function toMostlyEqual(actual: number, expected: number, tolerance = 0.000001) {
 
 describe('spring', () => {
   describe('value constraints', () => {
+    test('return actual animating value when from and to are the same', () => {
+      const spring = createSpring({
+        bounce: 0,
+        duration: 1000,
+      })
+
+      expect(
+        springValue(spring, {
+          from: 0,
+          to: 0,
+          initialVelocity: 1000,
+          time: 0.1,
+        }),
+      ).not.toBe(0)
+    })
+
     describe('initial value must mostly equal to "from" value', () => {
       test('bounce > 0', () => {
         const spring = createSpring({
@@ -95,7 +116,7 @@ describe('spring', () => {
   describe('velocity constraints', () => {
     test('return actual number when there is no gap between from and to', () => {
       const spring = createSpring({
-        bounce: 0.2,
+        bounce: 0,
         duration: 1000,
       })
 
@@ -205,6 +226,21 @@ describe('spring', () => {
   })
 
   describe('settling duration constraints', () => {
+    test('return actual value that is greater than or equal to duration when there is no gap between from and to', () => {
+      const spring = createSpring({
+        bounce: 0,
+        duration: 1000,
+      })
+
+      const actual = springSettlingDuration(spring, {
+        from: 100,
+        to: 100,
+      })
+
+      expect(Number.isFinite(actual)).toBe(true)
+      expect(actual).toBeGreaterThanOrEqual(1000)
+    })
+
     describe('value when time = settlingDuration must mostly equal to "to" value', () => {
       test('bounce > 0', () => {
         const duration = 3000
@@ -220,7 +256,7 @@ describe('spring', () => {
             to: 100,
             initialVelocity: 0,
             time:
-              spring.settlingDuration({
+              springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
               }) / duration,
@@ -235,7 +271,7 @@ describe('spring', () => {
             to: 100,
             initialVelocity: 6000,
             time:
-              spring.settlingDuration({
+              springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
               }) / duration,
@@ -259,7 +295,7 @@ describe('spring', () => {
             to: 100,
             initialVelocity: 0,
             time:
-              spring.settlingDuration({
+              springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
               }) / duration,
@@ -273,7 +309,7 @@ describe('spring', () => {
             from: 0,
             to: 100,
             initialVelocity: 6000,
-            time: spring.settlingDuration({
+            time: springSettlingDuration(spring, {
               from: 0,
               to: 100,
             }),
@@ -297,7 +333,7 @@ describe('spring', () => {
             to: 100,
             initialVelocity: 0,
             time:
-              spring.settlingDuration({
+              springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
               }) / duration,
@@ -312,7 +348,7 @@ describe('spring', () => {
             to: 100,
             initialVelocity: 6000,
             time:
-              spring.settlingDuration({
+              springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
               }) / duration,

@@ -86,6 +86,11 @@ function constant(bounce: number): number {
   return 8 * (1 - bounce)
 }
 
+function volume(from: number, to: number): number {
+  // use non-zero very small value when from and to are same to avoid division by zero
+  return from - to === 0 ? 0.000001 : from - to
+}
+
 /**
  * Convert velocity (px / s) to normalized velocity (ratio / duration)
  */
@@ -93,9 +98,7 @@ function normalizeVelocity(
   velocity: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  // use non-zero very small value when from and to are same to avoid division by zero
-  const volume = from - to === 0 ? 0.0001 : from - to
-  return (velocity / volume) * (1000 / duration)
+  return (velocity / volume(from, to)) * (1000 / duration)
 }
 
 /**
@@ -105,9 +108,7 @@ function denormalizeVelocity(
   v: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  // use non-zero very small value when from and to are same to avoid velocity lost
-  const volume = from - to === 0 ? 0.0001 : from - to
-  return v * volume * (duration / 1000)
+  return v * volume(from, to) * (duration / 1000)
 }
 
 function bouncySpringConstants({
@@ -212,7 +213,7 @@ function bouncySpring({
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(v(A), mul(bouncePart, decayPart))
 
-      return add(mul(v(data.from - data.to), easing), v(data.to))
+      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -273,7 +274,7 @@ function smoothSpring({
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(bouncePart, decayPart)
 
-      return add(mul(v(data.from - data.to), easing), v(data.to))
+      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -334,7 +335,7 @@ function flattenedSpring({
       const decayPart = exp(mul(v(-c), var_(t)))
       const easing = mul(add(pullPart, pushPart), decayPart)
 
-      return add(mul(v(data.from - data.to), easing), v(data.to))
+      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
     },
 
     velocity: (data) => {
@@ -382,6 +383,8 @@ function flattenedSpringVelocity(data: {
  * t = log(distance / settlingThreshold) / c
  *
  * Since t is normalized time with duration, we have to multiply it by actual duration.
+ *
+ * The return value may not be actual settling time because we do not consider the bounce part and initial velocity.
  */
 function settlingDuration(data: {
   from: number
@@ -390,7 +393,10 @@ function settlingDuration(data: {
   duration: number
 }): number {
   const c = constant(data.bounce)
-  const distance = Math.abs(data.to - data.from)
+  const distance = Math.abs(volume(data.from, data.to))
   const settlingThreshold = 0.0001
-  return (Math.log(distance / settlingThreshold) * data.duration) / c
+  return Math.max(
+    data.duration,
+    (Math.log(distance / settlingThreshold) * data.duration) / c,
+  )
 }
