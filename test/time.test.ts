@@ -4,9 +4,9 @@ import { wait } from '../src/time'
 describe('time', () => {
   test('wait: 100ms', () => {
     const start = performance.now()
-    return wait(100).then(() => {
+    return wait(10).then(() => {
       const end = performance.now()
-      expect(end - start).toBeGreaterThan(100)
+      expect(end - start).toBeGreaterThan(10)
     })
   })
 

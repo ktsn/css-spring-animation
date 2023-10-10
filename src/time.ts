@@ -3,7 +3,11 @@ export const t = '--css-spring-animation-t'
 let registered = false
 
 export function registerPropertyIfNeeded() {
-  if (registered) {
+  if (
+    typeof CSS === 'undefined' ||
+    typeof CSS.registerProperty !== 'function' ||
+    registered
+  ) {
     return
   }
 

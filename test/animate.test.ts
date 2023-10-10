@@ -1,5 +1,13 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test, vitest } from 'vitest'
 import { animate } from '../src/animate'
+
+vitest.mock('../src/utils', async () => {
+  const actual = await vitest.importActual<object>('../src/utils')
+  return {
+    ...actual,
+    isBrowserSupported: () => true,
+  }
+})
 
 describe('animate', () => {
   test('ctx.finished and ctx.settled equal to false on start', () => {
@@ -108,5 +116,22 @@ describe('animate', () => {
     return ctx.settlingPromise.then(() => {
       expect(ctx.velocity).toEqual({ x: 0, y: 0 })
     })
+  })
+
+  test('pass style value with unit px', async () => {
+    let value: string | undefined
+    const ctx = animate(
+      [0, 10],
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+
+    expect(value).toMatch(/\d+px/)
+    await ctx.settlingPromise
+    expect(value).toBe('10px')
   })
 })
