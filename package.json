@@ -36,7 +36,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepublishOnly": "pnpm run test --run && pnpm build"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",
