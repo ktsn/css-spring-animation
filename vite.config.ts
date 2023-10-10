@@ -8,9 +8,18 @@ export default defineConfig({
 
   build: {
     lib: {
-      entry: resolve(__dirname, 'src/main.ts'),
-      name: 'CSSSpringAnimation',
-      fileName: 'css-spring-animation',
+      entry: resolve(__dirname, 'src/vue/main.ts'),
+      name: 'CSSSpringAnimationVue',
+      fileName: 'css-spring-animation-vue',
+    },
+
+    rollupOptions: {
+      external: ['vue'],
+      output: {
+        globals: {
+          vue: 'Vue',
+        },
+      },
     },
   },
 
