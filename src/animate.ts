@@ -20,8 +20,8 @@ export interface AnimateOptions<
 export type MaybeRecord<K extends keyof any, V> = V | Record<K, V>
 
 export interface AnimateContext<Values extends MaybeRecord<string, number>> {
-  current: Values
-  velocity: Values
+  realValue: Values
+  realVelocity: Values
   finished: boolean
   settled: boolean
   finishingPromise: Promise<void>
@@ -99,9 +99,9 @@ export function animate(
 
   ctx.settlingPromise.then(() => {
     const values =
-      typeof ctx.current === 'number'
-        ? String(ctx.current)
-        : mapValues(ctx.current, (v) => String(v))
+      typeof ctx.realValue === 'number'
+        ? String(ctx.realValue)
+        : mapValues(ctx.realValue, (v) => String(v))
 
     set(values, {
       transition: '',
@@ -172,9 +172,9 @@ function animateWithRaf({
     }
 
     const values =
-      typeof context.current === 'number'
-        ? String(context.current)
-        : mapValues(context.current, (v) => String(v))
+      typeof context.realValue === 'number'
+        ? String(context.realValue)
+        : mapValues(context.realValue, (v) => String(v))
 
     set(values, {
       transition: 'none',
@@ -220,7 +220,7 @@ function createContext({
 
     stop,
 
-    get current() {
+    get realValue() {
       if (Array.isArray(fromTo)) {
         const elapsed = performance.now() - startTime
         const [from, to] = fromTo
@@ -274,7 +274,7 @@ function createContext({
       return result
     },
 
-    get velocity() {
+    get realVelocity() {
       if (Array.isArray(fromTo)) {
         const elapsed = performance.now() - startTime
         if (elapsed >= settlingDuration) {

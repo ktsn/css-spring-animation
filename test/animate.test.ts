@@ -80,41 +80,41 @@ describe('animate', () => {
     return ctx.settlingPromise
   })
 
-  test('ctx.current returns to value after settled', () => {
+  test('ctx.realValue returns to value after settled', () => {
     const ctx = animate([0, 10], () => {}, {
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
-      expect(ctx.current).toBe(10)
+      expect(ctx.realValue).toBe(10)
     })
   })
 
-  test('ctx.current returns record of to values after settled', () => {
+  test('ctx.realValue returns record of to values after settled', () => {
     const ctx = animate({ x: [0, 10], y: [10, 20] }, () => {}, {
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
-      expect(ctx.current).toEqual({ x: 10, y: 20 })
+      expect(ctx.realValue).toEqual({ x: 10, y: 20 })
     })
   })
 
-  test('ctx.velocity returns 0 after settled', () => {
+  test('ctx.realVelocity returns 0 after settled', () => {
     const ctx = animate([0, 10], () => {}, {
       velocity: 100,
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
-      expect(ctx.velocity).toBe(0)
+      expect(ctx.realVelocity).toBe(0)
     })
   })
 
-  test('ctx.velocity returns record of 0 after settled', () => {
+  test('ctx.realVelocity returns record of 0 after settled', () => {
     const ctx = animate({ x: [0, 10], y: [10, 20] }, () => {}, {
       velocity: { x: 100, y: 200 },
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
-      expect(ctx.velocity).toEqual({ x: 0, y: 0 })
+      expect(ctx.realVelocity).toEqual({ x: 0, y: 0 })
     })
   })
 

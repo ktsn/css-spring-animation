@@ -13,8 +13,8 @@ describe('animate type', () => {
       },
     )
 
-    expectTypeOf(ctx.current).toEqualTypeOf<number>()
-    expectTypeOf(ctx.velocity).toEqualTypeOf<number>()
+    expectTypeOf(ctx.realValue).toEqualTypeOf<number>()
+    expectTypeOf(ctx.realVelocity).toEqualTypeOf<number>()
   })
 
   test('multiple values', () => {
@@ -34,8 +34,8 @@ describe('animate type', () => {
       },
     )
 
-    expectTypeOf(ctx.current).toEqualTypeOf<{ x: number; y: number }>()
-    expectTypeOf(ctx.velocity).toEqualTypeOf<{ x: number; y: number }>()
+    expectTypeOf(ctx.realValue).toEqualTypeOf<{ x: number; y: number }>()
+    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ x: number; y: number }>()
   })
 
   test('single value: disallow multiple velocity or unit', () => {

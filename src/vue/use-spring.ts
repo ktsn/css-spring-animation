@@ -84,12 +84,12 @@ export function useSpring(
   )
 
   const realValue = toRef((): MaybeRecord<string, number> => {
-    return ctx && !disabled.value ? ctx.current : currentValue.value
+    return ctx && !disabled.value ? ctx.realValue : currentValue.value
   })
 
   const realVelocity = toRef((): MaybeRecord<string, number> => {
     if (ctx && !disabled.value) {
-      return ctx.velocity
+      return ctx.realVelocity
     }
 
     return typeof currentValue.value === 'number'
@@ -99,8 +99,8 @@ export function useSpring(
 
   // Pseudo context for intiial state (before triggering animation)
   let ctx: AnimateContext<MaybeRecord<string, number>> = {
-    current: currentValue.value,
-    velocity:
+    realValue: currentValue.value,
+    realVelocity:
       typeof currentValue.value === 'number'
         ? 0
         : mapValues(currentValue.value, () => 0),
@@ -128,8 +128,8 @@ export function useSpring(
     const velocityOption = optionsRef.value.velocity
     let velocity = typeof velocityOption === 'number' ? velocityOption : 0
 
-    if (ctx && !ctx.settled && typeof ctx.velocity === 'number') {
-      velocity += ctx.velocity
+    if (ctx && !ctx.settled && typeof ctx.realVelocity === 'number') {
+      velocity += ctx.realVelocity
     }
 
     return {
@@ -154,7 +154,7 @@ export function useSpring(
     })
 
     if (ctx && !ctx.settled) {
-      const ctxVelocity = ctx.velocity
+      const ctxVelocity = ctx.realVelocity
       velocity = mapValues(velocity, (value, key) => {
         const v =
           typeof ctxVelocity === 'number' ? ctxVelocity : ctxVelocity[key] ?? 0
@@ -193,7 +193,7 @@ export function useSpring(
     }
 
     if (ctx && !ctx.settled) {
-      prev = ctx.current
+      prev = ctx.realValue
     }
 
     const mapper = <T>(
