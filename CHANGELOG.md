@@ -1,3 +1,8 @@
+## 0.3.1
+
+- return real value and real velocity after animation is stopped.
+- `finishingPromise` and `settlingPromise` should be resolved after internal processing is finished.
+
 ## 0.3.0
 
 - Add `useSpring` vue composable.
