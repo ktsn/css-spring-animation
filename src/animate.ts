@@ -22,11 +22,15 @@ export type MaybeRecord<K extends keyof any, V> = V | Record<K, V>
 export interface AnimateContext<Values extends MaybeRecord<string, number>> {
   realValue: Values
   realVelocity: Values
+
   finished: boolean
   settled: boolean
+
   finishingPromise: Promise<void>
   settlingPromise: Promise<void>
+
   stop: () => void
+  stoppedDuration: number | undefined
 }
 
 // Animate a single value.
@@ -208,6 +212,7 @@ function createContext({
       return
     }
     ctx.finished = ctx.settled = true
+    ctx.stoppedDuration = performance.now() - startTime
     forceResolve.fn.forEach((fn) => fn())
   }
 
@@ -219,10 +224,11 @@ function createContext({
     settled: false,
 
     stop,
+    stoppedDuration: undefined,
 
     get realValue() {
       if (Array.isArray(fromTo)) {
-        const elapsed = performance.now() - startTime
+        const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
         const [from, to] = fromTo
         if (elapsed >= settlingDuration) {
           return to
@@ -255,7 +261,7 @@ function createContext({
           configurable: true,
           enumerable: true,
           get(): number {
-            const elapsed = performance.now() - startTime
+            const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
             if (elapsed >= settlingDuration) {
               return to
             }
@@ -277,7 +283,7 @@ function createContext({
     get realVelocity() {
       if (Array.isArray(fromTo)) {
         const elapsed = performance.now() - startTime
-        if (elapsed >= settlingDuration) {
+        if (ctx.settled) {
           return 0
         }
 
@@ -311,7 +317,7 @@ function createContext({
           enumerable: true,
           get(): number {
             const elapsed = performance.now() - startTime
-            if (elapsed >= settlingDuration) {
+            if (ctx.settled) {
               return 0
             }
 

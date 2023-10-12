@@ -9,6 +9,14 @@ vitest.mock('../src/utils', async () => {
   }
 })
 
+function raf() {
+  return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 describe('animate', () => {
   test('ctx.finished and ctx.settled equal to false on start', () => {
     const ctx = animate([0, 10], () => {})
@@ -98,6 +106,17 @@ describe('animate', () => {
     })
   })
 
+  test('ctx.realValue returns the real value when it is stopped', async () => {
+    const ctx = animate([0, 10], () => {}, {
+      duration: 100,
+    })
+    await raf()
+    ctx.stop()
+    await wait(100)
+    expect(ctx.realValue).not.toBe(0)
+    expect(ctx.realValue).not.toBe(10)
+  })
+
   test('ctx.realVelocity returns 0 after settled', () => {
     const ctx = animate([0, 10], () => {}, {
       velocity: 100,
@@ -116,6 +135,16 @@ describe('animate', () => {
     return ctx.settlingPromise.then(() => {
       expect(ctx.realVelocity).toEqual({ x: 0, y: 0 })
     })
+  })
+
+  test('ctx.realVelocity returns 0 after stopped', async () => {
+    const ctx = animate([0, 10], () => {}, {
+      velocity: 100,
+      duration: 100,
+    })
+    await raf()
+    ctx.stop()
+    expect(ctx.realVelocity).toBe(0)
   })
 
   test('pass style value with no unit', async () => {

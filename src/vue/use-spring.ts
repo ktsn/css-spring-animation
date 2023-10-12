@@ -83,33 +83,11 @@ export function useSpring(
     styleMapper(valueToStyle(currentValue.value)),
   )
 
-  const realValue = toRef((): MaybeRecord<string, number> => {
-    return ctx && !disabled.value ? ctx.realValue : currentValue.value
-  })
-
-  const realVelocity = toRef((): MaybeRecord<string, number> => {
-    if (ctx && !disabled.value) {
-      return ctx.realVelocity
-    }
-
-    return typeof currentValue.value === 'number'
-      ? 0
-      : mapValues(currentValue.value, () => 0)
-  })
+  const realValue = toRef(() => ctx.realValue)
+  const realVelocity = toRef(() => ctx.realVelocity)
 
   // Pseudo context for intiial state (before triggering animation)
-  let ctx: AnimateContext<MaybeRecord<string, number>> = {
-    realValue: currentValue.value,
-    realVelocity:
-      typeof currentValue.value === 'number'
-        ? 0
-        : mapValues(currentValue.value, () => 0),
-    finished: true,
-    settled: true,
-    finishingPromise: Promise.resolve(),
-    settlingPromise: Promise.resolve(),
-    stop: () => {},
-  }
+  let ctx = createContext(currentValue.value)
 
   function valueToStyle(
     value: MaybeRecord<string, number>,
@@ -173,13 +151,19 @@ export function useSpring(
   }
 
   watch(disabled, (disabled) => {
-    if (disabled && ctx && !ctx.settled) {
+    if (!disabled) {
+      return
+    }
+
+    if (!ctx.settled) {
       ctx.stop()
     }
+    ctx = createContext(ctx.realValue)
   })
 
   watch(currentValue, async (next, prev) => {
     if (disabled.value) {
+      ctx = createContext(next)
       style.value = styleMapper(valueToStyle(next))
       return
     }
@@ -235,5 +219,24 @@ export function useSpring(
     style: readonly(style),
     realValue: readonly(realValue),
     realVelocity: readonly(realVelocity),
+  }
+}
+
+/**
+ * Create a pseudo context for the state when no animation is triggered.
+ * It is used for initial state and disabled state.
+ */
+function createContext(
+  value: MaybeRecord<string, number>,
+): AnimateContext<MaybeRecord<string, number>> {
+  return {
+    realValue: value,
+    realVelocity: typeof value === 'number' ? 0 : mapValues(value, () => 0),
+    finished: true,
+    settled: true,
+    finishingPromise: Promise.resolve(),
+    settlingPromise: Promise.resolve(),
+    stop: () => {},
+    stoppedDuration: 0,
   }
 }

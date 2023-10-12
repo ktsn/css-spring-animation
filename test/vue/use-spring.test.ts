@@ -76,7 +76,31 @@ describe('useSpring', () => {
 
     expect(realValue.value).toBe(10)
     value.value = 20
+    await nextTick()
     expect(realValue.value).toBe(20)
+  })
+
+  test('return real value after stopped', async () => {
+    const value = ref(10)
+    const disabled = ref(false)
+
+    const { realValue } = useSpring(
+      value,
+      () => ({}),
+      () => {
+        return {
+          disabled: disabled.value,
+        }
+      },
+    )
+
+    expect(realValue.value).toBe(10)
+    value.value = 20
+    await nextTick()
+    disabled.value = true
+    await nextTick()
+    expect(realValue.value).not.toBe(10)
+    expect(realValue.value).not.toBe(20)
   })
 
   test('return real velocity', async () => {
@@ -111,5 +135,27 @@ describe('useSpring', () => {
       width: 0,
       height: 0,
     })
+  })
+
+  test('return 0 as real velocity after stopped', async () => {
+    const value = ref(10)
+    const disabled = ref(false)
+
+    const { realVelocity } = useSpring(
+      value,
+      () => ({}),
+      () => {
+        return {
+          disabled: disabled.value,
+        }
+      },
+    )
+
+    expect(realVelocity.value).toBe(0)
+    value.value = 20
+    await nextTick()
+    disabled.value = true
+    await nextTick()
+    expect(realVelocity.value).toBe(0)
   })
 })
