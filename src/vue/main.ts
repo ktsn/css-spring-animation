@@ -1,4 +1,4 @@
-export { useSpringStyle } from './use-spring'
+export { useSpring, useSpringStyle } from './use-spring'
 export {
   animate,
   unit,

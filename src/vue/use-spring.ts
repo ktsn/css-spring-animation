@@ -4,6 +4,7 @@ import {
   computed,
   readonly,
   ref,
+  toRef,
   toValue,
   watch,
 } from 'vue'
@@ -14,10 +15,18 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 
 export type SpringValues = number | Record<string, number>
 
-interface UseSpringOptions<
+export interface UseSpringOptions<
   Velocity extends Partial<MaybeRecord<string, number>>,
 > extends AnimateOptions<Velocity> {
   disabled?: boolean
+}
+
+type SpringStyle = Readonly<Ref<Record<string, string>>>
+
+export interface UseSpringResult<Values extends MaybeRecord<string, number>> {
+  style: SpringStyle
+  realValue: Readonly<Ref<Values>>
+  realVelocity: Readonly<Ref<Values>>
 }
 
 function raf(): Promise<void> {
@@ -28,13 +37,13 @@ export function useSpringStyle(
   value: RefOrGetter<number>,
   styleMapper: (value: string) => Record<string, string>,
   options?: MaybeRefOrGetter<UseSpringOptions<number>>,
-): Readonly<Ref<Record<string, string>>>
+): SpringStyle
 
 export function useSpringStyle<T extends Record<string, number>>(
   value: RefOrGetter<T>,
   styleMapper: (value: Record<keyof T, string>) => Record<string, string>,
   options?: MaybeRefOrGetter<UseSpringOptions<Partial<T>>>,
-): Readonly<Ref<Record<string, string>>>
+): SpringStyle
 
 export function useSpringStyle(
   values: RefOrGetter<MaybeRecord<string, number>>,
@@ -42,15 +51,65 @@ export function useSpringStyle(
   options?: MaybeRefOrGetter<
     UseSpringOptions<Partial<MaybeRecord<string, number>>>
   >,
-): Readonly<Ref<Record<string, string>>> {
-  const current = computed(() => toValue(values))
+): SpringStyle {
+  return useSpring(values as any, styleMapper, options as any).style
+}
+
+export function useSpring(
+  value: RefOrGetter<number>,
+  styleMapper: (value: string) => Record<string, string>,
+  options?: MaybeRefOrGetter<UseSpringOptions<number>>,
+): UseSpringResult<number>
+
+export function useSpring<T extends Record<string, number>>(
+  value: RefOrGetter<T>,
+  styleMapper: (value: Record<keyof T, string>) => Record<string, string>,
+  options?: MaybeRefOrGetter<UseSpringOptions<Partial<T>>>,
+): UseSpringResult<T>
+
+export function useSpring(
+  values: RefOrGetter<MaybeRecord<string, number>>,
+  styleMapper: (values: any) => Record<string, string>,
+  options?: MaybeRefOrGetter<
+    UseSpringOptions<Partial<MaybeRecord<string, number>>>
+  >,
+): UseSpringResult<MaybeRecord<string, number>> {
+  const currentValue = computed(() => toValue(values))
   const optionsRef = computed(() => toValue(options) ?? {})
 
+  const disabled = computed(() => optionsRef.value.disabled ?? false)
+
   const style = ref<Record<string, string>>(
-    styleMapper(valueToStyle(current.value)),
+    styleMapper(valueToStyle(currentValue.value)),
   )
 
-  let ctx: AnimateContext<MaybeRecord<string, number>> | null = null
+  const realValue = toRef((): MaybeRecord<string, number> => {
+    return ctx && !disabled.value ? ctx.current : currentValue.value
+  })
+
+  const realVelocity = toRef((): MaybeRecord<string, number> => {
+    if (ctx && !disabled.value) {
+      return ctx.velocity
+    }
+
+    return typeof currentValue.value === 'number'
+      ? 0
+      : mapValues(currentValue.value, () => 0)
+  })
+
+  // Pseudo context for intiial state (before triggering animation)
+  let ctx: AnimateContext<MaybeRecord<string, number>> = {
+    current: currentValue.value,
+    velocity:
+      typeof currentValue.value === 'number'
+        ? 0
+        : mapValues(currentValue.value, () => 0),
+    finished: true,
+    settled: true,
+    finishingPromise: Promise.resolve(),
+    settlingPromise: Promise.resolve(),
+    stop: () => {},
+  }
 
   function valueToStyle(
     value: MaybeRecord<string, number>,
@@ -113,23 +172,23 @@ export function useSpringStyle(
     }
   }
 
-  watch(
-    () => optionsRef.value.disabled,
-    (disabled) => {
-      if (disabled && ctx && !ctx.settled) {
-        ctx.stop()
-      }
-    },
-  )
+  watch(disabled, (disabled) => {
+    if (disabled && ctx && !ctx.settled) {
+      ctx.stop()
+    }
+  })
 
-  watch(current, async (next, prev) => {
-    if (optionsRef.value.disabled) {
+  watch(currentValue, async (next, prev) => {
+    if (disabled.value) {
       style.value = styleMapper(valueToStyle(next))
       return
     }
 
     const stop = () => {
-      ctx?.stop()
+      if (!ctx || ctx.settled) {
+        return
+      }
+      ctx.stop()
       return raf()
     }
 
@@ -172,5 +231,9 @@ export function useSpringStyle(
     }
   })
 
-  return readonly(style)
+  return {
+    style: readonly(style),
+    realValue: readonly(realValue),
+    realVelocity: readonly(realVelocity),
+  }
 }
