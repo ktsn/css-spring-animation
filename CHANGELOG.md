@@ -1,3 +1,14 @@
+## 0.3.0
+
+- Add `useSpring` vue composable.
+  - `realValue` and `realVelocity` are available in addition to `style` from `useSpringStyle`.
+
+### Breaking Changes
+
+- Renamed the returned context properties from `animate`.
+  - `ctx.current` -> `ctx.realValue`
+  - `ctx.velocity` -> `ctx.realVelocity`
+
 ## 0.2.0
 
 - Add `unit` function in favor of `unit` option
