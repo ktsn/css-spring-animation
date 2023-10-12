@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "dts": "tsc && cp -r types packages/vue/types && cp -r types packages/core/types",
+    "dts": "tsc && cp -r types packages/vue/ && cp -r types packages/core/",
     "typecheck": "vitest typecheck",
     "test": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepublishOnly": "pnpm run typecheck --run && pnpm run test --run && pnpm run dts && pnpm run build -r"
+    "publish": "./scripts/publish.sh"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",
