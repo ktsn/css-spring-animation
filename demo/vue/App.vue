@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { unit, useSpringStyle } from '../../src/vue/main'
+import { unit, useSpringStyle } from '../../src/vue'
 
 const to = ref({
   x: 0,

@@ -1,44 +1,15 @@
 {
-  "name": "@css-spring-animation/vue",
-  "version": "0.3.1",
-  "description": "High performance spring animation with CSS Transition",
-  "keywords": [
-    "spring",
-    "animation",
-    "css",
-    "transition",
-    "vue"
-  ],
-  "author": "Katashin",
-  "license": "MIT",
-  "homepage": "https://github.com/ktsn/css-spring-animation",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ktsn/css-spring-animation.git"
-  },
+  "name": "css-spring-animation",
   "type": "module",
-  "files": [
-    "dist",
-    "types"
-  ],
-  "main": "./dist/css-spring-animation-vue.umd.cjs",
-  "module": "./dist/css-spring-animation-vue.js",
-  "types": "./types/vue/main.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/css-spring-animation-vue.js",
-      "require": "./dist/css-spring-animation-vue.umd.cjs"
-    }
-  },
+  "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
+    "dts": "tsc && cp -r types packages/vue/ && cp -r types packages/core/",
     "typecheck": "vitest typecheck",
     "test": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "prepublishOnly": "pnpm run typecheck --run && pnpm run test --run && pnpm build"
+    "publish": "./scripts/publish.sh"
   },
   "devDependencies": {
     "@types/node": "^20.8.2",

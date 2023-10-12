@@ -1,0 +1,35 @@
+{
+  "name": "@css-spring-animation/core",
+  "version": "0.3.1",
+  "description": "High performance spring animation with CSS Transition",
+  "keywords": [
+    "spring",
+    "animation",
+    "css",
+    "transition"
+  ],
+  "author": "Katashin",
+  "license": "MIT",
+  "homepage": "https://github.com/ktsn/css-spring-animation",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ktsn/css-spring-animation.git"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "main": "./dist/css-spring-animation-core.umd.cjs",
+  "module": "./dist/css-spring-animation-core.js",
+  "types": "./types/core/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/css-spring-animation-core.js",
+      "require": "./dist/css-spring-animation-core.umd.cjs"
+    }
+  },
+  "scripts": {
+    "build": "vite build"
+  }
+}

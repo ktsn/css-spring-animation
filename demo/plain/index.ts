@@ -1,4 +1,4 @@
-import { animate, unit } from '../../src/main'
+import { animate, unit } from '../../src/core'
 
 const demo = document.getElementById('demo')!
 

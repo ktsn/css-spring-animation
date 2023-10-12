@@ -6,6 +6,6 @@ export {
   springValue,
   springVelocity,
   springSettlingDuration,
-} from '../main'
+} from '../core'
 
-export type { AnimateContext, AnimateOptions } from '../main'
+export type { AnimateContext, AnimateOptions } from '../core'

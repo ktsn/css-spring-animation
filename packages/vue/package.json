@@ -1,0 +1,36 @@
+{
+  "name": "@css-spring-animation/vue",
+  "version": "0.3.1",
+  "description": "High performance spring animation with CSS Transition",
+  "keywords": [
+    "spring",
+    "animation",
+    "css",
+    "transition",
+    "vue"
+  ],
+  "author": "Katashin",
+  "license": "MIT",
+  "homepage": "https://github.com/ktsn/css-spring-animation",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ktsn/css-spring-animation.git"
+  },
+  "type": "module",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "main": "./dist/css-spring-animation-vue.umd.cjs",
+  "module": "./dist/css-spring-animation-vue.js",
+  "types": "./types/vue/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/css-spring-animation-vue.js",
+      "require": "./dist/css-spring-animation-vue.umd.cjs"
+    }
+  },
+  "scripts": {
+    "build": "vite build"
+  }
+}

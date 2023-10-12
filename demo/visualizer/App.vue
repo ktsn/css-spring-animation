@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, watchEffect } from 'vue'
-import { createSpring, springValue, unit } from '../../src/main'
-import { useSpringStyle } from '../../src/vue/main'
+import { createSpring, springValue, unit } from '../../src/core'
+import { useSpringStyle } from '../../src/vue'
 
 const from = 0
 const to = 350

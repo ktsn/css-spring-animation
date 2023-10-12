@@ -4,7 +4,7 @@ import {
   springSettlingDuration,
   springValue,
   springVelocity,
-} from '../src/spring'
+} from '../../src/core/spring'
 
 function toMostlyEqual(actual: number, expected: number, tolerance = 0.000001) {
   expect(actual).toBeLessThan(expected + tolerance)
