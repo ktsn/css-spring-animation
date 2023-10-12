@@ -8,8 +8,8 @@ import {
   toValue,
   watch,
 } from 'vue'
-import { AnimateContext, AnimateOptions, MaybeRecord, animate } from '../main'
-import { mapValues } from '../utils'
+import { AnimateContext, AnimateOptions, MaybeRecord, animate } from '../core'
+import { mapValues } from '../core/utils'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 

@@ -1,5 +1,5 @@
 import { describe, expectTypeOf, test } from 'vitest'
-import { animate } from '../src/animate'
+import { animate } from '../../src/core/animate'
 
 describe('animate type', () => {
   test('single value', () => {

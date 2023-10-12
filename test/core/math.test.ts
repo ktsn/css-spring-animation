@@ -8,7 +8,7 @@ import {
   add,
   mul,
   calculate,
-} from '../src/math'
+} from '../../src/core/math'
 
 describe('math', () => {
   describe('generateCSSValue', () => {

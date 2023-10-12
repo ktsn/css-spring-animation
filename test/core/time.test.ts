@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { wait } from '../src/time'
+import { wait } from '../../src/core/time'
 
 describe('time', () => {
   test('wait: 100ms', () => {

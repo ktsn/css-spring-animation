@@ -1,5 +1,5 @@
 import { describe, expect, test, vitest } from 'vitest'
-import { animate, unit } from '../src/animate'
+import { animate, unit } from '../../src/core/animate'
 
 vitest.mock('../src/utils', async () => {
   const actual = await vitest.importActual<object>('../src/utils')

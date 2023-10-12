@@ -13,7 +13,6 @@
     "isolatedModules": true,
     "emitDeclarationOnly": true,
     "declaration": true,
-    "declarationMap": true,
     "declarationDir": "types",
 
     /* Linting */
