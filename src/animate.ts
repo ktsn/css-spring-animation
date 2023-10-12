@@ -217,8 +217,13 @@ function createContext({
   }
 
   const ctx: AnimateContext<any> = {
-    finishingPromise: wait(duration + 1, forceResolve),
-    settlingPromise: wait(settlingDuration + 1, forceResolve),
+    finishingPromise: wait(duration + 1, forceResolve).then(() => {
+      ctx.finished = true
+    }),
+
+    settlingPromise: wait(settlingDuration + 1, forceResolve).then(() => {
+      ctx.finished = ctx.settled = true
+    }),
 
     finished: false,
     settled: false,
@@ -335,14 +340,6 @@ function createContext({
       return result
     },
   }
-
-  ctx.finishingPromise.then(() => {
-    ctx.finished = true
-  })
-
-  ctx.settlingPromise.then(() => {
-    ctx.finished = ctx.settled = true
-  })
 
   return ctx
 }
