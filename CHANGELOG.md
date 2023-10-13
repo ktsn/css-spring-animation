@@ -1,3 +1,14 @@
+## 0.4.0
+
+- add `s` util.
+- add `v-spring-style` and `v-spring-options` directives.
+- allow to install the above directives globally by `app.use(plugin)`.
+
+### Breaking Changes
+
+- `animate` and `useSpring` interface is changed.
+- removed `unit` util.
+
 ## 0.3.1
 
 - return real value and real velocity after animation is stopped.
