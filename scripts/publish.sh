@@ -5,4 +5,4 @@ pnpm run test --run
 pnpm run dts
 pnpm run -r build
 
-pnpm -r publish
+pnpm -r publish --access public
