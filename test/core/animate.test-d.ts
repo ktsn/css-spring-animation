@@ -1,120 +1,71 @@
 import { describe, expectTypeOf, test } from 'vitest'
 import { animate } from '../../src/core/animate'
+import { s } from '../../src/core/style'
 
 describe('animate type', () => {
-  test('single value', () => {
+  test('number value', () => {
     const ctx = animate(
-      [0, 100],
+      { scale: [0, 1] },
       (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
+        expectTypeOf(value).toEqualTypeOf<Record<string, string>>()
       },
       {
-        velocity: 10,
+        velocity: { scale: [10] },
       },
     )
 
-    expectTypeOf(ctx.realValue).toEqualTypeOf<number>()
-    expectTypeOf(ctx.realVelocity).toEqualTypeOf<number>()
+    expectTypeOf(ctx.realValue).toEqualTypeOf<{ scale: number[] }>()
+    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ scale: number[] }>()
   })
 
-  test('multiple values', () => {
+  test('spring style values', () => {
     const ctx = animate(
       {
-        x: [0, 100],
-        y: [0, 100],
+        width: [s`${0}px`, s`${100}px`],
       },
       (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
+        expectTypeOf(values).toEqualTypeOf<Record<string, string>>()
       },
       {
         velocity: {
-          x: 10,
-          y: 10,
+          width: [10],
         },
       },
     )
 
-    expectTypeOf(ctx.realValue).toEqualTypeOf<{ x: number; y: number }>()
-    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ x: number; y: number }>()
+    expectTypeOf(ctx.realValue).toEqualTypeOf<{ width: number[] }>()
+    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ width: number[] }>()
   })
 
-  test('single value: disallow multiple velocity or unit', () => {
-    animate(
-      [0, 100],
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-      },
-      {
-        // @ts-expect-error Type '{ x: number; y: number; }' is not assignable to type 'number'.
-        velocity: {
-          x: 10,
-          y: 10,
-        },
-      },
-    )
-
-    animate(
-      [0, 100],
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-      },
-      {
-        // @ts-expect-error Type '{ x: number; y: number; }' is not assignable to type 'string'.
-        unit: {
-          x: 'em',
-          y: 'em',
-        },
-      },
-    )
-  })
-
-  test('multiple value: disallow single velocity', () => {
-    // @ts-expect-error Type 'number' is not assignable to type 'Record<"x" | "y", number>'
+  test('disallow extra velocity property', () => {
     animate(
       {
         x: [0, 100],
         y: [0, 100],
       },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
-      {
-        velocity: 10,
-      },
-    )
-  })
-
-  test('multiple value: disallow extra property', () => {
-    // @ts-expect-error Type '{ x: number; y: number; z: number; }' is not assignable to type 'Partial<Record<"x" | "y", number>>'.
-    animate(
-      {
-        x: [0, 100],
-        y: [0, 100],
-      },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
+      () => {},
       {
         velocity: {
-          x: 10,
-          y: 10,
-          z: 10,
+          x: [10],
+          y: [10],
+          // @ts-expect-error Type '{ x: number[]; y: number[]; z: number[]; }' is not assignable to type 'Partial<Record<"x" | "y", number[]>>'.
+          z: [10],
         },
       },
     )
   })
 
-  test('multiple value: velocity properties are optional', () => {
+  test('velocity properties are optional', () => {
     animate(
       {
         x: [0, 100],
         y: [0, 100],
       },
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-      },
+      () => {},
       {
-        velocity: {},
+        velocity: {
+          x: [],
+        },
       },
     )
   })

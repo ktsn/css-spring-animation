@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { s } from '../../src/core/style'
+import { generateSpringStyle, s } from '../../src/core/style'
 
 describe('s util', () => {
   test('parse px unit', () => {
@@ -45,5 +45,31 @@ describe('s util', () => {
       units: ['deg'],
       strings: ['rotate(', ')'],
     })
+  })
+})
+
+describe('generateSpringStyle', () => {
+  test('generate with specified numbers', () => {
+    const actual = generateSpringStyle(
+      {
+        units: ['px', '%'],
+        strings: ['translate(', ', ', ')'],
+      },
+      [100, 200],
+    )
+    expect(actual).toBe('translate(100px, 200%)')
+  })
+
+  test('generate with specified expressions', () => {
+    const actual = generateSpringStyle(
+      {
+        units: ['px', '%'],
+        strings: ['translate(', ', ', ')'],
+      },
+      ['100 * exp(3)', '100 * exp(4)'],
+    )
+    expect(actual).toBe(
+      'translate(calc(1px * (100 * exp(3))), calc(1% * (100 * exp(4))))',
+    )
   })
 })
