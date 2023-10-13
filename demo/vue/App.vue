@@ -1,22 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSpringStyle, s } from '../../src/vue'
+import { s } from '../../src/vue'
 
 const to = ref({
   x: 0,
   y: 0,
 })
-
-const style = useSpringStyle(
-  () => {
-    return {
-      translate: s`${to.value.x}px ${to.value.y}px`,
-    }
-  },
-  {
-    duration: 5000,
-  },
-)
 
 function onPointerDown(event: PointerEvent): void {
   to.value = {
@@ -28,7 +17,15 @@ function onPointerDown(event: PointerEvent): void {
 
 <template>
   <div class="wrapper" @pointerdown="onPointerDown">
-    <div class="target" :style="style"></div>
+    <div
+      class="target"
+      v-spring-style="{
+        translate: s`${to.x}px ${to.y}px`,
+      }"
+      v-spring-options="{
+        duration: 5000,
+      }"
+    ></div>
   </div>
 </template>
 
