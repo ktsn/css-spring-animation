@@ -88,10 +88,15 @@ export function animate<T extends Record<string, [SpringValue, SpringValue]>>(
   }
 
   ctx.settlingPromise.then(() => {
-    const style = mapValues(fromTo, ([_, to]) => {
+    const style = mapValues(fromTo, ([_, to], key) => {
+      const realValue = ctx.realValue[key]
+      if (!realValue) {
+        return ''
+      }
+
       return typeof to === 'number'
-        ? String(to)
-        : generateSpringStyle(to, to.values)
+        ? String(realValue[0] ?? '')
+        : generateSpringStyle(to, realValue)
     })
 
     set({
@@ -166,10 +171,15 @@ function animateWithRaf({
       return
     }
 
-    const style = mapValues(fromTo, ([_, to]) => {
+    const style = mapValues(fromTo, ([_, to], key) => {
+      const realValue = context.realValue[key]
+      if (!realValue) {
+        return ''
+      }
+
       return typeof to === 'number'
-        ? String(to)
-        : generateSpringStyle(to, to.values)
+        ? String(realValue[0] ?? '')
+        : generateSpringStyle(to, realValue)
     })
 
     set({

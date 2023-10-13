@@ -206,4 +206,21 @@ describe('animate', () => {
     expect(value?.x).toBe('10')
     expect(value?.y).toBe('20px')
   })
+
+  test('pass real style value after stopped', async () => {
+    let value: Record<string, string> | undefined
+    const ctx = animate(
+      { x: [s`${0}px`, s`${10}px`] },
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+    ctx.stop()
+    await wait(10)
+    expect(value?.x).not.toBe('0px')
+    expect(value?.x).not.toBe('10px')
+  })
 })
