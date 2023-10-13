@@ -298,10 +298,3 @@ function createContext<
 
   return ctx
 }
-
-export function unit(value: string, unit: string): string {
-  const trimmed = value.trim()
-  return Number.isNaN(Number(trimmed))
-    ? `calc(1${unit} * (${trimmed}))`
-    : `${trimmed}${unit}`
-}

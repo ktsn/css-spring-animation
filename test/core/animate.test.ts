@@ -1,5 +1,5 @@
 import { describe, expect, test, vitest } from 'vitest'
-import { animate, unit } from '../../src/core/animate'
+import { animate } from '../../src/core/animate'
 import { s } from '../../src/core/style'
 
 vitest.mock('../../src/core/utils', async () => {
@@ -193,17 +193,5 @@ describe('animate', () => {
     await ctx.settlingPromise
     expect(value?.x).toBe('10')
     expect(value?.y).toBe('20px')
-  })
-})
-
-describe('unit', () => {
-  test('add unit directly to numeric value', () => {
-    const actual = unit('10.123', 'px')
-    expect(actual).toBe('10.123px')
-  })
-
-  test('wrap with calc() if value is likely an expression', () => {
-    const actual = unit('1 + exp(3)', 'px')
-    expect(actual).toBe('calc(1px * (1 + exp(3)))')
   })
 })
