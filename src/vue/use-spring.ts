@@ -13,7 +13,7 @@ import {
   AnimateContext,
   AnimateOptions,
   animate,
-  SpringValue,
+  AnimateValue,
   generateSpringStyle,
 } from '../core'
 import { mapValues } from '../core/utils'
@@ -37,19 +37,19 @@ function raf(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
 
-export function useSpringStyle<Style extends Record<string, SpringValue>>(
+export function useSpringStyle<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
 ): SpringStyleRef {
   return useSpring(styleMapper, options).style
 }
 
-export function useSpring<Style extends Record<string, SpringValue>>(
+export function useSpring<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
 ): UseSpringResult<Record<keyof Style, number[]>> {
   const input = computed(
-    (): Record<string, SpringValue> => toValue(styleMapper),
+    (): Record<string, AnimateValue> => toValue(styleMapper),
   )
   const optionsRef = computed(() => toValue(options) ?? {})
 
@@ -73,10 +73,10 @@ export function useSpring<Style extends Record<string, SpringValue>>(
   let ctx = createContext(input.value)
 
   function calculateCurrentValues(
-    next: Record<string, SpringValue>,
-    prev: Record<string, SpringValue>,
+    next: Record<string, AnimateValue>,
+    prev: Record<string, AnimateValue>,
   ): {
-    fromTo: Record<string, [SpringValue, SpringValue]>
+    fromTo: Record<string, [AnimateValue, AnimateValue]>
     velocity: Record<string, number[]>
   } {
     const velocityOption = optionsRef.value.velocity
@@ -96,7 +96,7 @@ export function useSpring<Style extends Record<string, SpringValue>>(
     }
 
     const fromTo = mapValues(prev, (prevV, key) => {
-      return [prevV, next[key]] as [SpringValue, SpringValue]
+      return [prevV, next[key]] as [AnimateValue, AnimateValue]
     })
 
     return {
@@ -161,10 +161,10 @@ export function useSpring<Style extends Record<string, SpringValue>>(
 }
 
 function updateValues(
-  springValues: Record<string, SpringValue>,
+  springValues: Record<string, AnimateValue>,
   values: Record<string, number[]>,
-): Record<string, SpringValue> {
-  return mapValues(springValues, (value, key): SpringValue => {
+): Record<string, AnimateValue> {
+  return mapValues(springValues, (value, key): AnimateValue => {
     const newValue = values[key]
     if (typeof value === 'number') {
       return newValue?.[0] ?? 0
@@ -183,7 +183,7 @@ function updateValues(
  * It is used for initial state and disabled state.
  */
 function createContext(
-  value: Record<string, SpringValue>,
+  value: Record<string, AnimateValue>,
 ): AnimateContext<Record<string, number[]>> {
   return {
     realValue: mapValues(value, (v) => {

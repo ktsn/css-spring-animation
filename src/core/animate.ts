@@ -8,9 +8,9 @@ import {
   Spring,
 } from './spring'
 import { forceReflow, isBrowserSupported, mapValues, zip } from './utils'
-import { SpringStyle, generateSpringStyle } from './style'
+import { InterpolatedStyle, stringifyInterpolatedStyle } from './style'
 
-export type SpringValue = number | SpringStyle
+export type AnimateValue = number | InterpolatedStyle
 
 export interface AnimateOptions<Velocity extends Record<string, number[]>> {
   velocity?: Partial<Velocity>
@@ -32,7 +32,7 @@ export interface AnimateContext<Values extends Record<string, number[]>> {
   stoppedDuration: number | undefined
 }
 
-export function animate<T extends Record<string, [SpringValue, SpringValue]>>(
+export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<Record<keyof T, number[]>> = {},
@@ -96,7 +96,7 @@ export function animate<T extends Record<string, [SpringValue, SpringValue]>>(
 
       return typeof to === 'number'
         ? String(realValue[0] ?? '')
-        : generateSpringStyle(to, realValue)
+        : stringifyInterpolatedStyle(to, realValue)
     })
 
     set({
@@ -118,7 +118,7 @@ function animateWithCssTransition({
   set,
 }: {
   spring: Spring
-  fromTo: Record<string, [SpringValue, SpringValue]>
+  fromTo: Record<string, [AnimateValue, AnimateValue]>
   velocity: Partial<Record<string, number[]>> | undefined
   duration: number
   settlingDuration: number
@@ -139,7 +139,9 @@ function animateWithCssTransition({
       })
     })
 
-    return typeof to === 'number' ? style[0]! : generateSpringStyle(to, style)
+    return typeof to === 'number'
+      ? style[0]!
+      : stringifyInterpolatedStyle(to, style)
   })
 
   set({
@@ -162,7 +164,7 @@ function animateWithRaf({
   context,
   set,
 }: {
-  fromTo: Record<string, [SpringValue, SpringValue]>
+  fromTo: Record<string, [AnimateValue, AnimateValue]>
   context: AnimateContext<Record<string, number[]>>
   set: (style: Record<string, string>) => void
 }): void {
@@ -179,7 +181,7 @@ function animateWithRaf({
 
       return typeof to === 'number'
         ? String(realValue[0] ?? '')
-        : generateSpringStyle(to, realValue)
+        : stringifyInterpolatedStyle(to, realValue)
     })
 
     set({
@@ -194,7 +196,7 @@ function animateWithRaf({
 }
 
 function createContext<
-  FromTo extends Record<string, [SpringValue, SpringValue]>,
+  FromTo extends Record<string, [AnimateValue, AnimateValue]>,
 >({
   spring,
   fromTo,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { generateSpringStyle, s } from '../../src/core/style'
+import { stringifyInterpolatedStyle, s } from '../../src/core/style'
 
 describe('s util', () => {
   test('parse px unit', () => {
@@ -48,9 +48,9 @@ describe('s util', () => {
   })
 })
 
-describe('generateSpringStyle', () => {
+describe('stringifyInterpolatedStyle', () => {
   test('generate with specified numbers', () => {
-    const actual = generateSpringStyle(
+    const actual = stringifyInterpolatedStyle(
       {
         units: ['px', '%'],
         strings: ['translate(', ', ', ')'],
@@ -61,7 +61,7 @@ describe('generateSpringStyle', () => {
   })
 
   test('generate with specified expressions', () => {
-    const actual = generateSpringStyle(
+    const actual = stringifyInterpolatedStyle(
       {
         units: ['px', '%'],
         strings: ['translate(', ', ', ')'],

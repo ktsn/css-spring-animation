@@ -1,16 +1,16 @@
-export interface SpringStyleTemplate {
+export interface InterpolatedStyleTemplate {
   units: string[]
   strings: readonly string[]
 }
 
-export interface SpringStyle extends SpringStyleTemplate {
+export interface InterpolatedStyle extends InterpolatedStyleTemplate {
   values: number[]
 }
 
 export function s(
   strings: readonly string[],
   ...values: number[]
-): SpringStyle {
+): InterpolatedStyle {
   const units = strings.slice(1).map((str) => {
     const match = str.match(/^([a-z%]+)/)
     return match ? match[1]! : ''
@@ -29,8 +29,8 @@ export function s(
   }
 }
 
-export function generateSpringStyle(
-  template: SpringStyleTemplate,
+export function stringifyInterpolatedStyle(
+  template: InterpolatedStyleTemplate,
   values: (string | number)[],
 ): string {
   return template.strings.reduce((acc, str, i) => {
