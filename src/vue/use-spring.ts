@@ -1,4 +1,5 @@
 import {
+  DeepReadonly,
   MaybeRefOrGetter,
   Ref,
   computed,
@@ -8,140 +9,91 @@ import {
   toValue,
   watch,
 } from 'vue'
-import { AnimateContext, AnimateOptions, MaybeRecord, animate } from '../core'
+import {
+  AnimateContext,
+  AnimateOptions,
+  animate,
+  SpringValue,
+  generateSpringStyle,
+} from '../core'
 import { mapValues } from '../core/utils'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
-export type SpringValues = number | Record<string, number>
-
-export interface UseSpringOptions<
-  Velocity extends Partial<MaybeRecord<string, number>>,
-> extends AnimateOptions<Velocity> {
+export interface UseSpringOptions<Velocity extends Record<string, number[]>>
+  extends AnimateOptions<Velocity> {
   disabled?: boolean
 }
 
-type SpringStyle = Readonly<Ref<Record<string, string>>>
+type SpringStyleRef = Readonly<Ref<Record<string, string>>>
 
-export interface UseSpringResult<Values extends MaybeRecord<string, number>> {
-  style: SpringStyle
-  realValue: Readonly<Ref<Values>>
-  realVelocity: Readonly<Ref<Values>>
+export interface UseSpringResult<Values extends Record<string, number[]>> {
+  style: SpringStyleRef
+  realValue: DeepReadonly<Ref<Values>>
+  realVelocity: DeepReadonly<Ref<Values>>
 }
 
 function raf(): Promise<void> {
   return new Promise((resolve) => requestAnimationFrame(() => resolve()))
 }
 
-export function useSpringStyle(
-  value: RefOrGetter<number>,
-  styleMapper: (value: string) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<number>>,
-): SpringStyle
-
-export function useSpringStyle<T extends Record<string, number>>(
-  value: RefOrGetter<T>,
-  styleMapper: (value: Record<keyof T, string>) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<Partial<T>>>,
-): SpringStyle
-
-export function useSpringStyle(
-  values: RefOrGetter<MaybeRecord<string, number>>,
-  styleMapper: (values: any) => Record<string, string>,
-  options?: MaybeRefOrGetter<
-    UseSpringOptions<Partial<MaybeRecord<string, number>>>
-  >,
-): SpringStyle {
-  return useSpring(values as any, styleMapper, options as any).style
+export function useSpringStyle<Style extends Record<string, SpringValue>>(
+  styleMapper: RefOrGetter<Style>,
+  options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
+): SpringStyleRef {
+  return useSpring(styleMapper, options).style
 }
 
-export function useSpring(
-  value: RefOrGetter<number>,
-  styleMapper: (value: string) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<number>>,
-): UseSpringResult<number>
-
-export function useSpring<T extends Record<string, number>>(
-  value: RefOrGetter<T>,
-  styleMapper: (value: Record<keyof T, string>) => Record<string, string>,
-  options?: MaybeRefOrGetter<UseSpringOptions<Partial<T>>>,
-): UseSpringResult<T>
-
-export function useSpring(
-  values: RefOrGetter<MaybeRecord<string, number>>,
-  styleMapper: (values: any) => Record<string, string>,
-  options?: MaybeRefOrGetter<
-    UseSpringOptions<Partial<MaybeRecord<string, number>>>
-  >,
-): UseSpringResult<MaybeRecord<string, number>> {
-  const currentValue = computed(() => toValue(values))
+export function useSpring<Style extends Record<string, SpringValue>>(
+  styleMapper: RefOrGetter<Style>,
+  options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
+): UseSpringResult<Record<keyof Style, number[]>> {
+  const input = computed(
+    (): Record<string, SpringValue> => toValue(styleMapper),
+  )
   const optionsRef = computed(() => toValue(options) ?? {})
 
   const disabled = computed(() => optionsRef.value.disabled ?? false)
 
   const style = ref<Record<string, string>>(
-    styleMapper(valueToStyle(currentValue.value)),
+    mapValues(input.value, (value) => {
+      if (typeof value === 'number') {
+        return String(value)
+      }
+      return generateSpringStyle(value, value.values)
+    }),
   )
 
-  const realValue = toRef(() => ctx.realValue)
-  const realVelocity = toRef(() => ctx.realVelocity)
+  const realValue = toRef(() => ctx.realValue as Record<keyof Style, number[]>)
+  const realVelocity = toRef(
+    () => ctx.realVelocity as Record<keyof Style, number[]>,
+  )
 
   // Pseudo context for intiial state (before triggering animation)
-  let ctx = createContext(currentValue.value)
-
-  function valueToStyle(
-    value: MaybeRecord<string, number>,
-  ): MaybeRecord<string, string> {
-    if (typeof value === 'number') {
-      return String(value)
-    } else {
-      return mapValues(value, (v) => String(v))
-    }
-  }
-
-  function calculateCurrentSingleValues(
-    next: number,
-    prev: number,
-  ): { fromTo: [number, number]; velocity: number } {
-    const velocityOption = optionsRef.value.velocity
-    let velocity = typeof velocityOption === 'number' ? velocityOption : 0
-
-    if (ctx && !ctx.settled && typeof ctx.realVelocity === 'number') {
-      velocity += ctx.realVelocity
-    }
-
-    return {
-      fromTo: [prev, next],
-      velocity,
-    }
-  }
+  let ctx = createContext(input.value)
 
   function calculateCurrentMultipleValues(
-    next: Record<string, number>,
-    prev: Record<string, number>,
+    next: Record<string, SpringValue>,
+    prev: Record<string, SpringValue>,
   ): {
-    fromTo: Record<string, [number, number]>
-    velocity: Record<string, number>
+    fromTo: Record<string, [SpringValue, SpringValue]>
+    velocity: Record<string, number[]>
   } {
     const velocityOption = optionsRef.value.velocity
 
     let velocity = mapValues(next, (_, key) => {
-      return typeof velocityOption === 'number'
-        ? velocityOption
-        : velocityOption?.[key] ?? 0
+      return velocityOption?.[key] ?? []
     })
 
     if (ctx && !ctx.settled) {
       const ctxVelocity = ctx.realVelocity
       velocity = mapValues(velocity, (value, key) => {
-        const v =
-          typeof ctxVelocity === 'number' ? ctxVelocity : ctxVelocity[key] ?? 0
-        return v + value
+        return value.map((v, i) => v + (ctxVelocity[key]?.[i] ?? 0))
       })
     }
 
     const fromTo = mapValues(prev, (prevV, key) => {
-      return [prevV, next[key]] as [number, number]
+      return [prevV, next[key]] as [SpringValue, SpringValue]
     })
 
     return {
@@ -158,61 +110,41 @@ export function useSpring(
     if (!ctx.settled) {
       ctx.stop()
     }
-    ctx = createContext(ctx.realValue)
+    ctx = createContext(updateValues(input.value, ctx.realValue))
   })
 
-  watch(currentValue, async (next, prev) => {
+  watch(input, async (next, prev) => {
     if (disabled.value) {
       ctx = createContext(next)
-      style.value = styleMapper(valueToStyle(next))
+      style.value = mapValues(next, (value) => {
+        return typeof value === 'number'
+          ? String(value)
+          : generateSpringStyle(value, value.values)
+      })
       return
     }
 
-    const stop = () => {
-      if (!ctx || ctx.settled) {
-        return
-      }
+    if (ctx && !ctx.settled) {
+      prev = updateValues(prev, ctx.realValue)
+    }
+
+    const { fromTo, velocity } = calculateCurrentMultipleValues(next, prev)
+
+    if (ctx && !ctx.settled) {
       ctx.stop()
       return raf()
     }
 
-    if (ctx && !ctx.settled) {
-      prev = ctx.realValue
-    }
-
-    const mapper = <T>(
-      values: T,
-      additionalStyle: Record<string, string>,
-    ): void => {
-      style.value = {
-        ...styleMapper(values),
-        ...additionalStyle,
-      }
-    }
-
-    if (typeof next === 'number' && typeof prev === 'number') {
-      const { fromTo, velocity } = calculateCurrentSingleValues(next, prev)
-
-      await stop()
-
-      ctx = animate(fromTo, mapper, {
+    ctx = animate(
+      fromTo,
+      (_style) => {
+        style.value = _style
+      },
+      {
         ...optionsRef.value,
         velocity,
-      })
-      return
-    }
-
-    if (typeof next === 'object' && typeof prev === 'object') {
-      const { fromTo, velocity } = calculateCurrentMultipleValues(next, prev)
-
-      await stop()
-
-      ctx = animate(fromTo, mapper, {
-        ...optionsRef.value,
-        velocity,
-      })
-      return
-    }
+      },
+    )
   })
 
   return {
@@ -222,16 +154,40 @@ export function useSpring(
   }
 }
 
+function updateValues(
+  springValues: Record<string, SpringValue>,
+  values: Record<string, number[]>,
+): Record<string, SpringValue> {
+  return mapValues(springValues, (value, key): SpringValue => {
+    const newValue = values[key]
+    if (typeof value === 'number') {
+      return newValue?.[0] ?? 0
+    }
+
+    return {
+      strings: value.strings,
+      units: value.units,
+      values: newValue ?? value.values.fill(0),
+    }
+  })
+}
+
 /**
  * Create a pseudo context for the state when no animation is triggered.
  * It is used for initial state and disabled state.
  */
 function createContext(
-  value: MaybeRecord<string, number>,
-): AnimateContext<MaybeRecord<string, number>> {
+  value: Record<string, SpringValue>,
+): AnimateContext<Record<string, number[]>> {
   return {
-    realValue: value,
-    realVelocity: typeof value === 'number' ? 0 : mapValues(value, () => 0),
+    realValue: mapValues(value, (v) => {
+      return typeof v === 'number' ? [v] : v.values
+    }),
+    realVelocity: mapValues(value, (_, key) => {
+      const property = value[key] ?? 0
+      const values = typeof property === 'number' ? [property] : property.values
+      return values.fill(0)
+    }),
     finished: true,
     settled: true,
     finishingPromise: Promise.resolve(),

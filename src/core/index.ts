@@ -1,5 +1,5 @@
 export { animate } from './animate'
-export type { AnimateOptions, AnimateContext } from './animate'
+export type { AnimateOptions, AnimateContext, SpringValue } from './animate'
 
 export {
   createSpring,
@@ -8,5 +8,7 @@ export {
   springSettlingDuration,
 } from './spring'
 
-export { s } from './style'
+export { s, generateSpringStyle } from './style'
 export type { SpringStyle } from './style'
+
+export { mapValues } from './utils'

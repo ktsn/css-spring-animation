@@ -10,7 +10,7 @@ import {
 import { forceReflow, isBrowserSupported, mapValues, zip } from './utils'
 import { SpringStyle, generateSpringStyle } from './style'
 
-export type SpringStyleValue = number | SpringStyle
+export type SpringValue = number | SpringStyle
 
 export interface AnimateOptions<Velocity extends Record<string, number[]>> {
   velocity?: Partial<Velocity>
@@ -32,9 +32,7 @@ export interface AnimateContext<Values extends Record<string, number[]>> {
   stoppedDuration: number | undefined
 }
 
-export function animate<
-  T extends Record<string, [SpringStyleValue, SpringStyleValue]>,
->(
+export function animate<T extends Record<string, [SpringValue, SpringValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<Record<keyof T, number[]>> = {},
@@ -115,7 +113,7 @@ function animateWithCssTransition({
   set,
 }: {
   spring: Spring
-  fromTo: Record<string, [SpringStyleValue, SpringStyleValue]>
+  fromTo: Record<string, [SpringValue, SpringValue]>
   velocity: Partial<Record<string, number[]>> | undefined
   duration: number
   settlingDuration: number
@@ -159,7 +157,7 @@ function animateWithRaf({
   context,
   set,
 }: {
-  fromTo: Record<string, [SpringStyleValue, SpringStyleValue]>
+  fromTo: Record<string, [SpringValue, SpringValue]>
   context: AnimateContext<Record<string, number[]>>
   set: (style: Record<string, string>) => void
 }): void {
@@ -186,7 +184,7 @@ function animateWithRaf({
 }
 
 function createContext<
-  FromTo extends Record<string, [SpringStyleValue, SpringStyleValue]>,
+  FromTo extends Record<string, [SpringValue, SpringValue]>,
 >({
   spring,
   fromTo,

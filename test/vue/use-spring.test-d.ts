@@ -1,143 +1,64 @@
 import { describe, expectTypeOf, test } from 'vitest'
 import { useSpring, useSpringStyle } from '../../src/vue/use-spring'
+import { s } from '../../src/core'
 
 describe('useSpring type', () => {
-  test('single value', () => {
+  test('number value', () => {
     const { realValue, realVelocity } = useSpring(
-      () => 10,
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-        return {}
-      },
-      {
-        velocity: 10,
-      },
-    )
-
-    expectTypeOf(realValue.value).toEqualTypeOf<number>()
-    expectTypeOf(realVelocity.value).toEqualTypeOf<number>()
-  })
-
-  test('single value does not allow multiple velocity', () => {
-    // @ts-expect-error
-    useSpring(
-      () => 10,
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-        return {}
+      () => {
+        return { width: 10 }
       },
       {
         velocity: {
-          x: 10,
-          y: 10,
-        },
-      },
-    )
-  })
-
-  test('multiple values', () => {
-    const { realValue, realVelocity } = useSpring(
-      () => ({
-        x: 10,
-        y: 20,
-      }),
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-        return {}
-      },
-      {
-        velocity: {
-          x: 10,
-          y: 10,
+          width: [10],
         },
       },
     )
 
-    expectTypeOf(realValue.value).toEqualTypeOf<{ x: number; y: number }>()
-    expectTypeOf(realVelocity.value).toEqualTypeOf<{ x: number; y: number }>()
+    expectTypeOf(realValue.value.width).toEqualTypeOf<readonly number[]>()
+    expectTypeOf(realVelocity.value.width).toEqualTypeOf<readonly number[]>()
   })
 
-  test('multiple value does not allow single velocity', () => {
-    // @ts-expect-error
-    useSpring(
+  test('spring style value', () => {
+    const { realValue, realVelocity } = useSpring(
       () => ({
-        x: 10,
-        y: 20,
+        width: s`${10}px`,
       }),
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-        return {}
-      },
       {
-        velocity: 10,
+        velocity: {
+          width: [10],
+        },
       },
     )
+
+    expectTypeOf(realValue.value.width).toEqualTypeOf<readonly number[]>()
+    expectTypeOf(realVelocity.value.width).toEqualTypeOf<readonly number[]>()
   })
 })
 
 describe('useSpringStyle type', () => {
-  test('single value', () => {
+  test('number value', () => {
     useSpringStyle(
-      () => 10,
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-        return {}
-      },
-      {
-        velocity: 10,
-      },
-    )
-  })
-
-  test('single value does not allow multiple velocity', () => {
-    // @ts-expect-error
-    useSpringStyle(
-      () => 10,
-      (value) => {
-        expectTypeOf(value).toEqualTypeOf<string>()
-        return {}
-      },
+      () => ({
+        width: 10,
+      }),
       {
         velocity: {
-          x: 10,
-          y: 10,
+          width: [10],
         },
       },
     )
   })
 
-  test('multiple values', () => {
+  test('spring style value', () => {
     useSpringStyle(
       () => ({
-        x: 10,
-        y: 20,
+        width: s`${10}px`,
       }),
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-        return {}
-      },
       {
         velocity: {
-          x: 10,
-          y: 10,
+          width: [10],
         },
-      },
-    )
-  })
-
-  test('multiple value does not allow single velocity', () => {
-    // @ts-expect-error
-    useSpringStyle(
-      () => ({
-        x: 10,
-        y: 20,
-      }),
-      (values) => {
-        expectTypeOf(values).toEqualTypeOf<{ x: string; y: string }>()
-        return {}
-      },
-      {
-        velocity: 10,
       },
     )
   })
