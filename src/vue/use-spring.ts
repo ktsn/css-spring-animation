@@ -72,7 +72,7 @@ export function useSpring<Style extends Record<string, SpringValue>>(
   // Pseudo context for intiial state (before triggering animation)
   let ctx = createContext(input.value)
 
-  function calculateCurrentMultipleValues(
+  function calculateCurrentValues(
     next: Record<string, SpringValue>,
     prev: Record<string, SpringValue>,
   ): {
@@ -134,7 +134,7 @@ export function useSpring<Style extends Record<string, SpringValue>>(
       prev = updateValues(prev, ctx.realValue)
     }
 
-    const { fromTo, velocity } = calculateCurrentMultipleValues(next, prev)
+    const { fromTo, velocity } = calculateCurrentValues(next, prev)
 
     if (ctx && !ctx.settled) {
       ctx.stop()
