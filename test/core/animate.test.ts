@@ -98,6 +98,12 @@ describe('animate', () => {
     })
   })
 
+  test('ctx.realValue returns actual value while animating', () => {
+    const ctx = animate({ scale: [0, 100] }, () => {})
+    expect(ctx.realValue.scale[0]).not.toBe(0)
+    expect(ctx.realValue.scale[0]).not.toBe(100)
+  })
+
   test('ctx.realValue returns the real value when it is stopped', async () => {
     const ctx = animate({ scale: [0, 10] }, () => {}, {
       duration: 100,
@@ -139,6 +145,12 @@ describe('animate', () => {
     return ctx.settlingPromise.then(() => {
       expect(ctx.realVelocity).toEqual({ x: [0], y: [0] })
     })
+  })
+
+  test('ctx.realVelocity returns actual velocity while animating', () => {
+    const ctx = animate({ scale: [0, 100] }, () => {})
+    expect(ctx.realVelocity.scale[0]).not.toBe(0)
+    expect(ctx.realVelocity.scale[0]).not.toBe(100)
   })
 
   test('ctx.realVelocity returns 0 after stopped', async () => {

@@ -81,14 +81,17 @@ export function useSpring<Style extends Record<string, SpringValue>>(
   } {
     const velocityOption = optionsRef.value.velocity
 
-    let velocity = mapValues(next, (_, key) => {
-      return velocityOption?.[key] ?? []
+    let velocity = mapValues(next, (value, key) => {
+      const valueList = typeof value === 'number' ? [value] : value.values
+      return valueList.map((_, i) => {
+        return velocityOption?.[key]?.[i] ?? 0
+      })
     })
 
     if (ctx && !ctx.settled) {
-      const ctxVelocity = ctx.realVelocity
+      const realVelocity = ctx.realVelocity
       velocity = mapValues(velocity, (value, key) => {
-        return value.map((v, i) => v + (ctxVelocity[key]?.[i] ?? 0))
+        return value.map((v, i) => v + (realVelocity[key]?.[i] ?? 0))
       })
     }
 
@@ -115,6 +118,9 @@ export function useSpring<Style extends Record<string, SpringValue>>(
 
   watch(input, async (next, prev) => {
     if (disabled.value) {
+      if (!ctx.settled) {
+        ctx.stop()
+      }
       ctx = createContext(next)
       style.value = mapValues(next, (value) => {
         return typeof value === 'number'
@@ -132,7 +138,7 @@ export function useSpring<Style extends Record<string, SpringValue>>(
 
     if (ctx && !ctx.settled) {
       ctx.stop()
-      return raf()
+      await raf()
     }
 
     ctx = animate(

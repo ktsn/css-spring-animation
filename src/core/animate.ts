@@ -275,7 +275,7 @@ function createContext<
             }
 
             const fromValues = typeof from === 'number' ? [from] : from.values
-            const time = performance.now() - startTime / duration
+            const time = (performance.now() - startTime) / duration
 
             return zip(fromValues, toValues).map(([from, to], i) => {
               const initialVelocity = velocity?.[key]?.[i] ?? 0
