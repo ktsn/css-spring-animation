@@ -1,5 +1,5 @@
-export { animate, unit } from './animate'
-export type { AnimateOptions, AnimateContext, MaybeRecord } from './animate'
+export { animate } from './animate'
+export type { AnimateOptions, AnimateContext, SpringValue } from './animate'
 
 export {
   createSpring,
@@ -7,3 +7,8 @@ export {
   springVelocity,
   springSettlingDuration,
 } from './spring'
+
+export { s, generateSpringStyle } from './style'
+export type { SpringStyle } from './style'
+
+export { mapValues } from './utils'

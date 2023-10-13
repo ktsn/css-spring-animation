@@ -7,19 +7,18 @@ import {
   springSettlingDuration,
   Spring,
 } from './spring'
-import { forceReflow, isBrowserSupported, mapValues } from './utils'
+import { forceReflow, isBrowserSupported, mapValues, zip } from './utils'
+import { SpringStyle, generateSpringStyle } from './style'
 
-export interface AnimateOptions<
-  Velocity extends Partial<MaybeRecord<string, number>>,
-> {
-  velocity?: Velocity
+export type SpringValue = number | SpringStyle
+
+export interface AnimateOptions<Velocity extends Record<string, number[]>> {
+  velocity?: Partial<Velocity>
   duration?: number
   bounce?: number
 }
 
-export type MaybeRecord<K extends keyof any, V> = V | Record<K, V>
-
-export interface AnimateContext<Values extends MaybeRecord<string, number>> {
+export interface AnimateContext<Values extends Record<string, number[]>> {
   realValue: Values
   realVelocity: Values
 
@@ -33,28 +32,11 @@ export interface AnimateContext<Values extends MaybeRecord<string, number>> {
   stoppedDuration: number | undefined
 }
 
-// Animate a single value.
-export function animate(
-  fromTo: [number, number],
-  set: (values: string, additionalStyle: Record<string, string>) => void,
-  options?: AnimateOptions<number>,
-): AnimateContext<number>
-
-// Animate multiple values in an object.
-export function animate<FromTo extends Record<string, [number, number]>>(
-  fromTo: FromTo,
-  set: (
-    values: Record<keyof FromTo, string>,
-    additionalStyle: Record<string, string>,
-  ) => void,
-  options?: AnimateOptions<Partial<Record<keyof FromTo, number>>>,
-): AnimateContext<Record<keyof FromTo, number>>
-
-export function animate(
-  fromTo: MaybeRecord<string, [number, number]>,
-  set: (values: any, additionalStyle: Record<string, string>) => void,
-  options: AnimateOptions<any> = {},
-): AnimateContext<MaybeRecord<string, number>> {
+export function animate<T extends Record<string, [SpringValue, SpringValue]>>(
+  fromTo: T,
+  set: (style: Record<string, string>) => void,
+  options: AnimateOptions<Record<keyof T, number[]>> = {},
+): AnimateContext<Record<keyof T, number[]>> {
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
 
@@ -63,12 +45,15 @@ export function animate(
     duration,
   })
 
-  const fromToList = Array.isArray(fromTo)
-    ? ([fromTo] as [number, number][])
-    : Object.values(fromTo)
+  const fromToValueList = Object.values(fromTo).flatMap((value) => {
+    const [from, to] = value
+    const fromValues = typeof from === 'number' ? [from] : from.values
+    const toValues = typeof to === 'number' ? [to] : to.values
+    return zip(fromValues, toValues)
+  })
 
   const settlingDuration = Math.max(
-    ...fromToList.map(([from, to]) =>
+    ...fromToValueList.map(([from, to]) =>
       springSettlingDuration(spring, { from, to }),
     ),
   )
@@ -96,18 +81,21 @@ export function animate(
   } else {
     // Graceful degradation
     animateWithRaf({
+      fromTo,
       context: ctx,
       set,
     })
   }
 
   ctx.settlingPromise.then(() => {
-    const values =
-      typeof ctx.realValue === 'number'
-        ? String(ctx.realValue)
-        : mapValues(ctx.realValue, (v) => String(v))
+    const style = mapValues(fromTo, ([_, to]) => {
+      return typeof to === 'number'
+        ? String(to)
+        : generateSpringStyle(to, to.values)
+    })
 
-    set(values, {
+    set({
+      ...style,
       transition: '',
       [t]: '',
     })
@@ -125,62 +113,67 @@ function animateWithCssTransition({
   set,
 }: {
   spring: Spring
-  fromTo: MaybeRecord<string, [number, number]>
-  velocity: Partial<MaybeRecord<string, number>> | undefined
+  fromTo: Record<string, [SpringValue, SpringValue]>
+  velocity: Partial<Record<string, number[]>> | undefined
   duration: number
   settlingDuration: number
-  set: (values: any, additionalStyle: Record<string, string>) => void
+  set: (style: Record<string, string>) => void
 }): void {
   registerPropertyIfNeeded()
 
-  const values = Array.isArray(fromTo)
-    ? springStyle(spring, {
-        from: fromTo[0],
-        to: fromTo[1],
-        initialVelocity: typeof velocity === 'number' ? velocity : 0,
-      })
-    : mapValues(fromTo, ([from, to], key) => {
-        const initialVelocity =
-          typeof velocity === 'number' ? velocity : velocity?.[key] ?? 0
+  const style = mapValues(fromTo, ([from, to], key) => {
+    const fromValues = typeof from === 'number' ? [from] : from.values
+    const toValues = typeof to === 'number' ? [to] : to.values
 
-        return springStyle(spring, {
-          from,
-          to,
-          initialVelocity,
-        })
+    const style = zip(fromValues, toValues).map(([from, to], i) => {
+      const initialVelocity = velocity?.[key]?.[i] ?? 0
+      return springStyle(spring, {
+        from,
+        to,
+        initialVelocity,
       })
+    })
 
-  set(values, {
+    return typeof to === 'number' ? style[0]! : generateSpringStyle(to, style)
+  })
+
+  set({
+    ...style,
     transition: 'none',
     [t]: '0',
   })
 
   forceReflow()
 
-  set(values, {
+  set({
+    ...style,
     transition: `${t} ${settlingDuration}ms linear`,
     [t]: String(settlingDuration / duration),
   })
 }
 
 function animateWithRaf({
+  fromTo,
   context,
   set,
 }: {
-  context: AnimateContext<any>
-  set: (values: any, additionalStyle: Record<string, string>) => void
+  fromTo: Record<string, [SpringValue, SpringValue]>
+  context: AnimateContext<Record<string, number[]>>
+  set: (style: Record<string, string>) => void
 }): void {
   function render(): void {
     if (context.settled) {
       return
     }
 
-    const values =
-      typeof context.realValue === 'number'
-        ? String(context.realValue)
-        : mapValues(context.realValue, (v) => String(v))
+    const style = mapValues(fromTo, ([_, to]) => {
+      return typeof to === 'number'
+        ? String(to)
+        : generateSpringStyle(to, to.values)
+    })
 
-    set(values, {
+    set({
+      ...style,
       transition: 'none',
     })
 
@@ -190,7 +183,9 @@ function animateWithRaf({
   requestAnimationFrame(render)
 }
 
-function createContext({
+function createContext<
+  FromTo extends Record<string, [SpringValue, SpringValue]>,
+>({
   spring,
   fromTo,
   velocity,
@@ -199,12 +194,12 @@ function createContext({
   settlingDuration,
 }: {
   spring: Spring
-  fromTo: MaybeRecord<string, [number, number]>
-  velocity: Partial<MaybeRecord<string, number>> | undefined
+  fromTo: FromTo
+  velocity: Partial<Record<keyof FromTo, number[]>> | undefined
   startTime: number
   duration: number
   settlingDuration: number
-}): AnimateContext<any> {
+}): AnimateContext<Record<keyof FromTo, number[]>> {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
   function stop() {
@@ -216,7 +211,7 @@ function createContext({
     forceResolve.fn.forEach((fn) => fn())
   }
 
-  const ctx: AnimateContext<any> = {
+  const ctx: AnimateContext<Record<keyof FromTo, number[]>> = {
     finishingPromise: wait(duration + 1, forceResolve).then(() => {
       ctx.finished = true
     }),
@@ -232,121 +227,72 @@ function createContext({
     stoppedDuration: undefined,
 
     get realValue() {
-      if (Array.isArray(fromTo)) {
-        const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
-        const [from, to] = fromTo
-        if (elapsed >= settlingDuration) {
-          return to
-        }
-
-        const time = elapsed / duration
-        const initialVelocity = typeof velocity === 'number' ? velocity : 0
-        return springValue(spring, {
-          from,
-          to,
-          initialVelocity,
-          time,
-        })
-      }
-
-      const result: Record<string, number> = {}
+      const result: Record<string, number[]> = {}
       for (const key of Object.keys(fromTo)) {
-        const initialVelocity =
-          typeof velocity === 'number'
-            ? velocity
-            : (velocity as Record<string, number> | undefined)?.[key] ?? 0
-        const fromToValue = fromTo[key]
-        if (!fromToValue) {
-          continue
-        }
-
-        const [from, to] = fromToValue
+        const [from, to] = fromTo[key]!
 
         Object.defineProperty(result, key, {
           configurable: true,
           enumerable: true,
-          get(): number {
+          get(): number[] {
+            const toValues = typeof to === 'number' ? [to] : to.values
             const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
             if (elapsed >= settlingDuration) {
-              return to
+              return toValues
             }
 
             const time = elapsed / duration
-            return springValue(spring, {
-              from,
-              to,
-              initialVelocity,
-              time,
+            const fromValues = typeof from === 'number' ? [from] : from.values
+
+            return zip(fromValues, toValues).map(([from, to], i) => {
+              const initialVelocity = velocity?.[key]?.[i] ?? 0
+              return springValue(spring, {
+                from,
+                to,
+                initialVelocity,
+                time,
+              })
             })
           },
         })
       }
 
-      return result
+      return result as Record<keyof FromTo, number[]>
     },
 
     get realVelocity() {
-      if (Array.isArray(fromTo)) {
-        const elapsed = performance.now() - startTime
-        if (ctx.settled) {
-          return 0
-        }
-
-        const time = elapsed / duration
-        const [from, to] = fromTo
-        const initialVelocity = typeof velocity === 'number' ? velocity : 0
-
-        return springVelocity(spring, {
-          time,
-          from,
-          to,
-          initialVelocity,
-        })
-      }
-
-      const result: Record<string, number> = {}
+      const result: Record<string, number[]> = {}
       for (const key of Object.keys(fromTo)) {
-        const initialVelocity =
-          typeof velocity === 'number'
-            ? velocity
-            : (velocity as Record<string, number> | undefined)?.[key] ?? 0
-        const fromToValue = fromTo[key]
-        if (!fromToValue) {
-          continue
-        }
-
-        const [from, to] = fromToValue
+        const [from, to] = fromTo[key]!
 
         Object.defineProperty(result, key, {
           configurable: true,
           enumerable: true,
-          get(): number {
-            const elapsed = performance.now() - startTime
+          get(): number[] {
+            const toValues = typeof to === 'number' ? [to] : to.values
             if (ctx.settled) {
-              return 0
+              return new Array(toValues.length).fill(0)
             }
 
-            const time = elapsed / duration
-            return springVelocity(spring, {
-              time,
-              from,
-              to,
-              initialVelocity,
+            const fromValues = typeof from === 'number' ? [from] : from.values
+            const time = (performance.now() - startTime) / duration
+
+            return zip(fromValues, toValues).map(([from, to], i) => {
+              const initialVelocity = velocity?.[key]?.[i] ?? 0
+              return springVelocity(spring, {
+                time,
+                from,
+                to,
+                initialVelocity,
+              })
             })
           },
         })
       }
 
-      return result
+      return result as Record<keyof FromTo, number[]>
     },
   }
 
   return ctx
-}
-
-export function unit(value: string, unit: string): string {
-  const trimmed = value.trim()
-  return Number.isNaN(Number(trimmed))
-    ? `calc(1${unit} * (${trimmed}))`
-    : `${trimmed}${unit}`
 }

@@ -9,6 +9,15 @@ export function mapValues<T, U>(
   return result
 }
 
+export function zip<T>(a: readonly T[], b: readonly T[]): [T, T][] {
+  const result: [T, T][] = []
+  const length = Math.min(a.length, b.length)
+  for (let i = 0; i < length; i++) {
+    result.push([a[i]!, b[i]!])
+  }
+  return result
+}
+
 export function isBrowserSupported(): boolean {
   return (
     typeof CSS !== 'undefined' &&

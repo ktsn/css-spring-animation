@@ -1,18 +1,21 @@
-import { animate, unit } from '../../src/core'
+import { animate, s } from '../../src/core'
 
 const demo = document.getElementById('demo')!
 
 setInterval(() => {
   animate(
-    [0, 300],
-    (value, styles) => {
-      demo.style.translate = `${unit(value, 'px')} ${unit(value, 'px')}`
-      Object.entries(styles).forEach(([k, v]) => {
+    {
+      translate: [s`${0}px ${0}px`, s`${300}px ${300}px`],
+    },
+    (style) => {
+      Object.entries(style).forEach(([k, v]) => {
         demo.style.setProperty(k, v)
       })
     },
     {
-      velocity: 20,
+      velocity: {
+        translate: [20, 20],
+      },
       duration: 1000,
       bounce: -0.1,
     },
