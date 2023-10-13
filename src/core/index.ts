@@ -1,6 +1,9 @@
 export { animate } from './animate'
 export type { AnimateOptions, AnimateContext, AnimateValue } from './animate'
 
+export { createAnimateController } from './controller'
+export type { AnimationController } from './controller'
+
 export {
   createSpring,
   springValue,
@@ -8,7 +11,5 @@ export {
   springSettlingDuration,
 } from './spring'
 
-export { s, stringifyInterpolatedStyle as generateSpringStyle } from './style'
+export { s, stringifyInterpolatedStyle } from './style'
 export type { InterpolatedStyle } from './style'
-
-export { mapValues } from './utils'
