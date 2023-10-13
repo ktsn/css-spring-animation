@@ -1,8 +1,8 @@
 import { App } from 'vue'
 import { vSpringOptions, vSpringStyle } from './directives'
 
-export { useSpring, useSpringStyle } from './use-spring'
-export { vSpringStyle, vSpringOptions } from './directives'
+export { useSpring } from './use-spring'
+export { vSpringStyle, vSpringOptions }
 
 export * from '../core'
 

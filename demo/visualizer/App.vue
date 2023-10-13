@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, watchEffect } from 'vue'
 import { createSpring, springValue, s } from '../../src/core'
-import { useSpringStyle } from '../../src/vue'
+import { useSpring } from '../../src/vue'
 
 const from = 0
 const to = 350
@@ -18,7 +18,7 @@ const parameters = ref({
 const x = ref(from)
 const canvas = shallowRef<HTMLCanvasElement>()
 
-const style = useSpringStyle(
+const { style } = useSpring(
   () => {
     return {
       translate: s`${x.value}px`,

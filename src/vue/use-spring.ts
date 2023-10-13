@@ -26,13 +26,6 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   realVelocity: DeepReadonly<Ref<Values>>
 }
 
-export function useSpringStyle<Style extends Record<string, AnimateValue>>(
-  styleMapper: RefOrGetter<Style>,
-  options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
-): SpringStyleRef {
-  return useSpring(styleMapper, options).style
-}
-
 export function useSpring<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
