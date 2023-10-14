@@ -1,5 +1,6 @@
 import { Directive } from 'vue'
 import {
+  AnimateOptions,
   AnimateValue,
   AnimationController,
   createAnimateController,
@@ -31,7 +32,10 @@ export const vSpringStyle: Directive<
 // we do nothing in v-spring-options directive itself.
 // The directive definition object is used to find it from a vnode
 // in v-spring-style directive.
-export const vSpringOptions = {}
+export const vSpringOptions: Directive<
+  HTMLElementWithController,
+  AnimateOptions<Record<string, number[]>>
+> = {}
 
 function ensureController(
   el: HTMLElementWithController,
