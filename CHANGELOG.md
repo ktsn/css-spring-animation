@@ -1,3 +1,7 @@
+## 0.4.2
+
+- annotate v-spring-options type for type diagnostics
+
 ## 0.4.1
 
 - ensure `v-spring-options` value is applied before triggering `v-spring-style` animation on the same update.
