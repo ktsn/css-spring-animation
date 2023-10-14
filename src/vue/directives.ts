@@ -1,6 +1,5 @@
 import { Directive } from 'vue'
 import {
-  AnimateOptions,
   AnimateValue,
   AnimationController,
   createAnimateController,
@@ -13,16 +12,26 @@ interface HTMLElementWithController extends HTMLElement {
 export const vSpringStyle: Directive<
   HTMLElementWithController,
   Record<string, AnimateValue>
-> = (el, { value }) => {
-  ensureController(el).setStyle(value)
+> = (el, { value }, vnode) => {
+  const controller = ensureController(el)
+
+  vnode.dirs?.forEach((dir) => {
+    if (dir.dir === vSpringOptions) {
+      const options = dir.value
+      if (options) {
+        controller.setOptions(options)
+      }
+    }
+  })
+
+  controller.setStyle(value)
 }
 
-export const vSpringOptions: Directive<
-  HTMLElementWithController,
-  AnimateOptions<Record<string, number[]>>
-> = (el, { value }) => {
-  ensureController(el).setOptions(value)
-}
+// Because options value is collected on v-spring-style directive,
+// we do nothing in v-spring-options directive itself.
+// The directive definition object is used to find it from a vnode
+// in v-spring-style directive.
+export const vSpringOptions = {}
 
 function ensureController(
   el: HTMLElementWithController,
