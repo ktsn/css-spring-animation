@@ -1,3 +1,11 @@
+## 0.4.1
+
+- ensure `v-spring-options` value is applied before triggering `v-spring-style` animation on the same update.
+
+### Breaking Changes
+
+- removed `useSpringStyle`
+
 ## 0.4.0
 
 - add `s` util.
