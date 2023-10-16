@@ -101,6 +101,24 @@ describe('parseStyleValue', () => {
         wraps: ['', ''],
       })
     })
+
+    test('exponential', () => {
+      const parsed = parseStyleValue('10e3')
+      expect(parsed).toEqual({
+        values: [10000],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('floating exponential', () => {
+      const parsed = parseStyleValue('-3.4e-2')
+      expect(parsed).toEqual({
+        values: [-0.034],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
   })
 })
 

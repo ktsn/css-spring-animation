@@ -183,4 +183,9 @@ export const float: Parser<string> = (value) => {
   return join(seq(head, tail))(value)
 }
 
-export const number = or(float, integer)
+export const number: Parser<string> = (value) => {
+  const head = or(float, integer)
+  const exp = join(seq(or(char('e'), char('E')), integer))
+
+  return join(seq(head, optional(exp)))(value)
+}
