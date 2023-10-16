@@ -12,10 +12,14 @@ import { InterpolatedStyle, stringifyInterpolatedStyle } from './style'
 
 export type AnimateValue = number | InterpolatedStyle
 
-export interface AnimateOptions<Velocity extends Record<string, number[]>> {
-  velocity?: Partial<Velocity>
+export interface SpringOptions {
   duration?: number
   bounce?: number
+}
+
+export interface AnimateOptions<Velocity extends Record<string, number[]>>
+  extends SpringOptions {
+  velocity?: Partial<Velocity>
 }
 
 export interface AnimateContext<Values extends Record<string, number[]>> {

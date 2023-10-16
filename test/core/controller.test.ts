@@ -108,4 +108,13 @@ describe('AnimationController', () => {
     controller.stop()
     expect(controller.realVelocity.transform).toEqual([0, 0])
   })
+
+  test('realVelocity is calculated from value history without animation', () => {
+    const controller = createAnimateController(() => {})
+    controller.setStyle({ transform: s`${100}px ${200}px` }, false)
+    controller.setStyle({ transform: s`${101}px ${200}px` }, false)
+    controller.setStyle({ transform: s`${102}px ${200}px` }, false)
+    expect(controller.realVelocity.transform?.[0]).not.toBe(0)
+    expect(controller.realVelocity.transform?.[1]).toBe(0)
+  })
 })

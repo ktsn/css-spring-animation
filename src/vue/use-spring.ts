@@ -9,12 +9,11 @@ import {
   toValue,
   watch,
 } from 'vue'
-import { AnimateOptions, AnimateValue, createAnimateController } from '../core'
+import { AnimateValue, SpringOptions, createAnimateController } from '../core'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
-export interface UseSpringOptions<Velocity extends Record<string, number[]>>
-  extends AnimateOptions<Velocity> {
+export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
 }
 
@@ -28,7 +27,7 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
 
 export function useSpring<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
-  options?: MaybeRefOrGetter<UseSpringOptions<Record<keyof Style, number[]>>>,
+  options?: MaybeRefOrGetter<UseSpringOptions>,
 ): UseSpringResult<Record<keyof Style, number[]>> {
   const input = computed(() => toValue(styleMapper))
   const optionsRef = computed(() => toValue(options) ?? {})

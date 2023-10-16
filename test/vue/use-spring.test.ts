@@ -95,7 +95,7 @@ describe('useSpring', () => {
     expect(realValue.value.width).not.toEqual([20])
   })
 
-  test('return real velocity', async () => {
+  test('return real velocity on animation', async () => {
     const value = ref(10)
 
     const { realVelocity: velocity1 } = useSpring(
@@ -104,9 +104,6 @@ describe('useSpring', () => {
       }),
       {
         duration: 10,
-        velocity: {
-          width: [100],
-        },
       },
     )
     expect(velocity1.value.width).toEqual([0])
@@ -115,6 +112,26 @@ describe('useSpring', () => {
     expect(velocity1.value.width).toEqual([0])
     await nextTick()
     expect(velocity1.value.width).not.toEqual([0])
+  })
+
+  test('return real velocity when disabled', async () => {
+    const value = ref(10)
+
+    const { realVelocity } = useSpring(
+      () => ({
+        width: value.value,
+      }),
+      {
+        duration: 10,
+        disabled: true,
+      },
+    )
+    expect(realVelocity.value.width).toEqual([0])
+
+    value.value = 20
+    expect(realVelocity.value.width).toEqual([0])
+    await nextTick()
+    expect(realVelocity.value.width).not.toEqual([0])
   })
 
   test('return 0 as real velocity after stopped', async () => {

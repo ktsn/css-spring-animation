@@ -1,8 +1,8 @@
 import { Directive } from 'vue'
 import {
-  AnimateOptions,
   AnimateValue,
   AnimationController,
+  SpringOptions,
   createAnimateController,
 } from '../core'
 
@@ -34,7 +34,7 @@ export const vSpringStyle: Directive<
 // in v-spring-style directive.
 export const vSpringOptions: Directive<
   HTMLElementWithController,
-  AnimateOptions<Record<string, number[]>>
+  SpringOptions
 > = {}
 
 function ensureController(

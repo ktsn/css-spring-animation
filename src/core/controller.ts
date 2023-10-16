@@ -1,9 +1,4 @@
-import {
-  AnimateContext,
-  AnimateOptions,
-  animate,
-  AnimateValue,
-} from './animate'
+import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
 import { stringifyInterpolatedStyle } from './style'
 import { mapValues, raf } from './utils'
 
@@ -14,15 +9,22 @@ export interface AnimationController<
   realVelocity: Record<keyof Style, number[]>
 
   setStyle: (style: Style, animate?: boolean) => void
-  setOptions: (options: AnimateOptions<Record<keyof Style, number[]>>) => void
+  setOptions: (options: SpringOptions) => void
   stop: () => void
+}
+
+interface ValueHistoryItem<Key extends keyof any> {
+  value: Record<Key, number[]>
+  timestamp: number
 }
 
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
   let style: Style | undefined
-  let options: AnimateOptions<Record<keyof Style, number[]>> = {}
+  let options: SpringOptions = {}
+
+  let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
   // Pseudo context for intiial state (before triggering animation)
   let ctx: AnimateContext<Record<keyof Style, number[]>> | undefined
@@ -34,14 +36,11 @@ export function createAnimateController<
     fromTo: Record<keyof Style, [AnimateValue, AnimateValue]>
     velocity: Record<keyof Style, number[]>
   } {
-    const velocityOption = options?.velocity
-
-    let velocity = mapValues(next, (value, key) => {
-      const valueList = typeof value === 'number' ? [value] : value.values
-      return valueList.map((_, i) => {
-        return velocityOption?.[key]?.[i] ?? 0
-      })
-    })
+    let velocity =
+      velocityFromHistory(valueHistory, performance.now()) ??
+      mapValues(next, (value) =>
+        typeof value === 'number' ? [0] : [...value.values].fill(0),
+      )
 
     if (ctx && !ctx.settled) {
       const realVelocity = ctx.realVelocity
@@ -70,6 +69,8 @@ export function createAnimateController<
       ctx = createContext(style)
       set(stringifyStyle(style))
     }
+
+    valueHistory = []
   }
 
   async function setStyle(nextStyle: Style, isAnimate = true): Promise<void> {
@@ -82,6 +83,13 @@ export function createAnimateController<
       }
       ctx = createContext(style)
       set(stringifyStyle(style))
+
+      valueHistory.push({
+        value: mapValues(style, (value) => {
+          return typeof value === 'number' ? [value] : value.values
+        }),
+        timestamp: performance.now(),
+      })
       return
     }
 
@@ -100,11 +108,10 @@ export function createAnimateController<
       ...options,
       velocity,
     })
+    valueHistory = []
   }
 
-  function setOptions(
-    nextOptions: AnimateOptions<Record<keyof Style, number[]>>,
-  ): void {
+  function setOptions(nextOptions: SpringOptions): void {
     options = nextOptions
   }
 
@@ -124,6 +131,11 @@ export function createAnimateController<
     },
 
     get realVelocity() {
+      const velocity = velocityFromHistory(valueHistory, performance.now())
+      if (velocity) {
+        return velocity
+      }
+
       if (ctx) {
         return ctx.realVelocity
       }
@@ -142,6 +154,32 @@ export function createAnimateController<
     setStyle,
     setOptions,
   }
+}
+
+function velocityFromHistory<Key extends keyof any>(
+  history: ValueHistoryItem<Key>[],
+  baseTimestamp: number,
+): Record<Key, number[]> | undefined {
+  const range = history.filter((item) => {
+    const from = baseTimestamp - 100
+    const to = baseTimestamp
+    return from <= item.timestamp && item.timestamp <= to
+  })
+  const last = range[range.length - 1]
+  const first = range[0]
+  if (last === first || !last || !first) {
+    return undefined
+  }
+
+  const diff = last.timestamp - first.timestamp
+  const velocity = mapValues(last.value, (value, key) => {
+    return value.map((v, i) => {
+      const prevValue = first.value[key]?.[i] ?? 0
+      return ((v - prevValue) * 1000) / diff
+    })
+  })
+
+  return velocity
 }
 
 function updateValues<Style extends Record<string, AnimateValue>>(
