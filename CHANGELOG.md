@@ -1,3 +1,11 @@
+## 0.4.3
+
+- calculate velocity from input style automatically while disabled
+
+### Breaking Changes
+
+- Removed velocity option from `useSpring` and `v-spring-options`
+
 ## 0.4.2
 
 - annotate v-spring-options type for type diagnostics
