@@ -139,16 +139,16 @@ export function join(parser: Parser<string[]>): Parser<string> {
   return map(parser, (value) => value.join(''))
 }
 
-export function char(c: string): Parser<string> {
+export function string(str: string): Parser<string> {
   return (value) => {
-    if (value[0] !== c) {
+    if (!value.startsWith(str)) {
       return failed
     }
 
     return {
       ok: true,
-      value: c,
-      rest: value.slice(1),
+      value: str,
+      rest: value.slice(str.length),
     }
   }
 }
@@ -169,15 +169,15 @@ export const integer: Parser<string> = (value) => {
   const head = regexp(/^[1-9]/)
   const tail = regexp(/^\d*/)
 
-  const sign = optional(or(char('+'), char('-')))
-  const zero = char('0')
+  const sign = optional(or(string('+'), string('-')))
+  const zero = string('0')
   const nonZero = join(seq(head, tail))
 
   return join(seq(sign, or(zero, nonZero)))(value)
 }
 
 export const float: Parser<string> = (value) => {
-  const head = join(seq(optional(integer), char('.')))
+  const head = join(seq(optional(integer), string('.')))
   const tail = regexp(/^\d+/)
 
   return join(seq(head, tail))(value)
@@ -185,7 +185,7 @@ export const float: Parser<string> = (value) => {
 
 export const number: Parser<string> = (value) => {
   const head = or(float, integer)
-  const exp = join(seq(or(char('e'), char('E')), integer))
+  const exp = join(seq(or(string('e'), string('E')), integer))
 
   return join(seq(head, optional(exp)))(value)
 }
