@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSpring, s } from '../../src/vue'
+import { useSpring } from '../../src/vue'
 
 const dotLeftPosition = {
   x: 100,
@@ -20,7 +20,7 @@ const isDragging = ref(false)
 
 const { style, realVelocity } = useSpring(
   () => ({
-    translate: s`${position.value.x}px ${position.value.y}px`,
+    translate: `${position.value.x}px ${position.value.y}px`,
   }),
   () => ({
     duration: 800,

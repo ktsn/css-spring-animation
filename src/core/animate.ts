@@ -8,9 +8,13 @@ import {
   Spring,
 } from './spring'
 import { forceReflow, isBrowserSupported, mapValues, zip } from './utils'
-import { InterpolatedStyle, stringifyInterpolatedStyle } from './style'
+import {
+  ParsedStyleValue,
+  interpolateParsedStyle,
+  parseStyleValue,
+} from './style'
 
-export type AnimateValue = number | InterpolatedStyle
+export type AnimateValue = number | string | ParsedStyleValue
 
 export interface SpringOptions {
   duration?: number
@@ -41,6 +45,14 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<Record<keyof T, number[]>> = {},
 ): AnimateContext<Record<keyof T, number[]>> {
+  const parsedFromTo = mapValues(fromTo, ([from, to]) => {
+    const parsedFrom =
+      typeof from === 'object' ? from : parseStyleValue(String(from))
+    const parsedTo = typeof to === 'object' ? to : parseStyleValue(String(to))
+
+    return [parsedFrom, parsedTo] as [ParsedStyleValue, ParsedStyleValue]
+  })
+
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
 
@@ -49,11 +61,9 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const fromToValueList = Object.values(fromTo).flatMap((value) => {
+  const fromToValueList = Object.values(parsedFromTo).flatMap((value) => {
     const [from, to] = value
-    const fromValues = typeof from === 'number' ? [from] : from.values
-    const toValues = typeof to === 'number' ? [to] : to.values
-    return zip(fromValues, toValues)
+    return zip(from.values, to.values)
   })
 
   const settlingDuration = Math.max(
@@ -66,7 +76,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 
   const ctx = createContext({
     spring,
-    fromTo,
+    fromTo: parsedFromTo,
     velocity: options.velocity,
     startTime,
     duration,
@@ -76,7 +86,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   if (isBrowserSupported()) {
     animateWithCssTransition({
       spring,
-      fromTo,
+      fromTo: parsedFromTo,
       velocity: options.velocity,
       duration,
       settlingDuration,
@@ -85,22 +95,20 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   } else {
     // Graceful degradation
     animateWithRaf({
-      fromTo,
+      fromTo: parsedFromTo,
       context: ctx,
       set,
     })
   }
 
   ctx.settlingPromise.then(() => {
-    const style = mapValues(fromTo, ([_, to], key) => {
+    const style = mapValues(parsedFromTo, ([_, to], key) => {
       const realValue = ctx.realValue[key]
       if (!realValue) {
         return ''
       }
 
-      return typeof to === 'number'
-        ? String(realValue[0] ?? '')
-        : stringifyInterpolatedStyle(to, realValue)
+      return interpolateParsedStyle(to, realValue)
     })
 
     set({
@@ -122,7 +130,7 @@ function animateWithCssTransition({
   set,
 }: {
   spring: Spring
-  fromTo: Record<string, [AnimateValue, AnimateValue]>
+  fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   velocity: Partial<Record<string, number[]>> | undefined
   duration: number
   settlingDuration: number
@@ -131,10 +139,7 @@ function animateWithCssTransition({
   registerPropertyIfNeeded()
 
   const style = mapValues(fromTo, ([from, to], key) => {
-    const fromValues = typeof from === 'number' ? [from] : from.values
-    const toValues = typeof to === 'number' ? [to] : to.values
-
-    const style = zip(fromValues, toValues).map(([from, to], i) => {
+    const style = zip(from.values, to.values).map(([from, to], i) => {
       const initialVelocity = velocity?.[key]?.[i] ?? 0
       return springStyle(spring, {
         from,
@@ -143,9 +148,7 @@ function animateWithCssTransition({
       })
     })
 
-    return typeof to === 'number'
-      ? style[0]!
-      : stringifyInterpolatedStyle(to, style)
+    return interpolateParsedStyle(to, style)
   })
 
   set({
@@ -168,7 +171,7 @@ function animateWithRaf({
   context,
   set,
 }: {
-  fromTo: Record<string, [AnimateValue, AnimateValue]>
+  fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   context: AnimateContext<Record<string, number[]>>
   set: (style: Record<string, string>) => void
 }): void {
@@ -183,9 +186,7 @@ function animateWithRaf({
         return ''
       }
 
-      return typeof to === 'number'
-        ? String(realValue[0] ?? '')
-        : stringifyInterpolatedStyle(to, realValue)
+      return interpolateParsedStyle(to, realValue)
     })
 
     set({
@@ -200,7 +201,7 @@ function animateWithRaf({
 }
 
 function createContext<
-  FromTo extends Record<string, [AnimateValue, AnimateValue]>,
+  FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >({
   spring,
   fromTo,
@@ -251,16 +252,14 @@ function createContext<
           configurable: true,
           enumerable: true,
           get(): number[] {
-            const toValues = typeof to === 'number' ? [to] : to.values
             const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
             if (elapsed >= settlingDuration) {
-              return toValues
+              return to.values
             }
 
             const time = elapsed / duration
-            const fromValues = typeof from === 'number' ? [from] : from.values
 
-            return zip(fromValues, toValues).map(([from, to], i) => {
+            return zip(from.values, to.values).map(([from, to], i) => {
               const initialVelocity = velocity?.[key]?.[i] ?? 0
               return springValue(spring, {
                 from,
@@ -285,15 +284,13 @@ function createContext<
           configurable: true,
           enumerable: true,
           get(): number[] {
-            const toValues = typeof to === 'number' ? [to] : to.values
             if (ctx.settled) {
-              return new Array(toValues.length).fill(0)
+              return new Array(to.values.length).fill(0)
             }
 
-            const fromValues = typeof from === 'number' ? [from] : from.values
             const time = (performance.now() - startTime) / duration
 
-            return zip(fromValues, toValues).map(([from, to], i) => {
+            return zip(from.values, to.values).map(([from, to], i) => {
               const initialVelocity = velocity?.[key]?.[i] ?? 0
               return springVelocity(spring, {
                 time,

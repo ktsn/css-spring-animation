@@ -1,59 +1,133 @@
 import { describe, expect, test } from 'vitest'
-import { stringifyInterpolatedStyle, s } from '../../src/core/style'
+import { interpolateParsedStyle, parseStyleValue } from '../../src/core/style'
 
-describe('s util', () => {
-  test('parse px unit', () => {
-    const actual = s`${100}px`
-    expect(actual).toEqual({
+describe('parseStyleValue', () => {
+  test('parse number with unit', () => {
+    const parsed = parseStyleValue('100px')
+    expect(parsed).toEqual({
       values: [100],
       units: ['px'],
-      strings: ['', ''],
+      wraps: ['', ''],
     })
   })
 
   test('parse % unit', () => {
-    const actual = s`${100}%`
-    expect(actual).toEqual({
+    const parsed = parseStyleValue('100%')
+    expect(parsed).toEqual({
       values: [100],
       units: ['%'],
-      strings: ['', ''],
+      wraps: ['', ''],
     })
   })
 
   test('parse translate', () => {
-    const actual = s`translate(${100}px, ${200}%)`
-    expect(actual).toEqual({
+    const parsed = parseStyleValue('translate(100px, 200%)')
+    expect(parsed).toEqual({
       values: [100, 200],
       units: ['px', '%'],
-      strings: ['translate(', ', ', ')'],
+      wraps: ['translate(', ', ', ')'],
     })
   })
 
   test('parse scale', () => {
-    const actual = s`scale(${100}, ${200})`
-    expect(actual).toEqual({
+    const parsed = parseStyleValue('scale(100, 200)')
+    expect(parsed).toEqual({
       values: [100, 200],
       units: ['', ''],
-      strings: ['scale(', ', ', ')'],
+      wraps: ['scale(', ', ', ')'],
     })
   })
 
   test('parse rotate', () => {
-    const actual = s`rotate(${90}deg)`
-    expect(actual).toEqual({
+    const parsed = parseStyleValue('rotate(90deg)')
+    expect(parsed).toEqual({
       values: [90],
       units: ['deg'],
-      strings: ['rotate(', ')'],
+      wraps: ['rotate(', ')'],
+    })
+  })
+
+  describe('number parser', () => {
+    test('integer', () => {
+      const parsed = parseStyleValue('100')
+      expect(parsed).toEqual({
+        values: [100],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('zero', () => {
+      const parsed = parseStyleValue('0')
+      expect(parsed).toEqual({
+        values: [0],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('float', () => {
+      const parsed = parseStyleValue('100.5')
+      expect(parsed).toEqual({
+        values: [100.5],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('float without zero', () => {
+      const parsed = parseStyleValue('.5')
+      expect(parsed).toEqual({
+        values: [0.5],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('with plus sign', () => {
+      const parsed = parseStyleValue('+100')
+      expect(parsed).toEqual({
+        values: [100],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('with minus sign', () => {
+      const parsed = parseStyleValue('-100')
+      expect(parsed).toEqual({
+        values: [-100],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('exponential', () => {
+      const parsed = parseStyleValue('10e3')
+      expect(parsed).toEqual({
+        values: [10000],
+        units: [''],
+        wraps: ['', ''],
+      })
+    })
+
+    test('floating exponential', () => {
+      const parsed = parseStyleValue('-3.4e-2')
+      expect(parsed).toEqual({
+        values: [-0.034],
+        units: [''],
+        wraps: ['', ''],
+      })
     })
   })
 })
 
 describe('stringifyInterpolatedStyle', () => {
   test('generate with specified numbers', () => {
-    const actual = stringifyInterpolatedStyle(
+    const actual = interpolateParsedStyle(
       {
         units: ['px', '%'],
-        strings: ['translate(', ', ', ')'],
+        wraps: ['translate(', ', ', ')'],
       },
       [100, 200],
     )
@@ -61,10 +135,10 @@ describe('stringifyInterpolatedStyle', () => {
   })
 
   test('generate with specified expressions', () => {
-    const actual = stringifyInterpolatedStyle(
+    const actual = interpolateParsedStyle(
       {
         units: ['px', '%'],
-        strings: ['translate(', ', ', ')'],
+        wraps: ['translate(', ', ', ')'],
       },
       ['100 * exp(3)', '100 * exp(4)'],
     )
