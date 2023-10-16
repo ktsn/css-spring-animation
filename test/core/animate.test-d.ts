@@ -1,6 +1,5 @@
 import { describe, expectTypeOf, test } from 'vitest'
 import { animate } from '../../src/core/animate'
-import { s } from '../../src/core/style'
 
 describe('animate type', () => {
   test('number value', () => {
@@ -18,10 +17,10 @@ describe('animate type', () => {
     expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ scale: number[] }>()
   })
 
-  test('spring style values', () => {
+  test('string values', () => {
     const ctx = animate(
       {
-        width: [s`${0}px`, s`${100}px`],
+        width: [`0px`, `100px`],
       },
       (values) => {
         expectTypeOf(values).toEqualTypeOf<Record<string, string>>()

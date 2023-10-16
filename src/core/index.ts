@@ -16,5 +16,5 @@ export {
   springSettlingDuration,
 } from './spring'
 
-export { s, stringifyInterpolatedStyle } from './style'
-export type { InterpolatedStyle } from './style'
+export { interpolateParsedStyle } from './style'
+export type { ParsedStyleValue } from './style'

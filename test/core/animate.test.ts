@@ -1,6 +1,5 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { animate } from '../../src/core/animate'
-import { s } from '../../src/core/style'
 
 vitest.mock('../../src/core/utils', async () => {
   const actual = await vitest.importActual<object>('../../src/core/utils')
@@ -118,10 +117,7 @@ describe('animate', () => {
   test('ctx.realValue returns all values in parsed style', () => {
     const ctx = animate(
       {
-        translate: [
-          s`translate(${0}px, ${10}%)`,
-          s`translate(${10}px, ${20}%)`,
-        ],
+        translate: [`translate(0px, 10)`, `translate(10px, 20)`],
       },
       () => {},
       {
@@ -166,10 +162,7 @@ describe('animate', () => {
   test('ctx.realVelocity returns all velocities in parsed style', () => {
     const ctx = animate(
       {
-        translate: [
-          s`translate(${0}px, ${10}%)`,
-          s`translate(${10}px, ${20}%)`,
-        ],
+        translate: [`translate(0px, 10%)`, `translate(10px, 20%)`],
       },
       () => {},
       {
@@ -188,7 +181,7 @@ describe('animate', () => {
   test('pass compiled style value', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: [0, 10], y: [s`${0}px`, s`${20}px`] },
+      { x: [0, 10], y: [`0px`, `20px`] },
       (v) => {
         value = v
       },
@@ -210,7 +203,7 @@ describe('animate', () => {
   test('pass real style value after stopped', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: [s`${0}px`, s`${10}px`] },
+      { x: [`0px`, `10px`] },
       (v) => {
         value = v
       },

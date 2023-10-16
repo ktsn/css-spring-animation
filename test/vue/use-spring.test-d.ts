@@ -1,6 +1,5 @@
 import { describe, expectTypeOf, test } from 'vitest'
 import { useSpring } from '../../src/vue/use-spring'
-import { s } from '../../src/core'
 
 describe('useSpring type', () => {
   test('number value', () => {
@@ -12,9 +11,9 @@ describe('useSpring type', () => {
     expectTypeOf(realVelocity.value.width).toEqualTypeOf<readonly number[]>()
   })
 
-  test('spring style value', () => {
+  test('string value', () => {
     const { realValue, realVelocity } = useSpring(() => ({
-      width: s`${10}px`,
+      width: `10px`,
     }))
 
     expectTypeOf(realValue.value.width).toEqualTypeOf<readonly number[]>()

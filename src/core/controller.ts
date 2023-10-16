@@ -1,5 +1,9 @@
 import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
-import { stringifyInterpolatedStyle } from './style'
+import {
+  ParsedStyleValue,
+  interpolateParsedStyle,
+  parseStyleValue,
+} from './style'
 import { mapValues, raf } from './utils'
 
 export interface AnimationController<
@@ -21,7 +25,7 @@ interface ValueHistoryItem<Key extends keyof any> {
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
-  let style: Style | undefined
+  let style: Record<keyof Style, ParsedStyleValue> | undefined
   let options: SpringOptions = {}
 
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
@@ -30,17 +34,15 @@ export function createAnimateController<
   let ctx: AnimateContext<Record<keyof Style, number[]>> | undefined
 
   function calculateCurrentValues(
-    next: Style,
-    prev: Style,
+    next: Record<keyof Style, ParsedStyleValue>,
+    prev: Record<keyof Style, ParsedStyleValue>,
   ): {
-    fromTo: Record<keyof Style, [AnimateValue, AnimateValue]>
+    fromTo: Record<keyof Style, [ParsedStyleValue, ParsedStyleValue]>
     velocity: Record<keyof Style, number[]>
   } {
     let velocity =
       velocityFromHistory(valueHistory, performance.now()) ??
-      mapValues(next, (value) =>
-        typeof value === 'number' ? [0] : [...value.values].fill(0),
-      )
+      mapValues(next, (value) => new Array(value.values.length).fill(0))
 
     if (ctx && !ctx.settled) {
       const realVelocity = ctx.realVelocity
@@ -50,7 +52,7 @@ export function createAnimateController<
     }
 
     const fromTo = mapValues(prev, (prevV, key) => {
-      return [prevV, next[key]] as [AnimateValue, AnimateValue]
+      return [prevV, next[key]] as [ParsedStyleValue, ParsedStyleValue]
     })
 
     return {
@@ -74,8 +76,12 @@ export function createAnimateController<
   }
 
   async function setStyle(nextStyle: Style, isAnimate = true): Promise<void> {
+    const parsedStyle = mapValues(nextStyle, (value) =>
+      parseStyleValue(String(value)),
+    )
+
     let prev = style
-    style = nextStyle
+    style = parsedStyle
 
     if (!isAnimate || !prev) {
       if (ctx && !ctx.settled) {
@@ -182,50 +188,38 @@ function velocityFromHistory<Key extends keyof any>(
   return velocity
 }
 
-function updateValues<Style extends Record<string, AnimateValue>>(
+function updateValues<Style extends Record<string, ParsedStyleValue>>(
   springValues: Style,
   values: Record<keyof Style, number[]>,
 ): Style {
-  return mapValues(springValues, (value, key): AnimateValue => {
+  return mapValues(springValues, (value, key): ParsedStyleValue => {
     const newValue = values[key]
-    if (typeof value === 'number') {
-      return newValue?.[0] ?? 0
-    }
-
     return {
-      strings: value.strings,
+      wraps: value.wraps,
       units: value.units,
-      values: newValue ?? [...value.values].fill(0),
+      values: newValue ?? new Array(value.values.length).fill(0),
     }
   }) as Style
 }
 
-function stringifyStyle<Style extends Record<string, AnimateValue>>(
+function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
   style: Style,
 ): Record<keyof Style, string> {
-  return mapValues(style, (value) => {
-    return typeof value === 'number'
-      ? String(value)
-      : stringifyInterpolatedStyle(value, value.values)
-  })
+  return mapValues(style, (value) =>
+    interpolateParsedStyle(value, value.values),
+  )
 }
 
 /**
  * Create a pseudo context for the state when no animation is triggered.
  * It is used for initial state and disabled state.
  */
-function createContext<Style extends Record<string, AnimateValue>>(
+function createContext<Style extends Record<string, ParsedStyleValue>>(
   value: Style,
 ): AnimateContext<Record<keyof Style, number[]>> {
   return {
-    realValue: mapValues(value, (v) => {
-      return typeof v === 'number' ? [v] : v.values
-    }),
-    realVelocity: mapValues(value, (_, key) => {
-      const property = value[key] ?? 0
-      const values = typeof property === 'number' ? [property] : property.values
-      return [...values].fill(0)
-    }),
+    realValue: mapValues(value, (v) => v.values),
+    realVelocity: mapValues(value, (v) => new Array(v.values.length).fill(0)),
     finished: true,
     settled: true,
     finishingPromise: Promise.resolve(),

@@ -1,11 +1,11 @@
-import { animate, s } from '../../src/core'
+import { animate } from '../../src/core'
 
 const demo = document.getElementById('demo')!
 
 setInterval(() => {
   animate(
     {
-      translate: [s`${0}px ${0}px`, s`${300}px ${300}px`],
+      translate: [`0px 0px`, `300px 300px`],
     },
     (style) => {
       Object.entries(style).forEach(([k, v]) => {

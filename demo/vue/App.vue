@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { s } from '../../src/vue'
 
 const to = ref({
   x: 0,
@@ -20,7 +19,7 @@ function onPointerDown(event: PointerEvent): void {
     <div
       class="target"
       v-spring-style="{
-        translate: s`${to.x}px ${to.y}px`,
+        translate: `${to.x}px ${to.y}px`,
       }"
       v-spring-options="{
         duration: 5000,
