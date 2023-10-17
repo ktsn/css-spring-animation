@@ -10,7 +10,6 @@ import {
   regexp,
   seq,
 } from './combinator'
-import { takeUntil } from './utils'
 
 export interface ParsedStyleTemplate {
   units: string[]
@@ -21,90 +20,67 @@ export interface ParsedStyleValue extends ParsedStyleTemplate {
   values: number[]
 }
 
-interface Token {
-  type: 'string' | 'number' | 'colorNumber' | 'colorHex' | 'unit'
+type Token = CharToken | NumberToken | HexColorToken
+
+interface CharToken {
+  type: 'char'
   value: string
+}
+
+interface NumberToken {
+  type: 'number'
+  value: number
+  unit: string
+}
+
+interface HexColorToken {
+  type: 'hexColor'
+  red: number
+  green: number
+  blue: number
+  alpha: number | undefined
 }
 
 const unit = regexp(/^([a-z%]+)/)
 
 const parser: Parser<Token[]> = (value) => {
-  const numberWithUnit = map(seq(number, optional(unit)), (value) => ({
-    type: 'number',
-    value,
-  }))
+  const numberWithUnit = map(
+    seq(number, optional(unit)),
+    (value): Token => ({
+      type: 'number',
+      value: Number(value[0]),
+      unit: value[1] ?? '',
+    }),
+  )
 
-  const color = map(hexColor, (value) => ({
-    type: 'hexColor',
-    value,
-  }))
-
-  const char = map(anyChar, (value) => ({
-    type: 'char',
-    value: [value],
-  }))
-
-  const result = many(or(numberWithUnit, color, char))(value)
-  if (!result.ok) {
-    return result
-  }
-
-  return {
-    ...result,
-    value: result.value.reduce<Token[]>((acc, res) => {
-      if (res.type === 'hexColor') {
-        const tokens: Token[] = [
-          {
-            type: 'colorNumber',
-            value: res.value[0]!,
-          },
-          {
-            type: 'colorHex',
-            value: res.value[1]!,
-          },
-          {
-            type: 'colorHex',
-            value: res.value[2]!,
-          },
-          {
-            type: 'colorHex',
-            value: res.value[3]!,
-          },
-        ]
-        if (res.value[4]) {
-          tokens.push({
-            type: 'colorHex',
-            value: res.value[4],
-          })
-        }
-        return acc.concat(tokens)
+  const color = map(hexColor, (value): Token => {
+    const [red, green, blue, alpha] = value.slice(1).map((v, i) => {
+      if (!v) {
+        return undefined
       }
+      const filled = v.length === 1 ? v + v : v
+      const n = parseInt(filled, 16)
+      return i === 3 ? n / 0xff : n
+    })
 
-      if (res.type === 'number') {
-        return acc.concat([
-          {
-            type: 'number',
-            value: res.value[0]!,
-          },
-          {
-            type: 'unit',
-            value: res.value[1]!,
-          },
-        ])
-      }
+    return {
+      type: 'hexColor',
+      red: red!,
+      green: green!,
+      blue: blue!,
+      alpha,
+    }
+  })
 
-      const last = acc[acc.length - 1]
-      if (last && last.type === 'string') {
-        last.value += res.value[0]!
-      } else {
-        acc.push({
-          type: 'string',
-          value: res.value[0]!,
-        })
-      }
-      return acc
-    }, []),
-  }
+  const char = map(
+    anyChar,
+    (value): Token => ({
+      type: 'char',
+      value,
+    }),
+  )
+
+  return many(or(numberWithUnit, color, char))(value)
 }
 
 export function parseStyleValue(value: string): ParsedStyleValue {
@@ -117,94 +93,52 @@ export function parseStyleValue(value: string): ParsedStyleValue {
     }
   }
 
-  const tokens = [...parsed.value]
+  const tokens: Token[] = [...parsed.value, { type: 'char', value: '' }]
 
-  const preprocessed = tokens.reduce<Token[]>((acc, token, i) => {
-    const prev = acc[acc.length - 1]
-    if (token.type === 'string' && prev?.type === 'string') {
-      prev.value += token.value
-      return acc
-    }
+  return tokens.reduce<ParsedStyleValue>(
+    (acc, token, i) => {
+      const last = tokens[i - 1]
+      const continuousWrap = last?.type === 'char' || last?.type === 'hexColor'
 
-    if (token.type === 'number' && prev?.type !== 'string') {
-      acc.push(
-        {
-          type: 'string',
-          value: '',
-        },
-        token,
-      )
-      return acc
-    }
-
-    if (token.type === 'colorNumber') {
-      const hexes = takeUntil(
-        tokens.slice(i + 1),
-        (token) => token.type !== 'colorHex',
-      )
-
-      const str = hexes.length === 4 ? 'rgba(' : 'rgb('
-      if (prev?.type === 'string') {
-        prev.value += str
-      } else {
-        acc.push({
-          type: 'string',
-          value: str,
-        })
-      }
-      return acc
-    }
-
-    if (token.type === 'colorHex') {
-      const value =
-        token.value.length === 1 ? token.value + token.value : token.value
-
-      if (tokens[i - 1]?.type !== 'colorNumber') {
-        acc.push({
-          type: 'string',
-          value: ', ',
-        })
+      if (token.type === 'char') {
+        if (continuousWrap) {
+          acc.wraps[acc.wraps.length - 1] += token.value
+        } else {
+          acc.wraps.push(token.value)
+        }
+        return acc
       }
 
-      acc.push(
-        {
-          type: 'number',
-          value: String(parseInt(value, 16)),
-        },
-        {
-          type: 'unit',
-          value: '',
-        },
-      )
-
-      if (tokens[i + 1]?.type !== 'colorHex') {
-        acc.push({
-          type: 'string',
-          value: ')',
-        })
+      if (token.type === 'number') {
+        if (!continuousWrap) {
+          acc.wraps.push('')
+        }
+        acc.values.push(token.value)
+        acc.units.push(token.unit)
+        return acc
       }
 
-      return acc
-    }
+      if (token.type === 'hexColor') {
+        const prefix = token.alpha === undefined ? 'rgb(' : 'rgba('
+        if (continuousWrap) {
+          acc.wraps[acc.wraps.length - 1] += prefix
+        } else {
+          acc.wraps.push(prefix)
+        }
 
-    return acc.concat([token])
-  }, [])
+        acc.values.push(token.red, token.green, token.blue)
+        acc.units.push('', '', '')
+        acc.wraps.push(', ', ', ')
 
-  if (preprocessed[preprocessed.length - 1]?.type !== 'string') {
-    preprocessed.push({
-      type: 'string',
-      value: '',
-    })
-  }
+        if (token.alpha !== undefined) {
+          acc.values.push(token.alpha)
+          acc.units.push('')
+          acc.wraps.push(', ')
+        }
 
-  return preprocessed.reduce<ParsedStyleValue>(
-    (acc, token) => {
-      if (token.type === 'string') {
-        acc.wraps.push(token.value)
-      } else if (token.type === 'number') {
-        acc.values.push(parseFloat(token.value))
-      } else if (token.type === 'unit') {
-        acc.units.push(token.value)
+        acc.wraps.push(')')
+
+        return acc
       }
 
       return acc

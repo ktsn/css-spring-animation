@@ -47,6 +47,15 @@ describe('parseStyleValue', () => {
     })
   })
 
+  test('no interesting token', () => {
+    const parsed = parseStyleValue('blue, cyan')
+    expect(parsed).toEqual({
+      values: [],
+      units: [],
+      wraps: ['blue, cyan'],
+    })
+  })
+
   describe('color parser', () => {
     test('parse color', () => {
       const parsed = parseStyleValue('rgb(255, 204, 0)')
@@ -69,7 +78,7 @@ describe('parseStyleValue', () => {
     test('parse rgba hex color', () => {
       const parsed = parseStyleValue('#fc0a')
       expect(parsed).toEqual({
-        values: [0xff, 0xcc, 0, 0xaa],
+        values: [0xff, 0xcc, 0, 0xaa / 0xff],
         units: ['', '', '', ''],
         wraps: ['rgba(', ', ', ', ', ', ', ')'],
       })
