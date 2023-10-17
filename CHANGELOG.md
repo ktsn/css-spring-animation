@@ -1,3 +1,7 @@
+## 0.5.1
+
+- alpha part in hex color should be in range 0-1
+
 ## 0.5.0
 
 - Allow to pass normal string for animation target value.
