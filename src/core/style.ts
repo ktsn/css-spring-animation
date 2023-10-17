@@ -1,6 +1,7 @@
 import {
   Parser,
   anyChar,
+  hexColor,
   many,
   map,
   number,
@@ -9,6 +10,7 @@ import {
   regexp,
   seq,
 } from './combinator'
+import { takeUntil } from './utils'
 
 export interface ParsedStyleTemplate {
   units: string[]
@@ -20,7 +22,7 @@ export interface ParsedStyleValue extends ParsedStyleTemplate {
 }
 
 interface Token {
-  type: 'string' | 'number' | 'unit'
+  type: 'string' | 'number' | 'colorNumber' | 'colorHex' | 'unit'
   value: string
 }
 
@@ -32,12 +34,17 @@ const parser: Parser<Token[]> = (value) => {
     value,
   }))
 
+  const color = map(hexColor, (value) => ({
+    type: 'hexColor',
+    value,
+  }))
+
   const char = map(anyChar, (value) => ({
     type: 'char',
     value: [value],
   }))
 
-  const result = many(or(numberWithUnit, char))(value)
+  const result = many(or(numberWithUnit, color, char))(value)
   if (!result.ok) {
     return result
   }
@@ -45,18 +52,36 @@ const parser: Parser<Token[]> = (value) => {
   return {
     ...result,
     value: result.value.reduce<Token[]>((acc, res) => {
-      if (res.type === 'char') {
-        const last = acc[acc.length - 1]
-        if (last && last.type === 'string') {
-          last.value += res.value[0]!
-        } else {
-          acc.push({
-            type: 'string',
+      if (res.type === 'hexColor') {
+        const tokens: Token[] = [
+          {
+            type: 'colorNumber',
             value: res.value[0]!,
+          },
+          {
+            type: 'colorHex',
+            value: res.value[1]!,
+          },
+          {
+            type: 'colorHex',
+            value: res.value[2]!,
+          },
+          {
+            type: 'colorHex',
+            value: res.value[3]!,
+          },
+        ]
+        if (res.value[4]) {
+          tokens.push({
+            type: 'colorHex',
+            value: res.value[4],
           })
         }
-      } else {
-        acc.push(
+        return acc.concat(tokens)
+      }
+
+      if (res.type === 'number') {
+        return acc.concat([
           {
             type: 'number',
             value: res.value[0]!,
@@ -65,9 +90,18 @@ const parser: Parser<Token[]> = (value) => {
             type: 'unit',
             value: res.value[1]!,
           },
-        )
+        ])
       }
 
+      const last = acc[acc.length - 1]
+      if (last && last.type === 'string') {
+        last.value += res.value[0]!
+      } else {
+        acc.push({
+          type: 'string',
+          value: res.value[0]!,
+        })
+      }
       return acc
     }, []),
   }
@@ -85,21 +119,85 @@ export function parseStyleValue(value: string): ParsedStyleValue {
 
   const tokens = [...parsed.value]
 
-  if (tokens[0]?.type !== 'string') {
-    tokens.unshift({
+  const preprocessed = tokens.reduce<Token[]>((acc, token, i) => {
+    const prev = acc[acc.length - 1]
+    if (token.type === 'string' && prev?.type === 'string') {
+      prev.value += token.value
+      return acc
+    }
+
+    if (token.type === 'number' && prev?.type !== 'string') {
+      acc.push(
+        {
+          type: 'string',
+          value: '',
+        },
+        token,
+      )
+      return acc
+    }
+
+    if (token.type === 'colorNumber') {
+      const hexes = takeUntil(
+        tokens.slice(i + 1),
+        (token) => token.type !== 'colorHex',
+      )
+
+      const str = hexes.length === 4 ? 'rgba(' : 'rgb('
+      if (prev?.type === 'string') {
+        prev.value += str
+      } else {
+        acc.push({
+          type: 'string',
+          value: str,
+        })
+      }
+      return acc
+    }
+
+    if (token.type === 'colorHex') {
+      const value =
+        token.value.length === 1 ? token.value + token.value : token.value
+
+      if (tokens[i - 1]?.type !== 'colorNumber') {
+        acc.push({
+          type: 'string',
+          value: ', ',
+        })
+      }
+
+      acc.push(
+        {
+          type: 'number',
+          value: String(parseInt(value, 16)),
+        },
+        {
+          type: 'unit',
+          value: '',
+        },
+      )
+
+      if (tokens[i + 1]?.type !== 'colorHex') {
+        acc.push({
+          type: 'string',
+          value: ')',
+        })
+      }
+
+      return acc
+    }
+
+    return acc.concat([token])
+  }, [])
+
+  if (preprocessed[preprocessed.length - 1]?.type !== 'string') {
+    preprocessed.push({
       type: 'string',
       value: '',
     })
   }
 
-  if (tokens[tokens.length - 1]?.type !== 'string') {
-    tokens.push({
-      type: 'string',
-      value: '',
-    })
-  }
-
-  return tokens.reduce<ParsedStyleValue>(
+  return preprocessed.reduce<ParsedStyleValue>(
     (acc, token) => {
       if (token.type === 'string') {
         acc.wraps.push(token.value)

@@ -47,6 +47,53 @@ describe('parseStyleValue', () => {
     })
   })
 
+  describe('color parser', () => {
+    test('parse color', () => {
+      const parsed = parseStyleValue('rgb(255, 204, 0)')
+      expect(parsed).toEqual({
+        values: [255, 204, 0],
+        units: ['', '', ''],
+        wraps: ['rgb(', ', ', ', ', ')'],
+      })
+    })
+
+    test('parse hex color', () => {
+      const parsed = parseStyleValue('#fc0')
+      expect(parsed).toEqual({
+        values: [0xff, 0xcc, 0],
+        units: ['', '', ''],
+        wraps: ['rgb(', ', ', ', ', ')'],
+      })
+    })
+
+    test('parse rgba hex color', () => {
+      const parsed = parseStyleValue('#fc0a')
+      expect(parsed).toEqual({
+        values: [0xff, 0xcc, 0, 0xaa],
+        units: ['', '', '', ''],
+        wraps: ['rgba(', ', ', ', ', ', ', ')'],
+      })
+    })
+
+    test('parse double hex color', () => {
+      const parsed = parseStyleValue('#faca0a')
+      expect(parsed).toEqual({
+        values: [0xfa, 0xca, 0x0a],
+        units: ['', '', ''],
+        wraps: ['rgb(', ', ', ', ', ')'],
+      })
+    })
+
+    test('multiple colors', () => {
+      const parsed = parseStyleValue('#fc0, #ffcc00')
+      expect(parsed).toEqual({
+        values: [255, 204, 0, 255, 204, 0],
+        units: ['', '', '', '', '', ''],
+        wraps: ['rgb(', ', ', ', ', '), rgb(', ', ', ', ', ')'],
+      })
+    })
+  })
+
   describe('number parser', () => {
     test('integer', () => {
       const parsed = parseStyleValue('100')

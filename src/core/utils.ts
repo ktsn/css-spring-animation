@@ -9,6 +9,17 @@ export function mapValues<T, U>(
   return result
 }
 
+export function takeUntil<T>(list: T[], fn: (value: T) => boolean): T[] {
+  const result: T[] = []
+  for (const value of list) {
+    if (fn(value)) {
+      break
+    }
+    result.push(value)
+  }
+  return result
+}
+
 export function zip<T>(a: readonly T[], b: readonly T[]): [T, T][] {
   const result: [T, T][] = []
   const length = Math.min(a.length, b.length)

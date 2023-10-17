@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { number } from '../../src/core/combinator'
+import { hexColor, number } from '../../src/core/combinator'
 
 describe('number combinator', () => {
   test('integer', () => {
@@ -70,6 +70,44 @@ describe('number combinator', () => {
     expect(parsed).toEqual({
       ok: true,
       value: '-3.4e-2',
+      rest: '',
+    })
+  })
+})
+
+describe('hexColor combinator', () => {
+  test('#RGB', () => {
+    const parsed = hexColor('#abc')
+    expect(parsed).toEqual({
+      ok: true,
+      value: ['#', 'a', 'b', 'c', ''],
+      rest: '',
+    })
+  })
+
+  test('#RRGGBB', () => {
+    const parsed = hexColor('#0a1b2c')
+    expect(parsed).toEqual({
+      ok: true,
+      value: ['#', '0a', '1b', '2c', ''],
+      rest: '',
+    })
+  })
+
+  test('#RGBA', () => {
+    const parsed = hexColor('#abcd')
+    expect(parsed).toEqual({
+      ok: true,
+      value: ['#', 'a', 'b', 'c', 'd'],
+      rest: '',
+    })
+  })
+
+  test('#RRGGBBAA', () => {
+    const parsed = hexColor('#0a1b2c3d')
+    expect(parsed).toEqual({
+      ok: true,
+      value: ['#', '0a', '1b', '2c', '3d'],
       rest: '',
     })
   })

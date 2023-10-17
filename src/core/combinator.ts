@@ -189,3 +189,14 @@ export const number: Parser<string> = (value) => {
 
   return join(seq(head, optional(exp)))(value)
 }
+
+export const hexColor: Parser<string[]> = (value) => {
+  const head = string('#')
+  const hex = regexp(/^[0-9a-fA-F]/)
+  const hex2 = regexp(/^[0-9a-fA-F]{2}/)
+
+  const rgba = seq(head, hex, hex, hex, optional(hex))
+  const rrggbbaa = seq(head, hex2, hex2, hex2, optional(hex2))
+
+  return or(rrggbbaa, rgba)(value)
+}
