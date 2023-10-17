@@ -1,16 +1,22 @@
 import { beforeEach, describe, expect, test, vitest } from 'vitest'
 import { createApp, nextTick, ref } from 'vue'
 import { vSpringStyle, vSpringOptions } from '../../src/vue/directives'
+import { AnimationController } from '../../src/core'
 
-const mockController = {
-  setStyle: vitest.fn(),
-  setOptions: vitest.fn(),
-}
+let mockController: Record<keyof AnimationController<any>, any>
 
-vitest.mock('../../src/core/controller', () => {
+vitest.mock('../../src/core/controller', async () => {
+  const module = await vitest.importActual<any>('../../src/core/controller')
+
   return {
-    createAnimateController: () => {
-      return mockController
+    ...module,
+    createAnimateController: (...args: any[]) => {
+      const controller = (mockController = module.createAnimateController(
+        ...args,
+      ))
+      vitest.spyOn(controller, 'setStyle')
+      vitest.spyOn(controller, 'setOptions')
+      return controller
     },
   }
 })
@@ -76,5 +82,19 @@ describe('directives', () => {
 
     expect(mockController.setOptions).toHaveBeenCalledWith({ bounce: 0 })
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 1 })
+  })
+
+  test('set style property', () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template:
+        "<div v-spring-style=\"{ width: '100%', backgroundColor: '#fff' }\"></div>",
+      directives: {
+        springStyle: vSpringStyle,
+      },
+    })
+    const vm = app.mount(root)
+    expect(vm.$el.style.width).toBe('100%')
+    expect(vm.$el.style.backgroundColor).toBe('rgb(255, 255, 255)')
   })
 })

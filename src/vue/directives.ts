@@ -44,7 +44,11 @@ function ensureController(
   if (!controller) {
     controller = createAnimateController((style) => {
       for (const key in style) {
-        el.style.setProperty(key, style[key] ?? '')
+        if (key.startsWith('--')) {
+          el.style.setProperty(key, style[key] ?? '')
+        } else {
+          el.style[key as any] = style[key] ?? ''
+        }
       }
     })
     el.__springController = controller
