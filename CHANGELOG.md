@@ -1,3 +1,12 @@
+## 0.5.0
+
+- Allow to pass normal string for animation target value.
+- Support hex color (`#RRGGBB`) animation.
+
+### Breaking Changes
+
+- Removed `s` util function.
+
 ## 0.4.3
 
 - calculate velocity from input style automatically while disabled
