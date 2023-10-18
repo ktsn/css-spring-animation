@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { ref, shallowRef, watchEffect } from 'vue'
-import { createSpring, springValue } from '../../src/core'
-import { useSpring } from '../../src/vue'
+import { CSSProperties, ref, shallowRef, watchEffect } from 'vue'
+import {
+  AnimateContext,
+  animate,
+  createSpring,
+  springValue,
+} from '../../src/core'
 
 const from = 0
 const to = 350
@@ -18,22 +22,7 @@ const parameters = ref({
 const x = ref(from)
 const canvas = shallowRef<HTMLCanvasElement>()
 
-const { style } = useSpring(
-  () => {
-    return {
-      translate: `${x.value}px`,
-    }
-  },
-  () => {
-    return {
-      ...parameters.value,
-      velocity: {
-        translate: [parameters.value.velocity],
-      },
-      disabled: x.value === from,
-    }
-  },
-)
+const style = ref<CSSProperties>({})
 
 function render(time: number): void {
   const ctx = canvas.value?.getContext('2d')
@@ -121,18 +110,31 @@ function render(time: number): void {
 
 let intervalTimer: number | undefined
 let rafTimer: number | undefined
+let ctx: AnimateContext<any> | undefined
 watchEffect(() => {
   window.clearInterval(intervalTimer)
+  ctx?.stop()
 
   function start(): void {
     if (rafTimer !== undefined) {
       window.cancelAnimationFrame(rafTimer)
     }
 
-    x.value = from
-    requestAnimationFrame(() => {
-      x.value = to
-    })
+    ctx = animate(
+      {
+        translate: [`${from}px`, `${to}px`],
+      },
+      (_style) => {
+        style.value = _style
+      },
+      {
+        velocity: {
+          translate: [parameters.value.velocity],
+        },
+        bounce: parameters.value.bounce,
+        duration: parameters.value.duration,
+      },
+    )
 
     let start: number | undefined
 
