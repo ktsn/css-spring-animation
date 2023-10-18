@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { spring } from '../../src/vue'
 
 const to = ref({
   x: 0,
@@ -16,15 +17,13 @@ function onPointerDown(event: PointerEvent): void {
 
 <template>
   <div class="wrapper" @pointerdown="onPointerDown">
-    <div
+    <spring.div
       class="target"
-      v-spring-style="{
+      :spring-style="{
         translate: `${to.x}px ${to.y}px`,
       }"
-      v-spring-options="{
-        duration: 5000,
-      }"
-    ></div>
+      :duration="5000"
+    ></spring.div>
   </div>
 </template>
 
