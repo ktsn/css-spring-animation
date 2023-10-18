@@ -19,7 +19,6 @@ const parameters = ref({
   duration: 1000,
 })
 
-const x = ref(from)
 const canvas = shallowRef<HTMLCanvasElement>()
 
 const style = ref<CSSProperties>({})
@@ -109,32 +108,39 @@ function render(time: number): void {
 }
 
 let intervalTimer: number | undefined
-let rafTimer: number | undefined
+let loopTimer: number | undefined
+let animateTimer: number | undefined
 let ctx: AnimateContext<any> | undefined
 watchEffect(() => {
   window.clearInterval(intervalTimer)
-  ctx?.stop()
+  const { velocity, bounce, duration } = parameters.value
 
   function start(): void {
-    if (rafTimer !== undefined) {
-      window.cancelAnimationFrame(rafTimer)
+    if (animateTimer !== undefined) {
+      window.cancelAnimationFrame(animateTimer)
+    }
+    if (loopTimer !== undefined) {
+      window.cancelAnimationFrame(loopTimer)
     }
 
-    ctx = animate(
-      {
-        translate: [`${from}px`, `${to}px`],
-      },
-      (_style) => {
-        style.value = _style
-      },
-      {
-        velocity: {
-          translate: [parameters.value.velocity],
+    ctx?.stop()
+    animateTimer = requestAnimationFrame(() => {
+      ctx = animate(
+        {
+          translate: [`${from}px`, `${to}px`],
         },
-        bounce: parameters.value.bounce,
-        duration: parameters.value.duration,
-      },
-    )
+        (_style) => {
+          style.value = _style
+        },
+        {
+          velocity: {
+            translate: [velocity],
+          },
+          bounce,
+          duration,
+        },
+      )
+    })
 
     let start: number | undefined
 
@@ -143,10 +149,10 @@ watchEffect(() => {
         start = now
       }
       render((now - start) / parameters.value.duration)
-      rafTimer = requestAnimationFrame(loop)
+      loopTimer = requestAnimationFrame(loop)
     }
 
-    rafTimer = requestAnimationFrame(loop)
+    loopTimer = requestAnimationFrame(loop)
   }
 
   start()
