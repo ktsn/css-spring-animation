@@ -84,7 +84,7 @@ describe('directives', () => {
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
-  test('set style property', () => {
+  test('set style property with lower camel case', () => {
     const root = document.createElement('div')
     const app = createApp({
       template:
@@ -95,6 +95,18 @@ describe('directives', () => {
     })
     const vm = app.mount(root)
     expect(vm.$el.style.width).toBe('100%')
+    expect(vm.$el.style.backgroundColor).toBe('rgb(255, 255, 255)')
+  })
+
+  test('set style property with kebab case', () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: "<div v-spring-style=\"{ 'background-color': '#fff' }\"></div>",
+      directives: {
+        springStyle: vSpringStyle,
+      },
+    })
+    const vm = app.mount(root)
     expect(vm.$el.style.backgroundColor).toBe('rgb(255, 255, 255)')
   })
 })
