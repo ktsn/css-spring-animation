@@ -1,3 +1,7 @@
+## 0.5.2
+
+- hyphenate style property name passed to `v-spring-style` directive.
+
 ## 0.5.1
 
 - alpha part in hex color should be in range 0-1
