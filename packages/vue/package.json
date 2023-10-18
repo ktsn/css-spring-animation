@@ -1,6 +1,6 @@
 {
   "name": "@css-spring-animation/vue",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "High performance spring animation with CSS Transition",
   "keywords": [
     "spring",

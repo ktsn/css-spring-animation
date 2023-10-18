@@ -1,3 +1,7 @@
+## 0.6.0
+
+- add `spring` component namespace. e.g. `<spring.div :spring-style="{ translate: x + 'px' }"></spring.div>`
+
 ## 0.5.2
 
 - hyphenate style property name passed to `v-spring-style` directive.
