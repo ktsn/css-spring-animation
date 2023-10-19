@@ -5,7 +5,10 @@ import {
   animate,
   createSpring,
   springValue,
+  springBounceValue,
+  springDecayValue,
 } from '../../src/core'
+import { Spring } from '../../src/core/spring'
 
 const from = 0
 const to = 350
@@ -23,6 +26,159 @@ const canvas = shallowRef<HTMLCanvasElement>()
 
 const style = ref<CSSProperties>({})
 
+function renderLines(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  padding: number,
+): void {
+  ctx.lineWidth = 1
+  ctx.setLineDash([2, 4])
+  ctx.strokeStyle = '#aaa'
+
+  ctx.beginPath()
+  ctx.moveTo(0, padding)
+  ctx.lineTo(width, padding)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(0, height - padding)
+  ctx.lineTo(width, height - padding)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(0, height / 2)
+  ctx.lineTo(width, height / 2)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(width / 2, 0)
+  ctx.lineTo(width / 2, height)
+  ctx.stroke()
+}
+
+function renderBounceGraph(
+  ctx: CanvasRenderingContext2D,
+  spring: Spring,
+  width: number,
+  height: number,
+  padding: number,
+): void {
+  ctx.lineWidth = 2
+  ctx.setLineDash([])
+  ctx.strokeStyle = '#0000cc66'
+
+  ctx.beginPath()
+  ctx.moveTo(0, height - padding)
+
+  for (let i = 0; i < width * 2; i++) {
+    const t = i / width
+    const value = springBounceValue(spring, {
+      time: t,
+      from,
+      to,
+      initialVelocity: parameters.value.velocity,
+    })
+
+    const y = (1 + value) * (height / 2 - padding) + padding
+    ctx.lineTo(i / 2, y)
+  }
+
+  ctx.stroke()
+}
+
+function renderDecayGraph(
+  ctx: CanvasRenderingContext2D,
+  spring: Spring,
+  width: number,
+  height: number,
+  padding: number,
+): void {
+  ctx.lineWidth = 2
+  ctx.setLineDash([])
+  ctx.strokeStyle = '#00aa0066'
+
+  ctx.beginPath()
+  ctx.moveTo(0, height - padding)
+
+  for (let i = 0; i < width * 2; i++) {
+    const t = i / width
+    const value = springDecayValue(spring, {
+      time: t,
+      from,
+      to,
+      initialVelocity: parameters.value.velocity,
+    })
+
+    const y = (1 + value) * (height / 2 - padding) + padding
+    ctx.lineTo(i / 2, y)
+  }
+
+  ctx.stroke()
+}
+
+function renderSpringGraph(
+  ctx: CanvasRenderingContext2D,
+  spring: Spring,
+  width: number,
+  height: number,
+  padding: number,
+): void {
+  ctx.lineWidth = 2
+  ctx.setLineDash([])
+  ctx.strokeStyle = '#000'
+
+  ctx.beginPath()
+  ctx.moveTo(0, height - padding)
+
+  for (let i = 0; i < width * 2; i++) {
+    const t = i / width
+    const value = springValue(spring, {
+      time: t,
+      from,
+      to,
+      initialVelocity: parameters.value.velocity,
+    })
+
+    const y = (2 - value / (to - from)) * (height / 2 - padding) + padding
+    ctx.lineTo(i / 2, y)
+  }
+
+  ctx.stroke()
+}
+
+function renderCurrentTime(
+  ctx: CanvasRenderingContext2D,
+  spring: Spring,
+  width: number,
+  height: number,
+  padding: number,
+  time: number,
+): void {
+  ctx.lineWidth = 1
+  ctx.strokeStyle = '#00f'
+
+  ctx.beginPath()
+  ctx.moveTo((time * width) / 2, 0)
+  ctx.lineTo((time * width) / 2, height)
+  ctx.stroke()
+
+  ctx.fillStyle = '#f00'
+
+  const x = Math.floor(time * width) / 2
+  const value = springValue(spring, {
+    time,
+    from,
+    to,
+    initialVelocity: parameters.value.velocity,
+  })
+  const y = (2 - value / (to - from)) * (height / 2 - padding) + padding
+
+  ctx.beginPath()
+  ctx.ellipse(x, y, 4, 4, 0, 0, Math.PI * 2)
+  ctx.fill()
+}
+
 function render(time: number): void {
   const ctx = canvas.value?.getContext('2d')
   if (!ctx) {
@@ -33,78 +189,18 @@ function render(time: number): void {
   const h = canvasHeight
   const p = 50
 
-  ctx.clearRect(0, 0, w, h)
-
-  ctx.lineWidth = 1
-  ctx.setLineDash([2, 4])
-  ctx.strokeStyle = '#aaa'
-
-  ctx.beginPath()
-  ctx.moveTo(0, p)
-  ctx.lineTo(w, p)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(0, h - p)
-  ctx.lineTo(w, h - p)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(0, h / 2)
-  ctx.lineTo(w, h / 2)
-  ctx.stroke()
-
-  ctx.beginPath()
-  ctx.moveTo(w / 2, 0)
-  ctx.lineTo(w / 2, h)
-  ctx.stroke()
-
-  ctx.lineWidth = 2
-  ctx.setLineDash([])
-  ctx.strokeStyle = '#000'
-
-  ctx.beginPath()
-  ctx.moveTo(0, h - p)
-
-  let currentX: number = -1
-  let currentY: number = -1
-
   const spring = createSpring({
     ...parameters.value,
   })
 
-  for (let i = 0; i < w * 2; i++) {
-    const t = i / w
-    const value = springValue(spring, {
-      time: t,
-      from,
-      to,
-      initialVelocity: parameters.value.velocity,
-    })
+  ctx.clearRect(0, 0, w, h)
+  renderLines(ctx, w, h, p)
 
-    const y = (2 - value / (to - from)) * (h / 2 - p) + p
-    ctx.lineTo(i / 2, y)
+  renderDecayGraph(ctx, spring, w, h, p)
+  renderBounceGraph(ctx, spring, w, h, p)
+  renderSpringGraph(ctx, spring, w, h, p)
 
-    if (Math.floor(time * w) === i) {
-      currentX = i / 2
-      currentY = y
-    }
-  }
-  ctx.stroke()
-
-  ctx.lineWidth = 1
-  ctx.strokeStyle = '#00f'
-
-  ctx.beginPath()
-  ctx.moveTo((time * w) / 2, 0)
-  ctx.lineTo((time * w) / 2, h)
-  ctx.stroke()
-
-  ctx.fillStyle = '#f00'
-
-  ctx.beginPath()
-  ctx.ellipse(currentX, currentY, 4, 4, 0, 0, Math.PI * 2)
-  ctx.fill()
+  renderCurrentTime(ctx, spring, w, h, p, time)
 }
 
 let intervalTimer: number | undefined

@@ -18,6 +18,18 @@ export interface Spring {
     initialVelocity: number
   }) => Expression
 
+  bounce: (data: {
+    from: number
+    to: number
+    initialVelocity: number
+  }) => Expression
+
+  decay: (data: {
+    from: number
+    to: number
+    initialVelocity: number
+  }) => Expression
+
   velocity: (data: {
     time: number
     from: number
@@ -44,6 +56,26 @@ export function springValue(
     [t]: data.time,
   }
   return calculate(spring.expression(data), variables)
+}
+
+export function springBounceValue(
+  spring: Spring,
+  data: { time: number; from: number; to: number; initialVelocity: number },
+): number {
+  const variables = {
+    [t]: data.time,
+  }
+  return calculate(spring.bounce(data), variables)
+}
+
+export function springDecayValue(
+  spring: Spring,
+  data: { time: number; from: number; to: number; initialVelocity: number },
+): number {
+  const variables = {
+    [t]: data.time,
+  }
+  return calculate(spring.decay(data), variables)
 }
 
 export function springVelocity(
@@ -81,9 +113,12 @@ export function createSpring(data: {
 
 function constant(bounce: number): number {
   if (bounce < 0) {
-    return 4 * (2 + bounce)
+    return 3.8 * (2 - Math.sqrt(-bounce))
   }
-  return 8 * (1 - bounce)
+  if (bounce > 0) {
+    return 8 * (1 - Math.sqrt(bounce))
+  }
+  return 8
 }
 
 function volume(from: number, to: number): number {
@@ -178,7 +213,7 @@ function flattenedSpringConstants({
 }) {
   const v = normalizeVelocity(initialVelocity, { from, to, duration })
   const c = constant(bounce)
-  const a = 1.5
+  const a = 0.00001
   const A = (a + c + v) / (2 * a)
   const B = (a - c - v) / (2 * a)
 
@@ -200,20 +235,31 @@ function bouncySpring({
   bounce: number
   duration: number
 }): Spring {
-  return {
+  const spring: Spring = {
     // A * cos(a * t + b) * e ^ (-c * t)
     expression: (data) => {
-      const { A, a, b, c } = bouncySpringConstants({
+      const curve = mul(spring.bounce(data), spring.decay(data))
+      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
+    },
+
+    bounce: (data) => {
+      const { A, a, b } = bouncySpringConstants({
         ...data,
         bounce,
         duration,
       })
 
-      const bouncePart = cos(add(mul(v(a), var_(t)), v(b)))
-      const decayPart = exp(mul(v(-c), var_(t)))
-      const easing = mul(v(A), mul(bouncePart, decayPart))
+      return mul(v(A), cos(add(mul(v(a), var_(t)), v(b))))
+    },
 
-      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
+    decay: (data) => {
+      const { c } = bouncySpringConstants({
+        ...data,
+        bounce,
+        duration,
+      })
+
+      return exp(mul(v(-c), var_(t)))
     },
 
     velocity: (data) => {
@@ -231,6 +277,8 @@ function bouncySpring({
         duration,
       }),
   }
+
+  return spring
 }
 
 function bouncySpringVelocity(data: {
@@ -261,20 +309,31 @@ function smoothSpring({
   bounce: number
   duration: number
 }): Spring {
-  return {
+  const spring: Spring = {
     // (A * t + B) * e ^ (-c * t)
     expression: (data) => {
-      const { A, B, c } = smoothSpringConstants({
+      const curve = mul(spring.bounce(data), spring.decay(data))
+      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
+    },
+
+    bounce: (data) => {
+      const { A, B } = smoothSpringConstants({
         ...data,
         bounce,
         duration,
       })
 
-      const bouncePart = add(mul(v(A), var_(t)), v(B))
-      const decayPart = exp(mul(v(-c), var_(t)))
-      const easing = mul(bouncePart, decayPart)
+      return add(mul(v(A), var_(t)), v(B))
+    },
 
-      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
+    decay: (data) => {
+      const { c } = smoothSpringConstants({
+        ...data,
+        bounce,
+        duration,
+      })
+
+      return exp(mul(v(-c), var_(t)))
     },
 
     velocity: (data) => {
@@ -292,6 +351,8 @@ function smoothSpring({
         duration,
       }),
   }
+
+  return spring
 }
 
 function smoothSpringVelocity(data: {
@@ -321,10 +382,15 @@ function flattenedSpring({
   bounce: number
   duration: number
 }): Spring {
-  return {
+  const spring: Spring = {
     // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
     expression: (data) => {
-      const { A, B, a, c } = flattenedSpringConstants({
+      const curve = mul(spring.bounce(data), spring.decay(data))
+      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
+    },
+
+    bounce: (data) => {
+      const { A, B, a } = flattenedSpringConstants({
         ...data,
         bounce,
         duration,
@@ -332,10 +398,18 @@ function flattenedSpring({
 
       const pullPart = mul(v(A), exp(mul(v(a), var_(t))))
       const pushPart = mul(v(B), exp(mul(v(-a), var_(t))))
-      const decayPart = exp(mul(v(-c), var_(t)))
-      const easing = mul(add(pullPart, pushPart), decayPart)
 
-      return add(mul(v(volume(data.from, data.to)), easing), v(data.to))
+      return add(pullPart, pushPart)
+    },
+
+    decay: (data) => {
+      const { c } = flattenedSpringConstants({
+        ...data,
+        bounce,
+        duration,
+      })
+
+      return exp(mul(v(-c), var_(t)))
     },
 
     velocity: (data) => {
@@ -353,6 +427,8 @@ function flattenedSpring({
         duration,
       }),
   }
+
+  return spring
 }
 
 function flattenedSpringVelocity(data: {

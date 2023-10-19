@@ -12,6 +12,8 @@ export type { AnimationController } from './controller'
 export {
   createSpring,
   springValue,
+  springBounceValue,
+  springDecayValue,
   springVelocity,
   springSettlingDuration,
 } from './spring'
