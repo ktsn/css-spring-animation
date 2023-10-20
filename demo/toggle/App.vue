@@ -14,7 +14,7 @@ const moved = ref(false)
       translate: moved ? '100px' : '0px',
     }"
     :duration="600"
-    :bounce="0.2"
+    :bounce="0.3"
   ></spring.div>
 </template>
 

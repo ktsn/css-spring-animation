@@ -116,7 +116,7 @@ function constant(bounce: number): number {
     return 3.8 * (2 - Math.sqrt(-bounce))
   }
   if (bounce > 0) {
-    return 8 * (1 - Math.sqrt(bounce))
+    return 10 * (1 - Math.sqrt(bounce))
   }
   return 8
 }
