@@ -9,6 +9,7 @@
     "test": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "demo": "vite build",
     "publish": "./scripts/publish.sh"
   },
   "devDependencies": {
