@@ -11,7 +11,6 @@ export default defineConfig({
   },
 
   build: {
-    assetsDir: 'demo/assets',
     rollupOptions: {
       input: [
         './demo/index.html',
