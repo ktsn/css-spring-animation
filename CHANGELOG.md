@@ -1,3 +1,11 @@
+## 0.7.0
+
+- Improve spring parameters
+
+### Breaking Changes
+
+- Rename default exported plugin object with `springDirectives`
+
 ## 0.6.0
 
 - add `spring` component namespace. e.g. `<spring.div :spring-style="{ translate: x + 'px' }"></spring.div>`
