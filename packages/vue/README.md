@@ -87,15 +87,27 @@ This is because the library parses the numbers in the style value, then calculat
 
 The library sets spring animation expression in an animating CSS value including a custom property that representing elapsed time (let's say `--t` here). Then register `--t` by using [`CSS.registerProperty`](https://developer.mozilla.org/en-US/docs/Web/API/CSS/registerProperty_static) to be able to apply CSS Transition on it. The pseudo code of the spring animation expression looks like below:
 
-```css
-.target {
-  /* Apply CSS Transition to --t custom property */
-  --t: 0;
-  transition: --t 1000ms linear;
+```js
+// Register --t
+CSS.registerProperty({
+  name: '--t',
+  syntax: '<number>',
+  inherits: false,
+  initialValue: 0,
+})
 
-  /* Set a spring animation expression for --t */
-  translate: calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q);
-}
+// Set initial state
+el.style.setProperty('--t', 0)
+
+// Set spring animatioin expression including --t
+el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
+
+// Re-render
+forceReflow()
+
+// Trigger animation
+el.style.setProperty('--t', 1)
+el.style.transition = '--t 1000ms linear'
 ```
 
 The library also provides a graceful degradation for browsers that do not support `CSS.registerProperty` and `exp()` function of CSS. In this case, the library will use `requestAnimationFrame` to animate the style value instead of CSS Transition.
@@ -136,6 +148,8 @@ A composable function to generate spring animation style. It also returns the re
 
 The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
 
+It is expected to be used in a complex situation that `<spring>` HOC is not suitable to be used.
+
 ```vue
 <script setup>
 import { ref } from 'vue'
@@ -171,14 +185,16 @@ const { style, realValue, realVelocity } = useSpring(
 
 `v-spring-style` directive is used to specify the style to be animated. `v-spring-options` directive is used to specify the options of the animation.
 
-You can register the directives by using plugin object exported via default export:
+It is expected to be used out of `<script setup>` where `<spring>` HOC is not able to be used.
+
+You can register the directives by using plugin object exported as `springDirectives`:
 
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import plugin from '@css-spring-animation/vue'
+import { springDirectives } from '@css-spring-animation/vue'
 
-createApp(App).use(plugin).mount('#app')
+createApp(App).use(springDirectives).mount('#app')
 ```
 
 Then you can use the directives in a template:
