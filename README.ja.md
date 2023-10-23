@@ -57,7 +57,7 @@ const moved = ref(false)
 
 ## スタイル指定時の注意点
 
-スタイル値に含まれる数値はすべて同じ単位で、同じ順番で現れる必要があります。例えば、以下のような `:spring-style` の値は正しく動作しません。
+スタイルに含まれる数値はすべて同じ単位で、同じ順番で現れる必要があります。例えば、以下のような `:spring-style` の値は正しく動作しません。
 
 ```vue
 <template>
@@ -68,7 +68,7 @@ const moved = ref(false)
 </template>
 ```
 
-これはライブラリがスタイル値内の数値をパースして、それぞれの数値ごとにアニメーションを計算しているためです。ライブラリは `translate` や `scale` の意味を解釈しませんし、`100%` と `100px` の違いも予測できません。上記の例を正しく動作させるには、`:spring-style` に含まれる数値をすべて同じ単位、同じ順番で現れるようにする必要があります。
+これはライブラリがスタイル内の数値をパースして、それぞれの数値ごとにアニメーションを計算しているためです。ライブラリは `translate` や `scale` の意味を解釈しませんし、`100%` と `100px` の違いも予測できません。上記の例を正しく動作させるには、`:spring-style` に含まれる数値がすべて同じ単位、同じ順番で現れるようにする必要があります。
 
 ```vue
 <template>
@@ -85,17 +85,29 @@ const moved = ref(false)
 
 ## How It Works
 
-このライブラリはアニメーションの対象となる CSS 値に、経過時間を表すカスタムプロパティを含むスプリングアニメーションの数式をセットしています（そのカスタムプロパティを `--t` とします）。そして、[`CSS.registerProperty`](https://developer.mozilla.org/en-US/docs/Web/API/CSS/registerProperty_static) を使って `--t` を登録し、そのプロパティに CSS トランジションを適用できるようにします。スプリングアニメーションの数式の擬似コードは以下のようになります。
+このライブラリはアニメーションの対象となるスタイルのプロパティに、経過時間のカスタムプロパティを含む、スプリングアニメーションの数式をセットしています（そのカスタムプロパティを `--t` とします）。そして、[`CSS.registerProperty`](https://developer.mozilla.org/en-US/docs/Web/API/CSS/registerProperty_static) を使って `--t` を登録し、そのプロパティに対して CSS トランジションを適用します。スプリングアニメーションの擬似コードは以下のようになります。
 
-```css
-.target {
-  /* カスタムプロパティ --t に対して CSS トランジションを適用 */
-  --t: 0;
-  transition: --t 1000ms linear;
+```js
+// --t を登録
+CSS.registerProperty({
+  name: '--t',
+  syntax: '<number>',
+  inherits: false,
+  initialValue: 0,
+})
 
-  /* --t を含むスプリングアニメーションの数式をセット */
-  translate: calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q);
-}
+// 初期状態を設定
+el.style.setProperty('--t', 0)
+
+// --t を含むスプリングアニメーションの数式をセット
+el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
+
+// 再描画を実行させる
+forceReflow()
+
+// アニメーションの開始
+el.style.setProperty('--t', 1)
+el.style.transition = '--t 1000ms linear'
 ```
 
 また、このライブラリは `CSS.registerProperty` や CSS の `exp()` 関数をサポートしていないブラウザに対しては、CSS トランジションを使わず、`requestAnimationFrame` を使ったグレースフルデグラデーションでアニメーションを実行します。
@@ -136,6 +148,8 @@ const position = ref(0)
 
 第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
 
+`<spring>` 高階コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
+
 ```vue
 <script setup>
 import { ref } from 'vue'
@@ -170,6 +184,8 @@ const { style, realValue, realVelocity } = useSpring(
 ### `v-spring-style`, `v-spring-options` ディレクティブ
 
 `v-spring-style` ディレクティブはアニメーションさせるスタイルを指定するために使います。`v-spring-options` ディレクティブはアニメーションのオプションを指定するために使います。
+
+`<script setup>` ではない環境（`<spring>` 高階コンポーネントを使えない）で使うことを想定しています。
 
 default export でエクスポートされているプラグインオブジェクトを使ってディレクティブを登録できます。
 
