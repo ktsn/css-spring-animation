@@ -187,14 +187,14 @@ const { style, realValue, realVelocity } = useSpring(
 
 It is expected to be used out of `<script setup>` where `<spring>` HOC is not able to be used.
 
-You can register the directives by using plugin object exported via default export:
+You can register the directives by using plugin object exported as `springDirectives`:
 
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import plugin from '@css-spring-animation/vue'
+import { springDirectives } from '@css-spring-animation/vue'
 
-createApp(App).use(plugin).mount('#app')
+createApp(App).use(springDirectives).mount('#app')
 ```
 
 Then you can use the directives in a template:

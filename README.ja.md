@@ -187,14 +187,14 @@ const { style, realValue, realVelocity } = useSpring(
 
 `<script setup>` ではない環境（`<spring>` 高階コンポーネントを使えない）で使うことを想定しています。
 
-default export でエクスポートされているプラグインオブジェクトを使ってディレクティブを登録できます。
+`springDirectives` としてエクスポートされているプラグインオブジェクトを使ってディレクティブを登録できます。
 
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import plugin from '@css-spring-animation/vue'
+import { springDirectives } from '@css-spring-animation/vue'
 
-createApp(App).use(plugin).mount('#app')
+createApp(App).use(springDirectives).mount('#app')
 ```
 
 そして、テンプレートでディレクティブを使えます。

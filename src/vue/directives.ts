@@ -1,4 +1,4 @@
-import { Directive } from 'vue'
+import { App, Directive } from 'vue'
 import {
   AnimateValue,
   AnimationController,
@@ -10,14 +10,23 @@ interface HTMLElementWithController extends HTMLElement {
   __springController?: AnimationController<Record<string, AnimateValue>>
 }
 
-export const vSpringStyle: Directive<
+function install(app: App): void {
+  app.directive('spring-style', springStyle)
+  app.directive('spring-options', springOptions)
+}
+
+export const springDirectives = {
+  install,
+}
+
+const springStyle: Directive<
   HTMLElementWithController,
   Record<string, AnimateValue>
 > = (el, { value }, vnode) => {
   const controller = ensureController(el)
 
   vnode.dirs?.forEach((dir) => {
-    if (dir.dir === vSpringOptions) {
+    if (dir.dir === springOptions) {
       const options = dir.value
       if (options) {
         controller.setOptions(options)
@@ -32,10 +41,7 @@ export const vSpringStyle: Directive<
 // we do nothing in v-spring-options directive itself.
 // The directive definition object is used to find it from a vnode
 // in v-spring-style directive.
-export const vSpringOptions: Directive<
-  HTMLElementWithController,
-  SpringOptions
-> = {}
+const springOptions: Directive<HTMLElementWithController, SpringOptions> = {}
 
 function ensureController(
   el: HTMLElementWithController,
