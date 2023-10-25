@@ -1,5 +1,6 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { createAnimateController } from '../../src/core'
+import { t } from '../../src/core/time'
 
 vitest.mock('../../src/core/utils', async () => {
   const actual = await vitest.importActual<object>('../../src/core/utils')
@@ -18,7 +19,7 @@ describe('AnimationController', () => {
     controller.setStyle({
       width: `100px`,
     })
-    expect(actual).toEqual({ width: '100px' })
+    expect(actual?.width).toEqual('100px')
   })
 
   test('set style without animation', () => {
@@ -27,9 +28,9 @@ describe('AnimationController', () => {
       actual = style
     })
     controller.setStyle({ width: `100px` })
-    expect(actual).toEqual({ width: '100px' })
+    expect(actual).toEqual({ width: '100px', transition: '', [t]: '' })
     controller.setStyle({ width: `200px` }, false)
-    expect(actual).toEqual({ width: '200px' })
+    expect(actual).toEqual({ width: '200px', transition: '', [t]: '' })
   })
 
   test('set style with animation', () => {
@@ -39,11 +40,13 @@ describe('AnimationController', () => {
     })
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: `100px` })
-    expect(actual).toEqual({ width: '100px' })
+    expect(actual?.width).toEqual('100px')
 
     controller.setStyle({ width: `200px` })
     expect(actual?.width).not.toBe('100px')
     expect(actual?.width).not.toBe('200px')
+    expect(actual?.transition).not.toBe('')
+    expect(actual?.[t]).not.toBe('')
   })
 
   test('stop animation', () => {
@@ -53,12 +56,14 @@ describe('AnimationController', () => {
     })
     controller.setOptions({ duration: 1000 })
     controller.setStyle({ width: `100px` })
-    expect(actual).toEqual({ width: '100px' })
+    expect(actual?.width).toEqual('100px')
 
     controller.setStyle({ width: `200px` })
     controller.stop()
     expect(actual?.width).not.toBe('100px')
     expect(actual?.width).not.toBe('200px')
+    expect(actual?.transition).toBe('')
+    expect(actual?.[t]).toBe('')
   })
 
   test('realValue is as same as value in style before animation', () => {

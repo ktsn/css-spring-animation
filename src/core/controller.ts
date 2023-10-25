@@ -4,6 +4,7 @@ import {
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
+import { t } from './time'
 import { mapValues, raf } from './utils'
 
 export interface AnimationController<
@@ -69,7 +70,11 @@ export function createAnimateController<
     if (style) {
       style = ctx ? updateValues(style, ctx.realValue) : style
       ctx = createContext(style)
-      set(stringifyStyle(style))
+      set({
+        ...stringifyStyle(style),
+        transition: '',
+        [t]: '',
+      })
     }
 
     valueHistory = []
@@ -88,7 +93,11 @@ export function createAnimateController<
         ctx.stop()
       }
       ctx = createContext(style)
-      set(stringifyStyle(style))
+      set({
+        ...stringifyStyle(style),
+        transition: '',
+        [t]: '',
+      })
 
       valueHistory.push({
         value: mapValues(style, (value) => {
