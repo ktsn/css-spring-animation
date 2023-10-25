@@ -1,3 +1,9 @@
+## 0.7.1
+
+### Bug Fixes
+
+- reset transition and time custom property when `useSpring` is disabled
+
 ## 0.7.0
 
 - Improve spring parameters
