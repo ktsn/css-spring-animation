@@ -1,3 +1,9 @@
+## 0.8.0
+
+### New Features
+
+- Added `<SpringTransition>` component.
+
 ## 0.7.1
 
 ### Bug Fixes
