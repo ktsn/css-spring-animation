@@ -18,7 +18,7 @@ Vue 用のバインディングがあります。npm (または yarn, pnpm) で�
 $ npm install @css-spring-animation/vue
 ```
 
-`<script setup>` を使っているシングルファイルコンポーネントでは以下のように `spring` 高階コンポーネントを使うことができます。
+`<script setup>` を使っているシングルファイルコンポーネントでは以下のように `spring` コンポーネントを使うことができます。
 
 ```vue
 <script setup>
@@ -114,9 +114,9 @@ el.style.transition = '--t 1000ms linear'
 
 ## API リファレンス
 
-### `<spring>` 高階コンポーネント
+### `<spring>` コンポーネント
 
-`<spring>` 高階コンポーネントは、プロパティ名と同じタグ名のネイティブ HTML 要素を描画します（例えば、`<spring.div>` は `<div>` 要素を描画します）。
+`<spring>` コンポーネントは、プロパティ名と同じタグ名のネイティブ HTML 要素を描画します（例えば、`<spring.div>` は `<div>` 要素を描画します）。
 
 **プロパティ**
 
@@ -142,13 +142,65 @@ const position = ref(0)
 </template>
 ```
 
+### `<SpringTransition>` コンポーネント
+
+`<SpringTransition>` Vue の `<Transition>` コンポーネントのスプリングアニメーション版です。enter 時には `enter-from` のスタイルから `spring-style` へ、leave 時には `spring-style` から `leave-to` のスタイルへとアニメーションを行います。
+
+**プロパティ**
+
+- `spring-style`: 子要素のデフォルトスタイル
+- `enter-from`: enter 前の子要素のスタイル
+- `leave-to`: leave 後の子要素のスタイル
+- `bounce`
+- `duration`
+
+**イベント**
+
+- `before-enter`
+- `after-enter`
+- `entere-cancelled`
+- `before-leave`
+- `after-leave`
+- `leave-cancelled`
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { SpringTransition } from '../../src/vue'
+
+const isShow = ref(false)
+</script>
+
+<template>
+  <button type="button" class="button" @click="isShow = !isShow">Toggle</button>
+
+  <!-- 子要素に対してスプリングアニメーションを行う -->
+  <SpringTransition
+    :spring-style="{
+      translate: '0px',
+    }"
+    :enter-from="{
+      translate: '-100px',
+    }"
+    :leave-to="{
+      translate: '100px',
+    }"
+    :duration="600"
+    :bounce="0"
+  >
+    <!-- v-show の値が変わった時に .rectangle 要素がアニメーションする -->
+    <div v-show="isShow" class="rectangle"></div>
+  </SpringTransition>
+</template>
+```
+
 ### `useSpring` composable
 
 スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
 
 第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
 
-`<spring>` 高階コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
+`<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
 
 ```vue
 <script setup>
@@ -185,7 +237,7 @@ const { style, realValue, realVelocity } = useSpring(
 
 `v-spring-style` ディレクティブはアニメーションさせるスタイルを指定するために使います。`v-spring-options` ディレクティブはアニメーションのオプションを指定するために使います。
 
-`<script setup>` ではない環境（`<spring>` 高階コンポーネントを使えない）で使うことを想定しています。
+`<script setup>` ではない環境（`<spring>` コンポーネントを使えない）で使うことを想定しています。
 
 `springDirectives` としてエクスポートされているプラグインオブジェクトを使ってディレクティブを登録できます。
 

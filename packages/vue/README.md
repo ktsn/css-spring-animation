@@ -114,7 +114,7 @@ The library also provides a graceful degradation for browsers that do not suppor
 
 ## API Reference
 
-### `<spring>` higher-order component
+### `<spring>` component
 
 It renders a native HTML element as same tag name as the property name (e.g. `<spring.div>` renders `<div>` element).
 
@@ -142,13 +142,65 @@ const position = ref(0)
 </template>
 ```
 
+### `<SpringTransition>` component
+
+`<SpringTransition>` is a spring animation version of Vue's `<Transition>` component. It triggers animation from `enter-from` style to `spring-style` on entering and from `spring-style` to `leave-to` on leaving.
+
+**Props**
+
+- `spring-style`: Default style of a child element.
+- `enter-from`: Style of a child element before entering.
+- `leave-to`: Style of a child element after leaving.
+- `bounce`
+- `duration`
+
+**Events**
+
+- `before-enter`
+- `after-enter`
+- `entere-cancelled`
+- `before-leave`
+- `after-leave`
+- `leave-cancelled`
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { SpringTransition } from '../../src/vue'
+
+const isShow = ref(false)
+</script>
+
+<template>
+  <button type="button" class="button" @click="isShow = !isShow">Toggle</button>
+
+  <!-- Trigger spring animation for the child element -->
+  <SpringTransition
+    :spring-style="{
+      translate: '0px',
+    }"
+    :enter-from="{
+      translate: '-100px',
+    }"
+    :leave-to="{
+      translate: '100px',
+    }"
+    :duration="600"
+    :bounce="0"
+  >
+    <!-- .rectangle element will be animated when v-show value is changed -->
+    <div v-show="isShow" class="rectangle"></div>
+  </SpringTransition>
+</template>
+```
+
 ### `useSpring` composable
 
 A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
 
 The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
 
-It is expected to be used in a complex situation that `<spring>` HOC is not suitable to be used.
+It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
 
 ```vue
 <script setup>
@@ -185,7 +237,7 @@ const { style, realValue, realVelocity } = useSpring(
 
 `v-spring-style` directive is used to specify the style to be animated. `v-spring-options` directive is used to specify the options of the animation.
 
-It is expected to be used out of `<script setup>` where `<spring>` HOC is not able to be used.
+It is expected to be used out of `<script setup>` where `<spring>` component is not able to be used.
 
 You can register the directives by using plugin object exported as `springDirectives`:
 
