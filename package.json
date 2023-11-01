@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "vite",
-    "dts": "tsc && cp -r types packages/vue/ && cp -r types packages/core/",
+    "dts": "vue-tsc; cp -r types packages/vue/; cp -r types packages/core/",
     "typecheck": "vitest typecheck",
     "test": "vitest",
     "format": "prettier --write .",
