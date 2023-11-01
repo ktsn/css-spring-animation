@@ -26,5 +26,8 @@ export default defineConfig({
 
   test: {
     environment: 'jsdom',
+    typecheck: {
+      checker: 'vue-tsc',
+    },
   },
 })
