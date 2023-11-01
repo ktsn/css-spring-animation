@@ -20,3 +20,5 @@ export {
 
 export { interpolateParsedStyle } from './style'
 export type { ParsedStyleValue } from './style'
+
+export * from './utils'
