@@ -1,3 +1,9 @@
+## 0.8.1
+
+### Bug Fixes
+
+- Bundle `<SpringTransition>` component type.
+
 ## 0.8.0
 
 ### New Features
