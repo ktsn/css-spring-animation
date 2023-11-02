@@ -23,11 +23,11 @@ const springTransitionGroupProps = {
   tag: String,
 
   bounce: [Number, Object] as PropType<
-    number | { move: number; enter: number; leave: number }
+    number | { move?: number; enter?: number; leave?: number }
   >,
 
   duration: [Number, Object] as PropType<
-    number | { move: number; enter: number; leave: number }
+    number | { move?: number; enter?: number; leave?: number }
   >,
 }
 

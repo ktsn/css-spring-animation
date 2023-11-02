@@ -150,8 +150,8 @@ export interface SpringTransitionProps {
   springStyle: Record<string, AnimateValue>
   enterFrom?: Record<string, AnimateValue>
   leaveTo?: Record<string, AnimateValue>
-  bounce?: number | { enter: number; leave: number }
-  duration?: number | { enter: number; leave: number }
+  bounce?: number | { enter?: number; leave?: number }
+  duration?: number | { enter?: number; leave?: number }
 }
 
 export interface SpringTransitionEmits {
