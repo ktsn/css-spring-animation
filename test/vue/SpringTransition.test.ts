@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test, vitest } from 'vitest'
-import SpringTransition from '../../src/vue/SpringTransition.vue'
+import SpringTransition from '../../src/vue/SpringTransition'
 import { AnimationController } from '../../src/core'
 import { createApp, nextTick } from 'vue'
 
