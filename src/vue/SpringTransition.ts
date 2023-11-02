@@ -207,6 +207,7 @@ const SpringTransition = defineComponent({
         Transition,
         {
           ...attrs,
+          css: false,
           onBeforeEnter,
           onEnter,
           onAfterEnter,

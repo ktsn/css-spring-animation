@@ -71,6 +71,7 @@ const SpringTransitionGroup = defineComponent({
     const baseRender = (TransitionGroup as unknown as ComponentOptions).setup!(
       {
         tag: props.tag,
+        css: false,
         onBeforeEnter,
         onEnter,
         onAfterEnter,
