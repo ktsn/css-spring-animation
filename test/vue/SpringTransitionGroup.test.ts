@@ -13,6 +13,7 @@ vitest.mock('../../src/core/controller', async () => {
       const controller = module.createAnimateController(...args)
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
+      vitest.spyOn(controller, 'stop')
       return controller
     },
   }
@@ -219,6 +220,33 @@ describe('SpringTransitionGroup', () => {
 
     expect(controller.setStyle).toHaveBeenCalledTimes(1)
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0.5 }, false)
+  })
+
+  test('does not stop leave animation by move processing', async () => {
+    const root = document.createElement('div')
+
+    const app = createApp({
+      template: `
+        <spring-transition-group :spring-style="{ opacity: 1 }" :leave-to="{ opacity: 0 }">
+          <div v-for="item of list" key="item" ref="els">{{ item }}</div>
+        </spring-transition-group>
+      `,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: ['a'],
+        }
+      },
+    })
+
+    const vm: any = app.mount(root)
+    const el = vm.$refs.els[0]
+    vm.list = []
+    await nextTick()
+
+    expect(el[scKey].stop).not.toHaveBeenCalled()
   })
 
   test('trigger before-enter event before setting style', () => {

@@ -9,6 +9,10 @@ function onAdd() {
   list.value = [max + 1, ...list.value]
 }
 
+function onRemove() {
+  list.value = list.value.slice(1)
+}
+
 function onShuffle() {
   list.value = list.value.sort(() => Math.random() - 0.5)
 }
@@ -17,6 +21,7 @@ function onShuffle() {
 <template>
   <div class="buttons">
     <button type="button" @click="onAdd">Add</button>
+    <button type="button" @click="onRemove">Remove</button>
     <button type="button" @click="onShuffle">Shuffle</button>
   </div>
 
@@ -33,6 +38,7 @@ function onShuffle() {
     }"
     :duration="800"
     :bounce="0"
+    @before-leave="(el) => (el.style.position = 'absolute')"
   >
     <li v-for="item of list" :key="item">{{ item }}</li>
   </SpringTransitionGroup>

@@ -90,7 +90,12 @@ export default defineComponent({
         return
       }
 
-      prevChildren.forEach((child) => {
+      const appearedKeys = new Set(children.map((child) => child.key))
+      const existingChildren = prevChildren.filter((child) => {
+        return appearedKeys.has(child.key)
+      })
+
+      existingChildren.forEach((child) => {
         const el = child.el as HTMLElementWithController
         const controller = el[scKey]
         if (controller) {
@@ -100,12 +105,12 @@ export default defineComponent({
         }
       })
 
-      prevChildren.forEach((child) => {
+      existingChildren.forEach((child) => {
         const el = child.el as Element
         newPositionMap.set(child, el.getBoundingClientRect())
       })
 
-      const moved = prevChildren.filter((child) => {
+      const moved = existingChildren.filter((child) => {
         const oldPos = positionMap.get(child)!
         const newPos = newPositionMap.get(child)!
 
