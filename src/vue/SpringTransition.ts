@@ -36,17 +36,13 @@ export function useTransitionHooks(
       : props.bounce
   })
 
-  const defaultDuration = 1000
-
   const duration = computed(() => {
-    const value = props.duration ?? defaultDuration
-
-    return typeof value === 'number'
+    return typeof props.duration === 'number'
       ? {
-          enter: value,
-          leave: value,
+          enter: props.duration,
+          leave: props.duration,
         }
-      : value
+      : props.duration
   })
 
   function onBeforeEnter(el: Element): void {
@@ -80,11 +76,15 @@ export function useTransitionHooks(
 
     controller.setOptions({
       bounce: bounce.value?.enter,
-      duration: duration.value.enter,
+      duration: duration.value?.enter,
     })
 
-    controller.setStyle(props.springStyle)
-    setTimeout(done, duration.value.enter)
+    const ctx = controller.setStyle(props.springStyle)
+    ctx.finishingPromise.then(() => {
+      if (ctx.stoppedDuration === undefined) {
+        done()
+      }
+    })
   }
 
   function onLeave(_el: Element, done: () => void): void {
@@ -93,20 +93,24 @@ export function useTransitionHooks(
       el[scKey] = createAnimateController(createStyleSetter(el))
       el[scKey].setStyle(props.springStyle, false)
 
-      forceReflow
+      forceReflow()
     }
     const controller = el[scKey]
 
     controller.setOptions({
       bounce: bounce.value?.leave,
-      duration: duration.value.leave,
+      duration: duration.value?.leave,
     })
 
-    controller.setStyle({
+    const ctx = controller.setStyle({
       ...props.springStyle,
       ...props.leaveTo,
     })
-    setTimeout(done, duration.value.leave)
+    ctx.finishingPromise.then(() => {
+      if (ctx.stoppedDuration === undefined) {
+        done()
+      }
+    })
   }
 
   function onBeforeLeave(el: Element): void {

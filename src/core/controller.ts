@@ -5,7 +5,7 @@ import {
   parseStyleValue,
 } from './style'
 import { t } from './time'
-import { mapValues, raf } from './utils'
+import { forceReflow, mapValues } from './utils'
 
 export interface AnimationController<
   Style extends Record<string, AnimateValue>,
@@ -13,7 +13,10 @@ export interface AnimationController<
   realValue: Record<keyof Style, number[]>
   realVelocity: Record<keyof Style, number[]>
 
-  setStyle: (style: Style, animate?: boolean) => void
+  setStyle: (
+    style: Style,
+    animate?: boolean,
+  ) => AnimateContext<Record<keyof Style, number[]>>
   setOptions: (options: SpringOptions) => void
   stop: () => void
 }
@@ -80,7 +83,10 @@ export function createAnimateController<
     valueHistory = []
   }
 
-  async function setStyle(nextStyle: Style, isAnimate = true): Promise<void> {
+  function setStyle(
+    nextStyle: Style,
+    isAnimate = true,
+  ): AnimateContext<Record<keyof Style, number[]>> {
     const parsedStyle = mapValues(nextStyle, (value) =>
       parseStyleValue(String(value)),
     )
@@ -105,7 +111,7 @@ export function createAnimateController<
         }),
         timestamp: performance.now(),
       })
-      return
+      return ctx
     }
 
     if (ctx && !ctx.settled) {
@@ -116,7 +122,7 @@ export function createAnimateController<
 
     if (ctx && !ctx.settled) {
       ctx.stop()
-      await raf()
+      forceReflow()
     }
 
     ctx = animate(fromTo, set, {
@@ -124,6 +130,8 @@ export function createAnimateController<
       velocity,
     })
     valueHistory = []
+
+    return ctx
   }
 
   function setOptions(nextOptions: SpringOptions): void {

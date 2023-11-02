@@ -26,10 +26,6 @@ export function isBrowserSupported(): boolean {
   )
 }
 
-export function raf(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
-}
-
 export function forceReflow(): void {
   document.body.offsetHeight
 }

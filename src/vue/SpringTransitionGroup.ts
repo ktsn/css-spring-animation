@@ -6,6 +6,7 @@ import {
   computed,
   defineComponent,
   onUpdated,
+  vShow,
 } from 'vue'
 import {
   HTMLElementWithController,
@@ -81,8 +82,9 @@ export default defineComponent({
     })
 
     const movedDuration = computed(() => {
-      const value = props.duration ?? 1000
-      return typeof value === 'number' ? value : value.move
+      return typeof props.duration === 'number'
+        ? props.duration
+        : props.duration?.move
     })
 
     onUpdated(() => {
@@ -90,7 +92,15 @@ export default defineComponent({
         return
       }
 
-      const appearedKeys = new Set(children.map((child) => child.key))
+      const appearedKeys = new Set(
+        children
+          .filter((child) => {
+            const vShowDir = child.dirs?.find((dir) => dir.dir === vShow)
+            return !vShowDir || vShowDir.value
+          })
+          .map((child) => child.key),
+      )
+
       const existingChildren = prevChildren.filter((child) => {
         return appearedKeys.has(child.key)
       })
