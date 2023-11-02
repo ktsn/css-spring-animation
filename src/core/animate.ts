@@ -81,6 +81,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     startTime,
     duration,
     settlingDuration,
+    set,
   })
 
   if (isBrowserSupported()) {
@@ -100,23 +101,6 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
       set,
     })
   }
-
-  ctx.settlingPromise.then(() => {
-    const style = mapValues(parsedFromTo, ([_, to], key) => {
-      const realValue = ctx.realValue[key]
-      if (!realValue) {
-        return ''
-      }
-
-      return interpolateParsedStyle(to, realValue)
-    })
-
-    set({
-      ...style,
-      transition: '',
-      [t]: '',
-    })
-  })
 
   return ctx
 }
@@ -209,6 +193,7 @@ function createContext<
   startTime,
   duration,
   settlingDuration,
+  set,
 }: {
   spring: Spring
   fromTo: FromTo
@@ -216,6 +201,7 @@ function createContext<
   startTime: number
   duration: number
   settlingDuration: number
+  set: (style: Record<string, string>) => void
 }): AnimateContext<Record<keyof FromTo, number[]>> {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
@@ -225,7 +211,25 @@ function createContext<
     }
     ctx.finished = ctx.settled = true
     ctx.stoppedDuration = performance.now() - startTime
+    setRealStyle()
     forceResolve.fn.forEach((fn) => fn())
+  }
+
+  function setRealStyle() {
+    const style = mapValues(fromTo, ([_, to], key) => {
+      const realValue = ctx.realValue[key]
+      if (!realValue) {
+        return ''
+      }
+
+      return interpolateParsedStyle(to, realValue)
+    })
+
+    set({
+      ...style,
+      transition: '',
+      [t]: '',
+    })
   }
 
   const ctx: AnimateContext<Record<keyof FromTo, number[]>> = {
@@ -235,6 +239,10 @@ function createContext<
 
     settlingPromise: wait(settlingDuration + 1, forceResolve).then(() => {
       ctx.finished = ctx.settled = true
+
+      if (ctx.stoppedDuration === undefined) {
+        setRealStyle()
+      }
     }),
 
     finished: false,
