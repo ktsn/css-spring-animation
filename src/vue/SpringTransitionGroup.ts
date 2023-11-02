@@ -10,12 +10,19 @@ import {
 } from 'vue'
 import {
   HTMLElementWithController,
+  SpringTransitionProps,
   createStyleSetter,
   scKey,
   springTransitionProps,
   useTransitionHooks,
 } from './SpringTransition.ts'
 import { createAnimateController, forceReflow } from './index.ts'
+
+interface SpringTransitionGroupProps extends SpringTransitionProps {
+  tag?: string
+  bounce?: number | { move?: number; enter?: number; leave?: number }
+  duration?: number | { move?: number; enter?: number; leave?: number }
+}
 
 const springTransitionGroupProps = {
   ...springTransitionProps,
@@ -39,7 +46,8 @@ interface Position {
 const positionMap = new WeakMap<VNode, Position>()
 const newPositionMap = new WeakMap<VNode, Position>()
 
-export default defineComponent({
+const SpringTransitionGroup = defineComponent({
+  name: 'SpringTransitionGroup',
   inheritAttrs: false,
   props: springTransitionGroupProps,
 
@@ -177,3 +185,9 @@ export default defineComponent({
     }
   },
 })
+
+export default SpringTransitionGroup as unknown as {
+  new (): {
+    $props: SpringTransitionGroupProps
+  }
+}

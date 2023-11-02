@@ -25,7 +25,7 @@ export function createStyleSetter(
 
 export function useTransitionHooks(
   props: SpringTransitionProps,
-  emit: SpringTransitionEmits,
+  emit: (name: string, el: Element) => void,
 ) {
   const bounce = computed(() => {
     return typeof props.bounce === 'number'
@@ -152,15 +152,14 @@ export interface SpringTransitionProps {
   leaveTo?: Record<string, AnimateValue>
   bounce?: number | { enter?: number; leave?: number }
   duration?: number | { enter?: number; leave?: number }
-}
 
-export interface SpringTransitionEmits {
-  (name: 'beforeEnter', el: Element): void
-  (name: 'afterEnter', el: Element): void
-  (name: 'enterCancelled', el: Element): void
-  (name: 'beforeLeave', el: Element): void
-  (name: 'afterLeave', el: Element): void
-  (name: 'leaveCancelled', el: Element): void
+  // Hooks
+  onBeforeEnter?: (el: Element) => void
+  onAfterEnter?: (el: Element) => void
+  onEnterCancelled?: (el: Element) => void
+  onBeforeLeave?: (el: Element) => void
+  onAfterLeave?: (el: Element) => void
+  onLeaveCancelled?: (el: Element) => void
 }
 
 export interface HTMLElementWithController extends HTMLElement {
@@ -186,7 +185,8 @@ export const springTransitionProps = {
   >,
 } as const
 
-export default defineComponent({
+const SpringTransition = defineComponent({
+  name: 'SpringTransition',
   inheritAttrs: false,
   props: springTransitionProps,
 
@@ -221,3 +221,9 @@ export default defineComponent({
     }
   },
 })
+
+export default SpringTransition as unknown as {
+  new (): {
+    $props: SpringTransitionProps
+  }
+}
