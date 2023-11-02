@@ -183,9 +183,10 @@ export const springTransitionProps = {
 } as const
 
 export default defineComponent({
+  inheritAttrs: false,
   props: springTransitionProps,
 
-  setup(props, { emit, slots }) {
+  setup(props, { attrs, emit, slots }) {
     const {
       onBeforeEnter,
       onEnter,
@@ -201,6 +202,7 @@ export default defineComponent({
       return h(
         Transition,
         {
+          ...attrs,
           onBeforeEnter,
           onEnter,
           onAfterEnter,

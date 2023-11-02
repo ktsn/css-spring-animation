@@ -39,6 +39,7 @@ const positionMap = new WeakMap<VNode, Position>()
 const newPositionMap = new WeakMap<VNode, Position>()
 
 export default defineComponent({
+  inheritAttrs: false,
   props: springTransitionGroupProps,
 
   setup(props, ctx) {
@@ -60,7 +61,7 @@ export default defineComponent({
 
     const baseRender = (TransitionGroup as unknown as ComponentOptions).setup!(
       {
-        ...props,
+        tag: props.tag,
         onBeforeEnter,
         onEnter,
         onAfterEnter,
@@ -85,6 +86,10 @@ export default defineComponent({
     })
 
     onUpdated(() => {
+      if (prevChildren.length === 0) {
+        return
+      }
+
       prevChildren.forEach((child) => {
         const el = child.el as HTMLElementWithController
         const controller = el[scKey]

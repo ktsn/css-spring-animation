@@ -63,6 +63,36 @@ describe('SpringTransition', () => {
 
     const app = createApp({
       template: `
+        <spring-transition :enter-from="{ opacity: 0 }" :spring-style="{ opacity: 1 }" :leave-to="{ opacity: 0 }">
+          <span v-show="isShow">Hello</span>
+        </spring-transition>
+      `,
+      components: {
+        SpringTransition,
+      },
+      data() {
+        return {
+          isShow: false,
+        }
+      },
+    })
+
+    const vm: any = app.mount(root)
+    vm.isShow = true
+    await nextTick()
+    mockController?.setStyle.mockClear()
+
+    vm.isShow = false
+    await nextTick()
+    expect(mockController?.setStyle).toHaveBeenCalledOnce()
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+  })
+
+  test('set leaveTo style after springStyle on leave when the element has not entered', async () => {
+    const root = document.createElement('div')
+
+    const app = createApp({
+      template: `
         <spring-transition :spring-style="{ opacity: 1 }" :leave-to="{ opacity: 0 }">
           <span v-show="isShow">Hello</span>
         </spring-transition>
