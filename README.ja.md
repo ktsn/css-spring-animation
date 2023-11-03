@@ -158,7 +158,7 @@ const position = ref(0)
 
 - `before-enter`
 - `after-enter`
-- `entere-cancelled`
+- `enter-cancelled`
 - `before-leave`
 - `after-leave`
 - `leave-cancelled`

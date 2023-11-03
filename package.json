@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "demo": "vite build",
+    "copy-docs": "cp README.md packages/vue/README.md && cp README.ja.md packages/vue/README.ja.md",
     "publish": "./scripts/publish.sh"
   },
   "devDependencies": {
