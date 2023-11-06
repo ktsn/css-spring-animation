@@ -1,3 +1,10 @@
+## 0.9.0
+
+### New Features
+
+- Added `<SpringTransitionGroup>` component.
+- Added `mode` prop to `<SpringTransition>` component (as same prop as `mode` prop of `<Trasntion>`).
+
 ## 0.8.1
 
 ### Bug Fixes
