@@ -6,11 +6,17 @@ const list = ref([1, 2, 3, 4, 5])
 
 function onAdd() {
   const max = Math.max(...list.value)
-  list.value = [max + 1, ...list.value]
+  const index = Math.floor(Math.random() * list.value.length)
+  list.value = [
+    ...list.value.slice(0, index),
+    max + 1,
+    ...list.value.slice(index),
+  ]
 }
 
 function onRemove() {
-  list.value = list.value.slice(1)
+  const index = Math.floor(Math.random() * list.value.length)
+  list.value = [...list.value.slice(0, index), ...list.value.slice(index + 1)]
 }
 
 function onShuffle() {
