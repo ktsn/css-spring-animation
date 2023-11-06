@@ -120,7 +120,11 @@ const SpringTransitionGroup = defineComponent({
         if (controller) {
           // Do not call setStyle here as it records wrong velocity.
           controller.stop()
-          el.style.transform = ''
+
+          createStyleSetter(el)({
+            ...props.springStyle,
+            transform: '',
+          })
         }
       })
 
