@@ -144,7 +144,7 @@ const position = ref(0)
 
 ### `<SpringTransition>` コンポーネント
 
-`<SpringTransition>` Vue の `<Transition>` コンポーネントのスプリングアニメーション版です。enter 時には `enter-from` のスタイルから `spring-style` へ、leave 時には `spring-style` から `leave-to` のスタイルへとアニメーションを行います。
+`<SpringTransition>` は Vue の [`<Transition>` コンポーネント](https://ja.vuejs.org/guide/built-ins/transition.html)のスプリングアニメーション版です。enter 時には `enter-from` のスタイルから `spring-style` へ、leave 時には `spring-style` から `leave-to` のスタイルへとアニメーションを行います。
 
 **プロパティ**
 
@@ -166,7 +166,7 @@ const position = ref(0)
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '../../src/vue'
+import { SpringTransition } from '@css-spring-animation/vue'
 
 const isShow = ref(false)
 </script>
@@ -191,6 +191,61 @@ const isShow = ref(false)
     <!-- v-show の値が変わった時に .rectangle 要素がアニメーションする -->
     <div v-show="isShow" class="rectangle"></div>
   </SpringTransition>
+</template>
+```
+
+### `<SpringTransitionGroup>` コンポーネント
+
+`<SpringTransitionGroup>` は Vue の [`<TransitionGroup>` コンポーネント](https://ja.vuejs.org/guide/built-ins/transition-group.html)のスプリングアニメーション版です。`<SpringTransition>` と同じように `spring-style`、`enter-from`、`leave-to` のスタイルを指定できます。
+
+**Props**
+
+- `spring-style`: 子要素のデフォルトスタイル
+- `enter-from`: enter 前の子要素のスタイル
+- `leave-to`: leave 後の子要素のスタイル
+- `tag`: ラッパー要素のタグ名。デフォルト値: `Fragment`（ラッパー要素を描画しない）
+- `bounce`
+- `duration`
+
+**Events**
+
+- `before-enter`
+- `after-enter`
+- `enter-cancelled`
+- `before-leave`
+- `after-leave`
+- `leave-cancelled`
+
+```vue
+<script setup>
+import { SpringTransitionGroup } from '@css-spring-animation/vue'
+
+const list = ref([
+  // ...
+])
+</script>
+
+<template>
+  <!-- 子要素に対してスプリングアニメーションを行う -->
+  <SpringTransitionGroup
+    tag="ul"
+    :spring-style="{
+      opacity: 1,
+    }"
+    :enter-from="{
+      opacity: 0,
+    }"
+    :leave-to="{
+      opacity: 0,
+    }"
+    :duration="800"
+    :bounce="0"
+  >
+    <!-- リストの項目は key プロパティを指定する必要あり -->
+    <li v-for="item of list" :key="item.id">
+      <!-- ... -->
+    </li>
+  </SpringTransitionGroup>
 </template>
 ```
 

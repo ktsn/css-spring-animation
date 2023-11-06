@@ -144,7 +144,7 @@ const position = ref(0)
 
 ### `<SpringTransition>` component
 
-`<SpringTransition>` is a spring animation version of Vue's `<Transition>` component. It triggers animation from `enter-from` style to `spring-style` on entering and from `spring-style` to `leave-to` on leaving.
+`<SpringTransition>` is a spring animation version of Vue's [`<Transition>` component](https://vuejs.org/guide/built-ins/transition.html). It triggers animation from `enter-from` style to `spring-style` on entering and from `spring-style` to `leave-to` on leaving.
 
 **Props**
 
@@ -166,7 +166,7 @@ const position = ref(0)
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '../../src/vue'
+import { SpringTransition } from '@css-spring-animation/vue'
 
 const isShow = ref(false)
 </script>
@@ -191,6 +191,61 @@ const isShow = ref(false)
     <!-- .rectangle element will be animated when v-show value is changed -->
     <div v-show="isShow" class="rectangle"></div>
   </SpringTransition>
+</template>
+```
+
+### `<SpringTransitionGroup>` component
+
+`<SpringTransitionGroup>` is a spring animation version of Vue's [`<TransitionGroup>` component](https://vuejs.org/guide/built-ins/transition-group.html). It can have `spring-style`, `enter-from` and `leave-to` props as same as `<SpringTransition>`.
+
+**Props**
+
+- `spring-style`: Default style of a child element.
+- `enter-from`: Style of a child element before entering.
+- `leave-to`: Style of a child element after leaving.
+- `tag`: Tag name of the wrapper element. It is `Fragment` (do not render wrapper element) by default.
+- `bounce`
+- `duration`
+
+**Events**
+
+- `before-enter`
+- `after-enter`
+- `enter-cancelled`
+- `before-leave`
+- `after-leave`
+- `leave-cancelled`
+
+```vue
+<script setup>
+import { SpringTransitionGroup } from '@css-spring-animation/vue'
+
+const list = ref([
+  // ...
+])
+</script>
+
+<template>
+  <!-- Trigger spring animation for the child elements -->
+  <SpringTransitionGroup
+    tag="ul"
+    :spring-style="{
+      opacity: 1,
+    }"
+    :enter-from="{
+      opacity: 0,
+    }"
+    :leave-to="{
+      opacity: 0,
+    }"
+    :duration="800"
+    :bounce="0"
+  >
+    <!-- List items must have key prop -->
+    <li v-for="item of list" :key="item.id">
+      <!-- ... -->
+    </li>
+  </SpringTransitionGroup>
 </template>
 ```
 
