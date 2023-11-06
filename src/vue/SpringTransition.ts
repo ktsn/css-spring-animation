@@ -24,7 +24,7 @@ export function createStyleSetter(
 }
 
 export function useTransitionHooks(
-  props: SpringTransitionProps,
+  props: Omit<SpringTransitionProps, 'mode'>,
   emit: (name: string, el: Element) => void,
 ) {
   const bounce = computed(() => {
@@ -152,6 +152,7 @@ export interface SpringTransitionProps {
   leaveTo?: Record<string, AnimateValue>
   bounce?: number | { enter?: number; leave?: number }
   duration?: number | { enter?: number; leave?: number }
+  mode?: 'in-out' | 'out-in' | 'default'
 
   // Hooks
   onBeforeEnter?: (el: Element) => void
@@ -183,6 +184,8 @@ export const springTransitionProps = {
   duration: [Number, Object] as PropType<
     number | { enter: number; leave: number }
   >,
+
+  mode: String as PropType<'in-out' | 'out-in' | 'default'>,
 } as const
 
 const SpringTransition = defineComponent({
@@ -208,6 +211,7 @@ const SpringTransition = defineComponent({
         {
           ...attrs,
           css: false,
+          mode: props.mode,
           onBeforeEnter,
           onEnter,
           onAfterEnter,

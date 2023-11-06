@@ -151,6 +151,7 @@ const position = ref(0)
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
 - `leave-to`: leave 後の子要素のスタイル
+- `mode`
 - `bounce`
 - `duration`
 

@@ -151,6 +151,7 @@ const position = ref(0)
 - `spring-style`: Default style of a child element.
 - `enter-from`: Style of a child element before entering.
 - `leave-to`: Style of a child element after leaving.
+- `mode`
 - `bounce`
 - `duration`
 
