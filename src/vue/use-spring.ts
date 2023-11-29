@@ -52,12 +52,9 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     controller.stop()
   })
 
-  watch(
-    () => ({ ...input.value }),
-    (input) => {
+  watch(input, (input) => {
     controller.setStyle(input, !disabled.value)
-    },
-  )
+  })
 
   watch(optionsRef, (options) => {
     controller.setOptions(options)
