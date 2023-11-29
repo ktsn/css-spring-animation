@@ -122,4 +122,59 @@ describe('AnimationController', () => {
     expect(controller.realVelocity.transform?.[0]).not.toBe(0)
     expect(controller.realVelocity.transform?.[1]).toBe(0)
   })
+
+  test('register finish listener for the current animation', () => {
+    let style: any
+    const controller = createAnimateController((_style) => {
+      style = _style
+    })
+    controller.setOptions({ duration: 10 })
+    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(false)
+        expect(style.width).not.toBe('100px')
+        resolve()
+      })
+    })
+  })
+
+  test('stopped == true when animation is stopped by stop()', () => {
+    let style: any
+    const controller = createAnimateController((_style) => {
+      style = _style
+    })
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        resolve()
+      })
+      controller.stop()
+    })
+  })
+
+  test('stopped == true when animation is stopped by a new animation', () => {
+    let style: any
+    const controller = createAnimateController((_style) => {
+      style = _style
+    })
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        resolve()
+      })
+      controller.setStyle({ width: '300px' })
+    })
+  })
 })

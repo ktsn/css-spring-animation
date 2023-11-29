@@ -156,4 +156,52 @@ describe('useSpring', () => {
     await nextTick()
     expect(realVelocity.value.width).toEqual([0])
   })
+
+  test('register finish listener for the current animation', () => {
+    const value = ref(10)
+
+    const { style, onFinishCurrent } = useSpring(
+      () => ({
+        width: `${value.value}px`,
+      }),
+      {
+        duration: 10,
+      },
+    )
+
+    return new Promise<void>((resolve) => {
+      value.value = 20
+      onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(false)
+        expect(style.value.width).not.toBe('10px')
+        resolve()
+      })
+    })
+  })
+
+  test('stopped == true when animation is stopped', () => {
+    const value = ref(10)
+    const disabled = ref(false)
+
+    const { style, realValue, onFinishCurrent } = useSpring(
+      () => ({
+        width: `${value.value}px`,
+      }),
+      () => ({
+        duration: 100,
+        disabled: disabled.value,
+      }),
+    )
+
+    value.value = 20
+
+    return new Promise<void>((resolve) => {
+      disabled.value = true
+      onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        expect(style.value.width).toBe(realValue.value.width[0] + 'px')
+        resolve()
+      })
+    })
+  })
 })

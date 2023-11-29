@@ -3,6 +3,7 @@ import {
   MaybeRefOrGetter,
   Ref,
   computed,
+  nextTick,
   readonly,
   ref,
   toRef,
@@ -23,6 +24,7 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   style: SpringStyleRef
   realValue: DeepReadonly<Ref<Values>>
   realVelocity: DeepReadonly<Ref<Values>>
+  onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
 export function useSpring<Style extends Record<string, AnimateValue>>(
@@ -44,6 +46,19 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   const realValue = toRef(() => controller.realValue)
   const realVelocity = toRef(() => controller.realVelocity)
 
+  function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
+    // Wait for the next tick to ensure that input changes in the same tick
+    // triggers a new animation that is a case like:
+    //
+    // springStyle.value = { width: '100px' }
+    // onFinishCurrent(() => {
+    //   ...
+    // })
+    nextTick().then(() => {
+      controller.onFinishCurrent(fn)
+    })
+  }
+
   watch(disabled, (disabled) => {
     if (!disabled) {
       return
@@ -64,5 +79,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     style: readonly(style),
     realValue: readonly(realValue),
     realVelocity: readonly(realVelocity),
+    onFinishCurrent,
   }
 }

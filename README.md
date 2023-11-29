@@ -289,6 +289,34 @@ const { style, realValue, realVelocity } = useSpring(
 </template>
 ```
 
+`useSpring` provides `onFinishCurrent` function that is for waiting until the current animation is finished. You can register a callback function that will be called when an ongoing animation is finished.
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useSpring } from '@css-spring-animation/vue'
+
+const position = ref(0)
+
+const { style, onFinishCurrent } = useSpring(() => {
+  return {
+    translate: `${position.value}px`,
+  }
+})
+
+function move() {
+  // Move to 100px
+  position.value = 100
+
+  // Wait for the animation is finished triggered by the above position update
+  onFinishCurrent(() => {
+    // Move to 0px
+    position.value = 0
+  })
+}
+</script>
+```
+
 ### `v-spring-style` and `v-spring-options` directivies
 
 `v-spring-style` directive is used to specify the style to be animated. `v-spring-options` directive is used to specify the options of the animation.
