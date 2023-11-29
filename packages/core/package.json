@@ -1,6 +1,6 @@
 {
   "name": "@css-spring-animation/core",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Intuitive and predictable spring animation library powered by CSS Transition",
   "keywords": [
     "spring",

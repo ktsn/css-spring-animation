@@ -1,3 +1,9 @@
+## 0.10.0
+
+### New Features
+
+- Added `onFinishCurrent` function to `useSpring` composable.
+
 ## 0.9.0
 
 ### New Features
