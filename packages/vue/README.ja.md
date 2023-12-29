@@ -150,7 +150,7 @@ const position = ref(0)
 
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
-- `leave-to`: leave 後の子要素のスタイル
+- `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
 - `mode`
 - `bounce`
 - `duration`
@@ -203,7 +203,7 @@ const isShow = ref(false)
 
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
-- `leave-to`: leave 後の子要素のスタイル
+- `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
 - `tag`: ラッパー要素のタグ名。デフォルト値: `Fragment`（ラッパー要素を描画しない）
 - `bounce`
 - `duration`
@@ -287,6 +287,34 @@ const { style, realValue, realVelocity } = useSpring(
     <li>realVelocity: {{ realVelocity.translate[0] }}</li>
   </ul>
 </template>
+```
+
+`useSpring` が返す値には、現在のアニメーションが完了するまで待つ `onFinishCurrent` 関数があります。この関数には、進行中のアニメーションが完了したときに呼ばれるコールバック関数を登録できます。
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useSpring } from '@css-spring-animation/vue'
+
+const position = ref(0)
+
+const { style, onFinishCurrent } = useSpring(() => {
+  return {
+    translate: `${position.value}px`,
+  }
+})
+
+function move() {
+  // 100px まで移動
+  position.value = 100
+
+  // 上記の position の更新によってトリガーされたアニメーションが完了するまで待つ
+  onFinishCurrent(() => {
+    // 0px まで移動
+    position.value = 0
+  })
+}
+</script>
 ```
 
 ### `v-spring-style`, `v-spring-options` ディレクティブ

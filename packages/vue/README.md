@@ -150,7 +150,7 @@ const position = ref(0)
 
 - `spring-style`: Default style of a child element.
 - `enter-from`: Style of a child element before entering.
-- `leave-to`: Style of a child element after leaving.
+- `leave-to`: Style of a child element after leaving. Fallback to `enter-from` style if not specified.
 - `mode`
 - `bounce`
 - `duration`
@@ -203,7 +203,7 @@ const isShow = ref(false)
 
 - `spring-style`: Default style of a child element.
 - `enter-from`: Style of a child element before entering.
-- `leave-to`: Style of a child element after leaving.
+- `leave-to`: Style of a child element after leaving. Fallback to `enter-from` style if not specified.
 - `tag`: Tag name of the wrapper element. It is `Fragment` (do not render wrapper element) by default.
 - `bounce`
 - `duration`
@@ -287,6 +287,34 @@ const { style, realValue, realVelocity } = useSpring(
     <li>realVelocity: {{ realVelocity.translate[0] }}</li>
   </ul>
 </template>
+```
+
+`useSpring` provides `onFinishCurrent` function that is for waiting until the current animation is finished. You can register a callback function that will be called when an ongoing animation is finished.
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useSpring } from '@css-spring-animation/vue'
+
+const position = ref(0)
+
+const { style, onFinishCurrent } = useSpring(() => {
+  return {
+    translate: `${position.value}px`,
+  }
+})
+
+function move() {
+  // Move to 100px
+  position.value = 100
+
+  // Wait for the animation is finished triggered by the above position update
+  onFinishCurrent(() => {
+    // Move to 0px
+    position.value = 0
+  })
+}
+</script>
 ```
 
 ### `v-spring-style` and `v-spring-options` directivies
