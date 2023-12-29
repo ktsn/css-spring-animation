@@ -68,7 +68,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   })
 
   watch(input, (input) => {
-    controller.setStyle(input, !disabled.value)
+    controller.setStyle(input, { animate: !disabled.value })
   })
 
   watch(optionsRef, (options) => {

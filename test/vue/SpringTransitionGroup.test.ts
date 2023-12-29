@@ -50,7 +50,10 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller: AnimationController<any> = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(controller.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
@@ -112,7 +115,10 @@ describe('SpringTransitionGroup', () => {
     vm.list = []
     await nextTick()
 
-    expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 1 }, false)
+    expect(el[scKey].setStyle).toHaveBeenCalledWith(
+      { opacity: 1 },
+      { animate: false },
+    )
     expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
@@ -140,7 +146,10 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(controller.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
     controller.setStyle.mockClear()
 
@@ -176,7 +185,10 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, false)
+    expect(controller.setStyle).toHaveBeenCalledWith(
+      { opacity: 1 },
+      { animate: false },
+    )
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
@@ -212,14 +224,20 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, false)
+    expect(controller.setStyle).toHaveBeenCalledWith(
+      { opacity: 1 },
+      { animate: false },
+    )
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
     await wait(20)
 
     expect(controller.setStyle).toHaveBeenCalledTimes(1)
-    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0.5 }, false)
+    expect(controller.setStyle).toHaveBeenCalledWith(
+      { opacity: 0.5 },
+      { animate: false },
+    )
   })
 
   test('force finish enter animation when move processing is triggered', async () => {
@@ -340,7 +358,7 @@ describe('SpringTransitionGroup', () => {
               const controller = this.$refs.els[0][scKey]
               expect(controller.setStyle).toHaveBeenCalledWith(
                 { opacity: 0 },
-                false,
+                { animate: false },
               )
               expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
               resolve()
@@ -450,7 +468,7 @@ describe('SpringTransitionGroup', () => {
               const controller = el[scKey]
               expect(controller.setStyle).toHaveBeenCalledWith(
                 { opacity: 1 },
-                false,
+                { animate: false },
               )
               expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
               resolve()

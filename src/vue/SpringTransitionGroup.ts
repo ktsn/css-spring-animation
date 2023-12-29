@@ -167,7 +167,7 @@ const SpringTransitionGroup = defineComponent({
             ...props.springStyle,
             transform: `translate(${dx}px, ${dy}px)`,
           },
-          false,
+          { animate: false },
         )
 
         return true
