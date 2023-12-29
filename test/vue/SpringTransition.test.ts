@@ -54,7 +54,10 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
@@ -110,7 +113,10 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = false
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 1 },
+      { animate: false },
+    )
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
@@ -136,7 +142,10 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
 
     mockController?.setStyle.mockClear()
@@ -168,7 +177,10 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = false
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 1 },
+      { animate: false },
+    )
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 })
 
     mockController?.setStyle.mockClear()
@@ -200,7 +212,10 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
 
     mockController?.setStyle.mockClear()
@@ -212,7 +227,10 @@ describe('SpringTransition', () => {
     mockController?.setStyle.mockClear()
     await wait(20)
     expect(mockController?.setStyle).toHaveBeenCalledOnce()
-    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, false)
+    expect(mockController?.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
   })
 
   test('trigger before-enter event before setting style', () => {
@@ -273,7 +291,7 @@ describe('SpringTransition', () => {
             try {
               expect(mockController?.setStyle).toHaveBeenCalledWith(
                 { opacity: 0 },
-                false,
+                { animate: false },
               )
               expect(mockController?.setStyle).toHaveBeenCalledWith({
                 opacity: 1,
@@ -382,7 +400,7 @@ describe('SpringTransition', () => {
             try {
               expect(mockController?.setStyle).toHaveBeenCalledWith(
                 { opacity: 1 },
-                false,
+                { animate: false },
               )
               expect(mockController?.setStyle).toHaveBeenCalledWith({
                 opacity: 0,

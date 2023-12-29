@@ -7,6 +7,11 @@ import {
 import { t } from './time'
 import { forceReflow, mapValues } from './utils'
 
+export interface SetStyleOptions<StyleKey extends keyof any> {
+  animate?: boolean
+  velocity?: Record<StyleKey, number[]>
+}
+
 export interface AnimationController<
   Style extends Record<string, AnimateValue>,
 > {
@@ -15,9 +20,11 @@ export interface AnimationController<
 
   setStyle: (
     style: Style,
-    animate?: boolean,
+    options?: SetStyleOptions<keyof Style>,
   ) => AnimateContext<Record<keyof Style, number[]>>
+
   setOptions: (options: SpringOptions) => void
+
   stop: () => void
 
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
@@ -42,11 +49,13 @@ export function createAnimateController<
   function calculateCurrentValues(
     next: Record<keyof Style, ParsedStyleValue>,
     prev: Record<keyof Style, ParsedStyleValue>,
+    velocityOverride: Record<keyof Style, number[]> | undefined,
   ): {
     fromTo: Record<keyof Style, [ParsedStyleValue, ParsedStyleValue]>
     velocity: Record<keyof Style, number[]>
   } {
     let velocity =
+      velocityOverride ??
       velocityFromHistory(valueHistory, performance.now()) ??
       mapValues(next, (value) => new Array(value.values.length).fill(0))
 
@@ -87,8 +96,10 @@ export function createAnimateController<
 
   function setStyle(
     nextStyle: Style,
-    isAnimate = true,
+    params: SetStyleOptions<keyof Style> = {},
   ): AnimateContext<Record<keyof Style, number[]>> {
+    const isAnimate = params.animate ?? true
+
     const parsedStyle = mapValues(nextStyle, (value) =>
       parseStyleValue(String(value)),
     )
@@ -120,7 +131,11 @@ export function createAnimateController<
       prev = updateValues(prev, ctx.realValue)
     }
 
-    const { fromTo, velocity } = calculateCurrentValues(style, prev)
+    const { fromTo, velocity } = calculateCurrentValues(
+      style,
+      prev,
+      params.velocity,
+    )
 
     if (ctx && !ctx.settled) {
       ctx.stop()

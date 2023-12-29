@@ -67,7 +67,7 @@ export function useTransitionHooks(
           ...props.springStyle,
           ...props.enterFrom,
         },
-        false,
+        { animate: false },
       )
 
       forceReflow()
@@ -91,7 +91,7 @@ export function useTransitionHooks(
     const el = _el as HTMLElementWithController
     if (!el[scKey]) {
       el[scKey] = createAnimateController(createStyleSetter(el))
-      el[scKey].setStyle(props.springStyle, false)
+      el[scKey].setStyle(props.springStyle, { animate: false })
 
       forceReflow()
     }
@@ -124,7 +124,7 @@ export function useTransitionHooks(
         ...props.springStyle,
         ...props.enterFrom,
       },
-      false,
+      { animate: false },
     )
 
     emit('afterLeave', _el)

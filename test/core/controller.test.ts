@@ -29,7 +29,7 @@ describe('AnimationController', () => {
     })
     controller.setStyle({ width: `100px` })
     expect(actual).toEqual({ width: '100px', transition: '', [t]: '' })
-    controller.setStyle({ width: `200px` }, false)
+    controller.setStyle({ width: `200px` }, { animate: false })
     expect(actual).toEqual({ width: '200px', transition: '', [t]: '' })
   })
 
@@ -116,9 +116,9 @@ describe('AnimationController', () => {
 
   test('realVelocity is calculated from value history without animation', () => {
     const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` }, false)
-    controller.setStyle({ transform: `101px 200px` }, false)
-    controller.setStyle({ transform: `102px 200px` }, false)
+    controller.setStyle({ transform: `100px 200px` }, { animate: false })
+    controller.setStyle({ transform: `101px 200px` }, { animate: false })
+    controller.setStyle({ transform: `102px 200px` }, { animate: false })
     expect(controller.realVelocity.transform?.[0]).not.toBe(0)
     expect(controller.realVelocity.transform?.[1]).toBe(0)
   })
@@ -129,7 +129,7 @@ describe('AnimationController', () => {
       style = _style
     })
     controller.setOptions({ duration: 10 })
-    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
 
     return new Promise<void>((resolve) => {
@@ -147,7 +147,7 @@ describe('AnimationController', () => {
       style = _style
     })
     controller.setOptions({ duration: 100 })
-    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
 
     return new Promise<void>((resolve) => {
@@ -161,12 +161,9 @@ describe('AnimationController', () => {
   })
 
   test('stopped == true when animation is stopped by a new animation', () => {
-    let style: any
-    const controller = createAnimateController((_style) => {
-      style = _style
-    })
+    const controller = createAnimateController(() => {})
     controller.setOptions({ duration: 100 })
-    controller.setStyle({ width: '100px' }, false)
+    controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
 
     return new Promise<void>((resolve) => {
