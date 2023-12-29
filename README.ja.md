@@ -289,6 +289,34 @@ const { style, realValue, realVelocity } = useSpring(
 </template>
 ```
 
+`useSpring` が返す値には、現在のアニメーションが完了するまで待つ `onFinishCurrent` 関数があります。この関数には、進行中のアニメーションが完了したときに呼ばれるコールバック関数を登録できます。
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useSpring } from '@css-spring-animation/vue'
+
+const position = ref(0)
+
+const { style, onFinishCurrent } = useSpring(() => {
+  return {
+    translate: `${position.value}px`,
+  }
+})
+
+function move() {
+  // 100px まで移動
+  position.value = 100
+
+  // 上記の position の更新によってトリガーされたアニメーションが完了するまで待つ
+  onFinishCurrent(() => {
+    // 0px まで移動
+    position.value = 0
+  })
+}
+</script>
+```
+
 ### `v-spring-style`, `v-spring-options` ディレクティブ
 
 `v-spring-style` ディレクティブはアニメーションさせるスタイルを指定するために使います。`v-spring-options` ディレクティブはアニメーションのオプションを指定するために使います。
