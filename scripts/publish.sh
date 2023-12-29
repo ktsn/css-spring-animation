@@ -22,10 +22,11 @@ cp packages/vue/dist/css-spring-animation-vue.umd.cjs packages/vue/dist/css-spri
 
 cp README.md packages/vue/README.md
 cp README.ja.md packages/vue/README.ja.md
-conventional-changelog -p angular -i CHANGELOG.md -s
 
 git add .
 git commit -m "v$1"
 git tag v$1
+
+conventional-changelog -p angular -i CHANGELOG.md -s
 
 pnpm -r publish --access public
