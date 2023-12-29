@@ -10,12 +10,15 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "demo": "vite build",
-    "copy-docs": "cp README.md packages/vue/README.md && cp README.ja.md packages/vue/README.ja.md",
+    "copy-docs": "cp README.md packages/vue/README.md && cp README.ja.md packages/vue/README.ja.md && git add packages/vue/README.md packages/vue/README.ja.md",
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md",
+    "version": "pnpm copy-docs; pnpm changelog",
     "publish": "./scripts/publish.sh"
   },
   "devDependencies": {
     "@types/node": "^20.8.10",
     "@vitejs/plugin-vue": "^4.4.0",
+    "conventional-changelog-cli": "^4.1.0",
     "jsdom": "^22.1.0",
     "prettier": "^3.0.3",
     "typescript": "^5.2.2",
