@@ -54,6 +54,7 @@ interface Position {
 
 const positionMap = new WeakMap<VNode, Position>()
 const newPositionMap = new WeakMap<VNode, Position>()
+const velocityMap = new WeakMap<VNode, Record<string, number[]>>()
 
 const SpringTransitionGroup = defineComponent({
   name: 'SpringTransitionGroup',
@@ -127,6 +128,9 @@ const SpringTransitionGroup = defineComponent({
         const el = child.el as HTMLElementWithController
         const controller = el[scKey]
         if (controller) {
+          // Save current velocity to apply it to the next animation.
+          velocityMap.set(child, { ...controller.realVelocity })
+
           // Do not call setStyle here as it records wrong velocity.
           controller.stop()
 
@@ -178,10 +182,18 @@ const SpringTransitionGroup = defineComponent({
       moved.forEach((child) => {
         const el = child.el as HTMLElementWithController
         const controller = el[scKey]!
-        controller.setStyle({
-          ...props.springStyle,
-          transform: 'translate(0px, 0px)',
-        })
+
+        const velocity = velocityMap.get(child)
+
+        controller.setStyle(
+          {
+            ...props.springStyle,
+            transform: 'translate(0px, 0px)',
+          },
+          {
+            velocity,
+          },
+        )
       })
     })
 
