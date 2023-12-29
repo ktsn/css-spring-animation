@@ -102,9 +102,11 @@ export function useTransitionHooks(
       duration: duration.value?.leave,
     })
 
+    const leaveTo = props.leaveTo ?? props.enterFrom
+
     const ctx = controller.setStyle({
       ...props.springStyle,
-      ...props.leaveTo,
+      ...leaveTo,
     })
     ctx.finishingPromise.then(() => {
       if (ctx.stoppedDuration === undefined) {

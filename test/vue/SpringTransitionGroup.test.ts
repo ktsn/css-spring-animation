@@ -90,6 +90,39 @@ describe('SpringTransitionGroup', () => {
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
+  test('use enterFrom style for leave when leaveTo is not specified', async () => {
+    const root = document.createElement('div')
+
+    const app = createApp({
+      template: `
+        <spring-transition-group :enter-from="{ opacity: 0 }" :spring-style="{ opacity: 1 }">
+          <div v-for="item of list" key="item" ref="els">{{ item }}</div>
+        </spring-transition-group>
+      `,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: [],
+        }
+      },
+    })
+
+    const vm: any = app.mount(root)
+
+    vm.list = ['a']
+    await nextTick()
+    const controller = vm.$refs.els[0][scKey]
+    controller.setStyle.mockClear()
+
+    vm.list = []
+    await nextTick()
+
+    expect(controller.setStyle).toHaveBeenCalledTimes(1)
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+  })
+
   test('set leaveTo after springStyle on leave when the element has not entered', async () => {
     const root = document.createElement('div')
 

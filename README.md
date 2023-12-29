@@ -150,7 +150,7 @@ const position = ref(0)
 
 - `spring-style`: Default style of a child element.
 - `enter-from`: Style of a child element before entering.
-- `leave-to`: Style of a child element after leaving.
+- `leave-to`: Style of a child element after leaving. Fallback to `enter-from` style if not specified.
 - `mode`
 - `bounce`
 - `duration`
@@ -203,7 +203,7 @@ const isShow = ref(false)
 
 - `spring-style`: Default style of a child element.
 - `enter-from`: Style of a child element before entering.
-- `leave-to`: Style of a child element after leaving.
+- `leave-to`: Style of a child element after leaving. Fallback to `enter-from` style if not specified.
 - `tag`: Tag name of the wrapper element. It is `Fragment` (do not render wrapper element) by default.
 - `bounce`
 - `duration`
