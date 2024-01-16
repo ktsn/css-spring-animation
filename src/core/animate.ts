@@ -7,7 +7,7 @@ import {
   springSettlingDuration,
   Spring,
 } from './spring'
-import { forceReflow, isBrowserSupported, mapValues, zip } from './utils'
+import { isBrowserSupported, mapValues, zip } from './utils'
 import {
   ParsedStyleValue,
   interpolateParsedStyle,
@@ -141,12 +141,12 @@ function animateWithCssTransition({
     [t]: '0',
   })
 
-  forceReflow()
-
-  set({
-    ...style,
-    transition: `${t} ${settlingDuration}ms linear`,
-    [t]: String(settlingDuration / duration),
+  requestAnimationFrame(() => {
+    set({
+      ...style,
+      transition: `${t} ${settlingDuration}ms linear`,
+      [t]: String(settlingDuration / duration),
+    })
   })
 }
 

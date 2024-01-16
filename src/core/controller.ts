@@ -5,7 +5,7 @@ import {
   parseStyleValue,
 } from './style'
 import { t } from './time'
-import { forceReflow, mapValues } from './utils'
+import { mapValues } from './utils'
 
 export interface SetStyleOptions<StyleKey extends keyof any> {
   animate?: boolean
@@ -139,7 +139,6 @@ export function createAnimateController<
 
     if (ctx && !ctx.settled) {
       ctx.stop()
-      forceReflow()
     }
 
     ctx = animate(fromTo, set, {
