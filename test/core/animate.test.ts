@@ -216,4 +216,38 @@ describe('animate', () => {
     expect(value?.x).not.toBe('0px')
     expect(value?.x).not.toBe('10px')
   })
+
+  test('complete `to` style unit from `from` style', async () => {
+    let value: Record<string, string> | undefined
+    const ctx = animate(
+      { x: ['100%', '0'] },
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+
+    expect(value?.x).toContain('%')
+    await ctx.settlingPromise
+    expect(value?.x).toBe('0%')
+  })
+
+  test('complete stopped style unit from `from` style', async () => {
+    let value: Record<string, string> | undefined
+    const ctx = animate(
+      { x: ['100%', '0'] },
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+
+    ctx.stop()
+    await ctx.settlingPromise
+    expect(value?.x).toContain('%')
+  })
 })

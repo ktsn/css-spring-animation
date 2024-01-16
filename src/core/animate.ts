@@ -10,6 +10,7 @@ import {
 import { isBrowserSupported, mapValues, zip } from './utils'
 import {
   ParsedStyleValue,
+  completeParsedStyleUnit,
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
@@ -132,7 +133,8 @@ function animateWithCssTransition({
       })
     })
 
-    return interpolateParsedStyle(to, style)
+    const completedTo = completeParsedStyleUnit(to, from)
+    return interpolateParsedStyle(completedTo, style)
   })
 
   set({
@@ -164,13 +166,14 @@ function animateWithRaf({
       return
     }
 
-    const style = mapValues(fromTo, ([_, to], key) => {
+    const style = mapValues(fromTo, ([from, to], key) => {
       const realValue = context.realValue[key]
       if (!realValue) {
         return ''
       }
 
-      return interpolateParsedStyle(to, realValue)
+      const completedTo = completeParsedStyleUnit(to, from)
+      return interpolateParsedStyle(completedTo, realValue)
     })
 
     set({
@@ -216,13 +219,14 @@ function createContext<
   }
 
   function setRealStyle() {
-    const style = mapValues(fromTo, ([_, to], key) => {
+    const style = mapValues(fromTo, ([from, to], key) => {
       const realValue = ctx.realValue[key]
       if (!realValue) {
         return ''
       }
 
-      return interpolateParsedStyle(to, realValue)
+      const completedTo = completeParsedStyleUnit(to, from)
+      return interpolateParsedStyle(completedTo, realValue)
     })
 
     set({

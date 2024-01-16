@@ -77,7 +77,7 @@ const moved = ref(false)
     :spring-style="{
       transform: flag
         ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0px, 0px)',
+        : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -178,7 +178,7 @@ const isShow = ref(false)
   <!-- 子要素に対してスプリングアニメーションを行う -->
   <SpringTransition
     :spring-style="{
-      translate: '0px',
+      translate: '0',
     }"
     :enter-from="{
       translate: '-100px',

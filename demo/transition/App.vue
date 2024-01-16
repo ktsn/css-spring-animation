@@ -11,7 +11,7 @@ const isShow = ref(false)
   <SpringTransition
     :spring-style="{
       scale: 1,
-      translate: '0px',
+      translate: 0,
     }"
     :enter-from="{
       translate: '-100px',

@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'vitest'
-import { interpolateParsedStyle, parseStyleValue } from '../../src/core/style'
+import {
+  completeParsedStyleUnit,
+  interpolateParsedStyle,
+  parseStyleValue,
+} from '../../src/core/style'
 
 describe('parseStyleValue', () => {
   test('parse number with unit', () => {
@@ -176,6 +180,52 @@ describe('parseStyleValue', () => {
       })
     })
   })
+})
+
+describe('completeParsedStyleUnit', () => {
+  const properties = [
+    {
+      name: '0 -> 0px',
+      value: {
+        values: [0],
+        units: [''],
+        wraps: ['', ''],
+      },
+      context: {
+        units: ['px'],
+        wraps: ['', ''],
+      },
+      expected: {
+        values: [0],
+        units: ['px'],
+        wraps: ['', ''],
+      },
+    },
+    {
+      name: 'not completed',
+      value: {
+        values: [0, 10],
+        units: ['', ''],
+        wraps: ['', ', ', ''],
+      },
+      context: {
+        units: ['', '%'],
+        wraps: ['', '', ''],
+      },
+      expected: {
+        values: [0, 10],
+        units: ['', ''],
+        wraps: ['', ', ', ''],
+      },
+    },
+  ]
+
+  for (const { name, value, context, expected } of properties) {
+    test(name, () => {
+      const actual = completeParsedStyleUnit(value, context)
+      expect(actual).toEqual(expected)
+    })
+  }
 })
 
 describe('stringifyInterpolatedStyle', () => {

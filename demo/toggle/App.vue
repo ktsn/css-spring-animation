@@ -11,7 +11,7 @@ const moved = ref(false)
   <spring.div
     class="rectangle"
     :spring-style="{
-      translate: moved ? '100px' : '0px',
+      translate: moved ? '100px' : '0',
     }"
     :duration="600"
     :bounce="0.3"
