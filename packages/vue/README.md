@@ -77,7 +77,7 @@ This is because the library parses the numbers in the style value, then calculat
     :spring-style="{
       transform: flag
         ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0px, 0px)',
+        : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -103,11 +103,11 @@ el.style.setProperty('--t', 0)
 el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
 
 // Re-render
-forceReflow()
-
-// Trigger animation
-el.style.setProperty('--t', 1)
-el.style.transition = '--t 1000ms linear'
+requestAnimationFrame(() => {
+  // Trigger animation
+  el.style.setProperty('--t', 1)
+  el.style.transition = '--t 1000ms linear'
+})
 ```
 
 The library also provides a graceful degradation for browsers that do not support `CSS.registerProperty` and `exp()` function of CSS. In this case, the library will use `requestAnimationFrame` to animate the style value instead of CSS Transition.
@@ -178,7 +178,7 @@ const isShow = ref(false)
   <!-- Trigger spring animation for the child element -->
   <SpringTransition
     :spring-style="{
-      translate: '0px',
+      translate: '0',
     }"
     :enter-from="{
       translate: '-100px',

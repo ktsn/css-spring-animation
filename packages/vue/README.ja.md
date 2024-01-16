@@ -77,7 +77,7 @@ const moved = ref(false)
     :spring-style="{
       transform: flag
         ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0px, 0px)',
+        : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -103,11 +103,11 @@ el.style.setProperty('--t', 0)
 el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
 
 // 再描画を実行させる
-forceReflow()
-
-// アニメーションの開始
-el.style.setProperty('--t', 1)
-el.style.transition = '--t 1000ms linear'
+requestAnimationFrame(() => {
+  // アニメーションの開始
+  el.style.setProperty('--t', 1)
+  el.style.transition = '--t 1000ms linear'
+})
 ```
 
 また、このライブラリは `CSS.registerProperty` や CSS の `exp()` 関数をサポートしていないブラウザに対しては、CSS トランジションを使わず、`requestAnimationFrame` を使ったグレースフルデグラデーションでアニメーションを実行します。
@@ -178,7 +178,7 @@ const isShow = ref(false)
   <!-- 子要素に対してスプリングアニメーションを行う -->
   <SpringTransition
     :spring-style="{
-      translate: '0px',
+      translate: '0',
     }"
     :enter-from="{
       translate: '-100px',

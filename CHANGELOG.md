@@ -1,3 +1,17 @@
+# [0.12.0](https://github.com/ktsn/css-spring-animation/compare/v0.11.0...v0.12.0) (2024-01-16)
+
+
+### Bug Fixes
+
+* fix wrong animation happened when it is occurred by stopping previous animation ([#8](https://github.com/ktsn/css-spring-animation/issues/8)) ([412b1b1](https://github.com/ktsn/css-spring-animation/commit/412b1b11aa239be973bcb7e9a16834b617e633ac))
+
+
+### Features
+
+* auto complete 0 value without unit in animation style ([284ecdc](https://github.com/ktsn/css-spring-animation/commit/284ecdc786cfd9acd81a77c7c577377a22d68b68))
+
+
+
 # [0.11.0](https://github.com/ktsn/css-spring-animation/compare/v0.10.0...v0.11.0) (2023-12-29)
 
 ### Features
