@@ -1,5 +1,6 @@
 {
   "name": "css-spring-animation",
+  "version": "0.11.0",
   "type": "module",
   "private": true,
   "scripts": {
