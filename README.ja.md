@@ -103,11 +103,11 @@ el.style.setProperty('--t', 0)
 el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
 
 // 再描画を実行させる
-forceReflow()
-
-// アニメーションの開始
-el.style.setProperty('--t', 1)
-el.style.transition = '--t 1000ms linear'
+requestAnimationFrame(() => {
+  // アニメーションの開始
+  el.style.setProperty('--t', 1)
+  el.style.transition = '--t 1000ms linear'
+})
 ```
 
 また、このライブラリは `CSS.registerProperty` や CSS の `exp()` 関数をサポートしていないブラウザに対しては、CSS トランジションを使わず、`requestAnimationFrame` を使ったグレースフルデグラデーションでアニメーションを実行します。

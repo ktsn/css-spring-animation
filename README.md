@@ -103,11 +103,11 @@ el.style.setProperty('--t', 0)
 el.style.translate = 'calc(P * (A * var(--t) + B) * exp(-C * var(--t)) - Q)'
 
 // Re-render
-forceReflow()
-
-// Trigger animation
-el.style.setProperty('--t', 1)
-el.style.transition = '--t 1000ms linear'
+requestAnimationFrame(() => {
+  // Trigger animation
+  el.style.setProperty('--t', 1)
+  el.style.transition = '--t 1000ms linear'
+})
 ```
 
 The library also provides a graceful degradation for browsers that do not support `CSS.registerProperty` and `exp()` function of CSS. In this case, the library will use `requestAnimationFrame` to animate the style value instead of CSS Transition.
