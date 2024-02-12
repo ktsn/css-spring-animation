@@ -146,6 +146,14 @@ function denormalizeVelocity(
   return v * volume(from, to) * (duration / 1000)
 }
 
+function isNotAnimating(data: {
+  from: number
+  to: number
+  initialVelocity: number
+}): boolean {
+  return data.from === data.to && data.initialVelocity === 0
+}
+
 function bouncySpringConstants({
   from,
   to,
@@ -238,6 +246,10 @@ function bouncySpring({
   const spring: Spring = {
     // A * cos(a * t + b) * e ^ (-c * t)
     expression: (data) => {
+      if (isNotAnimating(data)) {
+        return v(data.to)
+      }
+
       const curve = mul(spring.bounce(data), spring.decay(data))
       return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
     },
@@ -263,6 +275,10 @@ function bouncySpring({
     },
 
     velocity: (data) => {
+      if (isNotAnimating(data)) {
+        return 0
+      }
+
       return bouncySpringVelocity({
         ...data,
         bounce,
@@ -312,6 +328,10 @@ function smoothSpring({
   const spring: Spring = {
     // (A * t + B) * e ^ (-c * t)
     expression: (data) => {
+      if (isNotAnimating(data)) {
+        return v(data.to)
+      }
+
       const curve = mul(spring.bounce(data), spring.decay(data))
       return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
     },
@@ -337,6 +357,10 @@ function smoothSpring({
     },
 
     velocity: (data) => {
+      if (isNotAnimating(data)) {
+        return 0
+      }
+
       return smoothSpringVelocity({
         ...data,
         bounce,
@@ -385,6 +409,10 @@ function flattenedSpring({
   const spring: Spring = {
     // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
     expression: (data) => {
+      if (isNotAnimating(data)) {
+        return v(data.to)
+      }
+
       const curve = mul(spring.bounce(data), spring.decay(data))
       return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
     },
@@ -413,6 +441,10 @@ function flattenedSpring({
     },
 
     velocity: (data) => {
+      if (isNotAnimating(data)) {
+        return 0
+      }
+
       return flattenedSpringVelocity({
         ...data,
         bounce,
