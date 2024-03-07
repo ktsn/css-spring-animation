@@ -1,3 +1,12 @@
+## [0.12.1](https://github.com/ktsn/css-spring-animation/compare/v0.12.0...v0.12.1) (2024-03-07)
+
+
+### Bug Fixes
+
+* do not trigger transition when from and to are the same and velocity is 0 ([e987e54](https://github.com/ktsn/css-spring-animation/commit/e987e54858c30c709818d567c147fe7bee4e94c0))
+
+
+
 # [0.12.0](https://github.com/ktsn/css-spring-animation/compare/v0.11.0...v0.12.0) (2024-01-16)
 
 
