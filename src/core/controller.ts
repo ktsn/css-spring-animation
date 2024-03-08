@@ -104,6 +104,10 @@ export function createAnimateController<
       parseStyleValue(String(value)),
     )
 
+    if (style && isSameStyle(style, parsedStyle)) {
+      return ctx ?? createContext(style)
+    }
+
     let prev = style
     style = parsedStyle
 
@@ -275,4 +279,15 @@ function createContext<Style extends Record<string, ParsedStyleValue>>(
     stop: () => {},
     stoppedDuration: 0,
   }
+}
+
+function isSameStyle<Style extends Record<string, ParsedStyleValue>>(
+  a: Style,
+  b: Style,
+): boolean {
+  return Object.keys(a).every((key) => {
+    const aValues = a[key]?.values ?? []
+    const bValues = b[key]?.values ?? []
+    return aValues.every((value, i) => value === bValues[i])
+  })
 }

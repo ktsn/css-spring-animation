@@ -49,6 +49,38 @@ describe('AnimationController', () => {
     expect(actual?.[t]).not.toBe('')
   })
 
+  test('do not trigger animation by setting the same style value', () => {
+    let actual: Record<string, string> | undefined
+    const controller = createAnimateController((style) => {
+      actual = style
+    })
+    controller.setOptions({ duration: 10 })
+    controller.setStyle({ width: `100px` })
+    expect(actual?.width).toBe('100px')
+
+    controller.setStyle({ width: `100px` })
+    expect(actual?.width).toBe('100px')
+    expect(actual?.transition).toBe('')
+    expect(actual?.[t]).toBe('')
+  })
+
+  test('trigger animation if any style value is different', () => {
+    let actual: Record<string, string> | undefined
+    const controller = createAnimateController((style) => {
+      actual = style
+    })
+    controller.setOptions({ duration: 10 })
+    controller.setStyle({ width: '100px', height: '200px' })
+    expect(actual?.width).toBe('100px')
+    expect(actual?.height).toBe('200px')
+
+    controller.setStyle({ width: `100px`, height: `100px` })
+    expect(actual?.width).not.toBe('100px')
+    expect(actual?.height).not.toBe('200px')
+    expect(actual?.transition).not.toBe('')
+    expect(actual?.[t]).not.toBe('')
+  })
+
   test('stop animation', () => {
     let actual: Record<string, string> | undefined
     const controller = createAnimateController((style) => {
