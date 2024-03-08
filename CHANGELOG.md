@@ -1,3 +1,13 @@
+## [0.12.2](https://github.com/ktsn/css-spring-animation/compare/v0.12.1...v0.12.2) (2024-03-08)
+
+
+### Bug Fixes
+
+* avoid triggering transition when set styles are the same with the previously set styles ([e981e72](https://github.com/ktsn/css-spring-animation/commit/e981e720d02d1939b90c4dcee054d32ed42e6f13))
+* make velocity normalization expression correct ([ccaf9d6](https://github.com/ktsn/css-spring-animation/commit/ccaf9d61210e2081cb4505345d94b96d930860c1))
+
+
+
 ## [0.12.1](https://github.com/ktsn/css-spring-animation/compare/v0.12.0...v0.12.1) (2024-03-07)
 
 
