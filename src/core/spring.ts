@@ -133,7 +133,7 @@ function normalizeVelocity(
   velocity: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  return (velocity / volume(from, to)) * (1000 / duration)
+  return (velocity / volume(from, to)) * (duration / 1000)
 }
 
 /**
@@ -143,7 +143,7 @@ function denormalizeVelocity(
   v: number,
   { from, to, duration }: { from: number; to: number; duration: number },
 ): number {
-  return v * volume(from, to) * (duration / 1000)
+  return v * volume(from, to) * (1000 / duration)
 }
 
 function isNotAnimating(data: {
