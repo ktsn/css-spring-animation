@@ -18,6 +18,14 @@ export function zip<T>(a: readonly T[], b: readonly T[]): [T, T][] {
   return result
 }
 
+export function range(start: number, end: number): number[] {
+  const result = []
+  for (let i = start; i < end; i++) {
+    result.push(i)
+  }
+  return result
+}
+
 export function isBrowserSupported(): boolean {
   return (
     typeof CSS !== 'undefined' &&
