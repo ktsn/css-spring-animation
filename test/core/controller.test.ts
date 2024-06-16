@@ -81,6 +81,24 @@ describe('AnimationController', () => {
     expect(actual?.[t]).not.toBe('')
   })
 
+  test('complete style unit if the value is 0 without unit', () => {
+    let actual: Record<string, string> | undefined
+    const controller = createAnimateController((style) => {
+      actual = style
+    })
+    controller.setOptions({ duration: 10 })
+    controller.setStyle({ width: '100px' })
+    controller.setStyle({ width: '0' })
+    expect(actual?.width).toContain('px')
+
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        expect(actual?.width).toBe('0px')
+        resolve()
+      }, 20)
+    })
+  })
+
   test('stop animation', () => {
     let actual: Record<string, string> | undefined
     const controller = createAnimateController((style) => {
@@ -96,6 +114,18 @@ describe('AnimationController', () => {
     expect(actual?.width).not.toBe('200px')
     expect(actual?.transition).toBe('')
     expect(actual?.[t]).toBe('')
+  })
+
+  test('complete stopped style unit from the previous style unit', () => {
+    let actual: Record<string, string> | undefined
+    const controller = createAnimateController((style) => {
+      actual = style
+    })
+    controller.setOptions({ duration: 1000 })
+    controller.setStyle({ width: '100%' })
+    controller.setStyle({ width: '0' })
+    controller.stop()
+    expect(actual?.width).toContain('%')
   })
 
   test('realValue is as same as value in style before animation', () => {
