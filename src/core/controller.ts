@@ -84,11 +84,6 @@ export function createAnimateController<
     if (style) {
       style = ctx ? updateValues(style, ctx.realValue) : style
       ctx = createContext(style)
-      set({
-        ...stringifyStyle(style),
-        transition: '',
-        [t]: '',
-      })
     }
 
     valueHistory = []
