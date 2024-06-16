@@ -1,3 +1,13 @@
+## [0.12.3](https://github.com/ktsn/css-spring-animation/compare/v0.12.2...v0.12.3) (2024-06-16)
+
+
+### Bug Fixes
+
+* fix problem that an animation may not work on chrome ([45cde70](https://github.com/ktsn/css-spring-animation/commit/45cde705c7c5cef154691d631e1abf711f29bd98))
+* make animation controller auto complete missing unit when animation to 0 value is stopped with `stop()` method ([#9](https://github.com/ktsn/css-spring-animation/issues/9)) ([907e381](https://github.com/ktsn/css-spring-animation/commit/907e38116cd82a5a92e32194b1b8a80293f10263))
+
+
+
 ## [0.12.2](https://github.com/ktsn/css-spring-animation/compare/v0.12.1...v0.12.2) (2024-03-08)
 
 
