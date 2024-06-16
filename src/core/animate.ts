@@ -144,10 +144,12 @@ function animateWithCssTransition({
   })
 
   requestAnimationFrame(() => {
-    set({
-      ...style,
-      transition: `${t} ${settlingDuration}ms linear`,
-      [t]: String(settlingDuration / duration),
+    requestAnimationFrame(() => {
+      set({
+        ...style,
+        transition: `${t} ${settlingDuration}ms linear`,
+        [t]: String(settlingDuration / duration),
+      })
     })
   })
 }
