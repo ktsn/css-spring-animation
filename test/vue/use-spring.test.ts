@@ -165,7 +165,7 @@ describe('useSpring', () => {
         width: `${value.value}px`,
       }),
       {
-        duration: 10,
+        duration: 20,
       },
     )
 
