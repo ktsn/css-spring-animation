@@ -87,7 +87,39 @@ describe('Spring Element', () => {
     expect(mockController.setOptions).toHaveBeenCalledWith({
       bounce: 0.2,
       duration: 800,
+      disabled: false,
     })
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+  })
+
+  test('disable animation when disabled prop is true', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle" disabled>
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ opacity: 1 })
+        return {
+          springStyle,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    expect(vm.$el.style.opacity).toBe('1')
+
+    vm.springStyle.opacity = 0
+    await nextTick()
+    expect(mockController.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
   })
 })
