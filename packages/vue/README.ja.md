@@ -123,6 +123,7 @@ requestAnimationFrame(() => {
 - `spring-style`: アニメーションさせるスタイルオブジェクト
 - `bounce`
 - `duration`
+- `disabled`
 
 ```vue
 <script setup>

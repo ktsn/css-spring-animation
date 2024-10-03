@@ -1,3 +1,17 @@
+# [0.13.0](https://github.com/ktsn/css-spring-animation/compare/v0.12.3...v0.13.0) (2024-10-03)
+
+
+### Bug Fixes
+
+* ensure triggering animation / update options when values passed to useSpring are mutated ([bc863ef](https://github.com/ktsn/css-spring-animation/commit/bc863ef16c7a8ef8f0736260570638f9d1212b58))
+
+
+### Features
+
+* add `disabled` prop for `<spring>` element ([fc54bac](https://github.com/ktsn/css-spring-animation/commit/fc54bac71cc3501b8050b7d767f1b467e6b07182))
+
+
+
 ## [0.12.3](https://github.com/ktsn/css-spring-animation/compare/v0.12.2...v0.12.3) (2024-06-16)
 
 

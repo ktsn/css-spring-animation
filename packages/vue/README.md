@@ -123,6 +123,7 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `spring-style`: Style object to be animated
 - `bounce`
 - `duration`
+- `disabled`
 
 ```vue
 <script setup>
