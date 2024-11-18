@@ -280,7 +280,9 @@ function isSameStyle<Style extends Record<string, ParsedStyleValue>>(
   a: Style,
   b: Style,
 ): boolean {
-  return Object.keys(a).every((key) => {
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+
+  return Array.from(keys).every((key) => {
     const aValues = a[key]?.values ?? []
     const bValues = b[key]?.values ?? []
     return (

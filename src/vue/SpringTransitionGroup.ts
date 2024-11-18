@@ -2,6 +2,7 @@ import {
   ComponentOptions,
   PropType,
   TransitionGroup,
+  TransitionGroupProps,
   VNode,
   computed,
   defineComponent,
@@ -63,6 +64,7 @@ const SpringTransitionGroup = defineComponent({
 
   setup(props, ctx) {
     const { emit } = ctx
+    const attrs: TransitionGroupProps = ctx.attrs
 
     let prevChildren: VNode[] = []
     let children: VNode[] = []
@@ -80,8 +82,8 @@ const SpringTransitionGroup = defineComponent({
 
     const baseRender = (TransitionGroup as unknown as ComponentOptions).setup!(
       {
+        ...attrs,
         tag: props.tag,
-        css: false,
         onBeforeEnter,
         onEnter,
         onAfterEnter,
@@ -138,6 +140,9 @@ const SpringTransitionGroup = defineComponent({
             ...props.springStyle,
             transform: '',
           })
+
+          // Clean up enter classes that <TransitionGroup> set.
+          cleanUpEnterClass(el)
         }
       })
 
@@ -196,6 +201,17 @@ const SpringTransitionGroup = defineComponent({
         )
       })
     })
+
+    function cleanUpEnterClass(el: Element): void {
+      const name = attrs.name ?? 'v'
+      const enterFromClass = attrs.enterFromClass ?? `${name}-enter-from`
+      const enterActiveClass = attrs.enterActiveClass ?? `${name}-enter-active`
+      const enterToClass = attrs.enterToClass ?? `${name}-enter-to`
+
+      el.classList.remove(enterFromClass)
+      el.classList.remove(enterActiveClass)
+      el.classList.remove(enterToClass)
+    }
 
     return () => {
       prevChildren = children
