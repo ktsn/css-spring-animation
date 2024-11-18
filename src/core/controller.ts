@@ -283,6 +283,9 @@ function isSameStyle<Style extends Record<string, ParsedStyleValue>>(
   return Object.keys(a).every((key) => {
     const aValues = a[key]?.values ?? []
     const bValues = b[key]?.values ?? []
-    return aValues.every((value, i) => value === bValues[i])
+    return (
+      aValues.length === bValues.length &&
+      aValues.every((value, i) => value === bValues[i])
+    )
   })
 }

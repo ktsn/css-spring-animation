@@ -124,6 +124,11 @@ function animateWithCssTransition({
   registerPropertyIfNeeded()
 
   const style = mapValues(fromTo, ([from, to], key) => {
+    // Skip animation if the value is not consistent
+    if (from.values.length !== to.values.length) {
+      return interpolateParsedStyle(to, to.values)
+    }
+
     const style = zip(from.values, to.values).map(([from, to], i) => {
       const initialVelocity = velocity?.[key]?.[i] ?? 0
       return springStyle(spring, {
@@ -169,6 +174,11 @@ function animateWithRaf({
     }
 
     const style = mapValues(fromTo, ([from, to], key) => {
+      // Skip animation if the value is not consistent
+      if (from.values.length !== to.values.length) {
+        return interpolateParsedStyle(to, to.values)
+      }
+
       const realValue = context.realValue[key]
       if (!realValue) {
         return ''
@@ -186,7 +196,7 @@ function animateWithRaf({
     requestAnimationFrame(render)
   }
 
-  requestAnimationFrame(render)
+  render()
 }
 
 function createContext<

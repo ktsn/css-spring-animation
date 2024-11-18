@@ -200,6 +200,38 @@ describe('animate', () => {
     expect(value?.y).toBe('20px')
   })
 
+  test('pass to style value immediately if the value is not animatable (from is not animatable)', async () => {
+    let value: Record<string, string> | undefined
+    const ctx = animate(
+      { width: ['auto', '100px'] },
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+    expect(value?.width).toBe('100px')
+    await ctx.settlingPromise
+    expect(value?.width).toBe('100px')
+  })
+
+  test('pass to style value immediately if the value is not animatable (to is not animatable)', async () => {
+    let value: Record<string, string> | undefined
+    const ctx = animate(
+      { width: ['100px', 'auto'] },
+      (v) => {
+        value = v
+      },
+      {
+        duration: 10,
+      },
+    )
+    expect(value?.width).toBe('auto')
+    await ctx.settlingPromise
+    expect(value?.width).toBe('auto')
+  })
+
   test('pass real style value after stopped', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(

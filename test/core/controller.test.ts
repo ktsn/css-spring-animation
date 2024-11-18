@@ -49,6 +49,19 @@ describe('AnimationController', () => {
     expect(actual?.[t]).not.toBe('')
   })
 
+  test('set style without animation if the value is not animatable', () => {
+    let actual: Record<string, string> | undefined
+    const controller = createAnimateController((style) => {
+      actual = style
+    })
+    controller.setOptions({ duration: 10 })
+    controller.setStyle({ width: `auto` })
+    expect(actual?.width).toBe('auto')
+
+    controller.setStyle({ width: `100px` })
+    expect(actual?.width).toBe('100px')
+  })
+
   test('do not trigger animation by setting the same style value', () => {
     let actual: Record<string, string> | undefined
     const controller = createAnimateController((style) => {

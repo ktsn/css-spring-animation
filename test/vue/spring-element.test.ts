@@ -121,5 +121,37 @@ describe('Spring Element', () => {
       { opacity: 0 },
       { animate: false },
     )
+    expect(vm.$el.style.opacity).toBe('0')
+  })
+
+  test('just update style when cannot be animated', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle">
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ height: 'auto' })
+        return {
+          springStyle,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    expect(vm.$el.style.height).toBe('auto')
+
+    vm.springStyle.height = '100px'
+
+    await nextTick()
+
+    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' })
+    expect(vm.$el.style.height).toBe('100px')
   })
 })
