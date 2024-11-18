@@ -152,9 +152,18 @@ const position = ref(0)
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
 - `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
-- `mode`
 - `bounce`
 - `duration`
+
+- Vue の `<Transition>` コンポーネントから引き継いでいる props:
+  - `name`
+  - `mode`
+  - `enterFromClass`
+  - `enterActiveClass`
+  - `enterToClass`
+  - `leaveFromClass`
+  - `leaveActiveClass`
+  - `leaveToClass`
 
 **イベント**
 
@@ -205,9 +214,18 @@ const isShow = ref(false)
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
 - `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
-- `tag`: ラッパー要素のタグ名。デフォルト値: `Fragment`（ラッパー要素を描画しない）
 - `bounce`
 - `duration`
+
+- Vue の `<Transition>` コンポーネントから引き継いでいる props:
+  - `tag`
+  - `name`
+  - `enterFromClass`
+  - `enterActiveClass`
+  - `enterToClass`
+  - `leaveFromClass`
+  - `leaveActiveClass`
+  - `leaveToClass`
 
 **Events**
 

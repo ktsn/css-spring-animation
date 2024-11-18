@@ -1,3 +1,17 @@
+# [0.14.0](https://github.com/ktsn/css-spring-animation/compare/v0.13.0...v0.14.0) (2024-11-18)
+
+
+### Bug Fixes
+
+* set spring style value immediately if the value is not animatable ([df35daf](https://github.com/ktsn/css-spring-animation/commit/df35daf34c6420844615e83f7633da9637e42450))
+
+
+### Features
+
+* set enter/leave transition classes to transitioning elements as same as Vue's transition components ([8a70820](https://github.com/ktsn/css-spring-animation/commit/8a70820229ece3214a63fc1d14a7f12c9fd53340))
+
+
+
 # [0.13.0](https://github.com/ktsn/css-spring-animation/compare/v0.12.3...v0.13.0) (2024-10-03)
 
 
