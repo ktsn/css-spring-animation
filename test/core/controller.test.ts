@@ -189,6 +189,15 @@ describe('AnimationController', () => {
     expect(controller.realVelocity.transform).toEqual([0, 0])
   })
 
+  test('realVelocity is kept when stopped with keepVelocity option', () => {
+    const controller = createAnimateController(() => {})
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ transform: `100px 200px` })
+    controller.setStyle({ transform: `200px 300px` })
+    controller.stop({ keepVelocity: true })
+    expect(controller.realVelocity.transform).not.toEqual([0, 0])
+  })
+
   test('realVelocity is calculated from value history without animation', () => {
     const controller = createAnimateController(() => {})
     controller.setStyle({ transform: `100px 200px` }, { animate: false })

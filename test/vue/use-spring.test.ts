@@ -33,6 +33,28 @@ describe('useSpring', () => {
     expect(style.value.width).toBe('20')
   })
 
+  test('update style value immediately when relocating', async () => {
+    const value = ref(10)
+
+    const { style } = useSpring(
+      () => {
+        return {
+          width: value.value,
+        }
+      },
+      () => {
+        return {
+          relocating: true,
+        }
+      },
+    )
+
+    expect(style.value.width).toBe('10')
+    value.value = 20
+    await nextTick()
+    expect(style.value.width).toBe('20')
+  })
+
   test('return real values', async () => {
     const value = ref(10)
 
@@ -62,6 +84,26 @@ describe('useSpring', () => {
       }),
       {
         disabled: true,
+      },
+    )
+
+    expect(realValue.value.width).toEqual([10])
+    value.value = 20
+    await nextTick()
+    expect(realValue.value.width).toEqual([20])
+  })
+
+  test('return input value as real value when relocating', async () => {
+    const value = ref(10)
+
+    const { realValue } = useSpring(
+      () => ({
+        width: value.value,
+      }),
+      () => {
+        return {
+          relocating: true,
+        }
       },
     )
 
@@ -132,6 +174,34 @@ describe('useSpring', () => {
     expect(realVelocity.value.width).toEqual([0])
     await nextTick()
     expect(realVelocity.value.width).not.toEqual([0])
+  })
+
+  test('keep last real velocity when relocating', async () => {
+    const value = ref(10)
+    const relocating = ref(false)
+
+    const { realVelocity } = useSpring(
+      () => ({
+        width: value.value,
+      }),
+      () => ({
+        duration: 10,
+        relocating: relocating.value,
+      }),
+    )
+    expect(realVelocity.value.width).toEqual([0])
+
+    // Animate to negative direction
+    value.value = 0
+    await nextTick()
+
+    // Relocating to positive direction
+    relocating.value = true
+    value.value = 30
+    await nextTick()
+
+    // Velocity should be kept as negative
+    expect(realVelocity.value.width[0]).toBeLessThan(0)
   })
 
   test('return 0 as real velocity after stopped', async () => {
