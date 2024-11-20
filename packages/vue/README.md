@@ -55,6 +55,14 @@ Bounciness of an animation. The value is between -1 and 1. The default value is 
 **duration**<br>
 Perceptive duration (ms) of an animation. The default value is 1000.
 
+## `disabled` vs. `relocating`
+
+`<spring>` component and `useSpring` composable have `disabled` and `relocating` options. They both stop ongoing animation and the component/composable will not trigger animations for further style changes.
+
+You should use `disabled` when you want to disable a spring animation but keep rendering an element move by continuously updating the style value, then trigger a spring animation again with using velocity of the style value updates. You can see the example of it in [Swipe](./demo/swipe/) demo. `disabled` is `true` while you drag an element and trigger spring animation with the inherited velocity of the dragging when releasing it.
+
+`relocating` is used in case of updating the style value without triggering a spring animation and you will immediately trigger an animation with using the inherited velocity of the previous animation. In [Picker](./demo/picker/) demo, you can rotate the picker by mouse wheel endlessly. To do that, it rewinds the picker to the opposite side of the rotation with `relocating = true` while keeping the rotation animation.
+
 ## Spring Style Caveats
 
 All numbers in a style value must have the same unit and must be appeared in the same order. For example, the following `:spring-style` value is invalid and will not work as expected:
@@ -124,6 +132,7 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `bounce`
 - `duration`
 - `disabled`
+- `relocating`
 
 ```vue
 <script setup>
@@ -274,6 +283,13 @@ const list = ref([
 A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
 
 The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
+
+The options object expectes the following properties:
+
+- `bounce`
+- `duration`
+- `disabled`
+- `relocating`
 
 It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
 

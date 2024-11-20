@@ -1,3 +1,12 @@
+# [0.15.0](https://github.com/ktsn/css-spring-animation/compare/v0.14.0...v0.15.0) (2024-11-20)
+
+
+### Features
+
+* add relocating option for `useSpring` and `<spring>` ([fdae4cb](https://github.com/ktsn/css-spring-animation/commit/fdae4cb8eff466fa801dde241e318e4c33cae713))
+
+
+
 # [0.14.0](https://github.com/ktsn/css-spring-animation/compare/v0.13.0...v0.14.0) (2024-11-18)
 
 
