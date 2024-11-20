@@ -228,7 +228,6 @@ describe('SpringTransitionGroup', () => {
     vm.isShow = true
     await nextTick()
 
-    expect(controller.setStyle).toHaveBeenCalledTimes(1)
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
