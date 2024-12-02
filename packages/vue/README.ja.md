@@ -55,6 +55,14 @@ const moved = ref(false)
 **duration**<br>
 アニメーションの長さ（ミリ秒）を指定します。デフォルト値は 1000 です。
 
+## `disabled` と `relocating`
+
+`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` と `relocating` オプションを指定できます。両方とも実行中のアニメーションを止めて、以降のスタイルの変更でアニメーションを行わなくします。
+
+`disabled` はスプリングアニメーションを無効にしながら、継続的なスタイルの値の更新で要素の移動を表現し、その値の更新で計算された速度を使ってサイドスプリングアニメーションを行うときに使用します。[Swipe](./demo/swipe/) デモでその例を見ることができます。要素をドラッグしている間は `disabled` が `true` になり、離したときにドラッグ中の速度を引き継いでスプリングアニメーションが行われます。
+
+`relocating` はスプリングアニメーションを実行せずにスタイルを更新し、直後に以前のアニメーションの速度を引き継いだアニメーションを行うときに使用します。[Picker](./demo/picker/) デモでは、マウスホイールでピッカーを無限に回転させることができます。これを実現するために、回転のアニメーションを維持しながら、`relocating = true` のときにピッカーを反対方向に戻す処理を行っています。
+
 ## スタイル指定時の注意点
 
 スタイルに含まれる数値はすべて同じ単位で、同じ順番で現れる必要があります。例えば、以下のような `:spring-style` の値は正しく動作しません。
@@ -123,6 +131,8 @@ requestAnimationFrame(() => {
 - `spring-style`: アニメーションさせるスタイルオブジェクト
 - `bounce`
 - `duration`
+- `disabled`
+- `relocating`
 
 ```vue
 <script setup>
@@ -151,9 +161,18 @@ const position = ref(0)
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
 - `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
-- `mode`
 - `bounce`
 - `duration`
+
+- Vue の `<Transition>` コンポーネントから引き継いでいる props:
+  - `name`
+  - `mode`
+  - `enterFromClass`
+  - `enterActiveClass`
+  - `enterToClass`
+  - `leaveFromClass`
+  - `leaveActiveClass`
+  - `leaveToClass`
 
 **イベント**
 
@@ -204,9 +223,18 @@ const isShow = ref(false)
 - `spring-style`: 子要素のデフォルトスタイル
 - `enter-from`: enter 前の子要素のスタイル
 - `leave-to`: leave 後の子要素のスタイル。指定されていない場合は `enter-from` のスタイルが使われます。
-- `tag`: ラッパー要素のタグ名。デフォルト値: `Fragment`（ラッパー要素を描画しない）
 - `bounce`
 - `duration`
+
+- Vue の `<Transition>` コンポーネントから引き継いでいる props:
+  - `tag`
+  - `name`
+  - `enterFromClass`
+  - `enterActiveClass`
+  - `enterToClass`
+  - `leaveFromClass`
+  - `leaveActiveClass`
+  - `leaveToClass`
 
 **Events**
 
@@ -255,6 +283,13 @@ const list = ref([
 スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
 
 第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
+
+オプションオブジェクトには以下のプロパティを指定できます。
+
+- `bounce`
+- `duration`
+- `disabled`
+- `relocating`
 
 `<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
 

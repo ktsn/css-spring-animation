@@ -87,7 +87,106 @@ describe('Spring Element', () => {
     expect(mockController.setOptions).toHaveBeenCalledWith({
       bounce: 0.2,
       duration: 800,
+      disabled: false,
+      relocating: false,
     })
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+  })
+
+  test('disable animation when disabled prop is true', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle" disabled>
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ opacity: 1 })
+        return {
+          springStyle,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    expect(vm.$el.style.opacity).toBe('1')
+
+    vm.springStyle.opacity = 0
+    await nextTick()
+    expect(mockController.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
+    expect(vm.$el.style.opacity).toBe('0')
+  })
+
+  test('disable animation when relocating prop is true', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle" :relocating="relocating">
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ opacity: 1 })
+        const relocating = ref(true)
+        return {
+          springStyle,
+          relocating,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    expect(vm.$el.style.opacity).toBe('1')
+
+    vm.springStyle.opacity = 0
+    await nextTick()
+    expect(mockController.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: false },
+    )
+    expect(vm.$el.style.opacity).toBe('0')
+  })
+
+  test('just update style when cannot be animated', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle">
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ height: 'auto' })
+        return {
+          springStyle,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    expect(vm.$el.style.height).toBe('auto')
+
+    vm.springStyle.height = '100px'
+
+    await nextTick()
+
+    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' })
+    expect(vm.$el.style.height).toBe('100px')
   })
 })

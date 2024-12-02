@@ -12,6 +12,10 @@ export interface SetStyleOptions<StyleKey extends keyof any> {
   velocity?: Record<StyleKey, number[]>
 }
 
+export interface StopOptions {
+  keepVelocity?: boolean
+}
+
 export interface AnimationController<
   Style extends Record<string, AnimateValue>,
 > {
@@ -25,7 +29,7 @@ export interface AnimationController<
 
   setOptions: (options: SpringOptions) => void
 
-  stop: () => void
+  stop: (options?: StopOptions) => void
 
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
@@ -41,6 +45,7 @@ export function createAnimateController<
   let style: Record<keyof Style, ParsedStyleValue> | undefined
   let options: SpringOptions = {}
 
+  let keptVelocity: Record<keyof Style, number[]> | undefined
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
   // Pseudo context for intiial state (before triggering animation)
@@ -54,17 +59,7 @@ export function createAnimateController<
     fromTo: Record<keyof Style, [ParsedStyleValue, ParsedStyleValue]>
     velocity: Record<keyof Style, number[]>
   } {
-    let velocity =
-      velocityOverride ??
-      velocityFromHistory(valueHistory, performance.now()) ??
-      mapValues(next, (value) => new Array(value.values.length).fill(0))
-
-    if (ctx && !ctx.settled) {
-      const realVelocity = ctx.realVelocity
-      velocity = mapValues(velocity, (value, key) => {
-        return value.map((v, i) => v + (realVelocity[key]?.[i] ?? 0))
-      })
-    }
+    const velocity = velocityOverride ?? getRealVelocity(next)
 
     const fromTo = mapValues(prev, (prevV, key) => {
       return [prevV, next[key]] as [ParsedStyleValue, ParsedStyleValue]
@@ -76,7 +71,31 @@ export function createAnimateController<
     }
   }
 
-  function stop(): void {
+  function getRealVelocity(
+    next: Record<keyof Style, ParsedStyleValue>,
+  ): Record<keyof Style, number[]> {
+    if (keptVelocity) {
+      return keptVelocity
+    }
+
+    const velocity = velocityFromHistory(valueHistory, performance.now())
+    if (velocity) {
+      return velocity
+    }
+
+    if (ctx) {
+      const realVelocity = ctx.realVelocity
+      return mapValues(next, (value, key) => {
+        return value.values.map((_, i) => realVelocity[key]?.[i] ?? 0)
+      })
+    }
+
+    return mapValues(next, (value) => new Array(value.values.length).fill(0))
+  }
+
+  function stop({ keepVelocity }: StopOptions = {}): void {
+    keptVelocity = keepVelocity && ctx ? { ...ctx.realVelocity } : undefined
+
     if (ctx && !ctx.settled) {
       ctx.stop()
     }
@@ -117,12 +136,15 @@ export function createAnimateController<
         [t]: '',
       })
 
-      valueHistory.push({
-        value: mapValues(style, (value) => {
-          return typeof value === 'number' ? [value] : value.values
-        }),
-        timestamp: performance.now(),
-      })
+      if (!keptVelocity) {
+        valueHistory.push({
+          value: mapValues(style, (value) => {
+            return typeof value === 'number' ? [value] : value.values
+          }),
+          timestamp: performance.now(),
+        })
+      }
+
       return ctx
     }
 
@@ -144,6 +166,7 @@ export function createAnimateController<
       ...options,
       velocity,
     })
+    keptVelocity = undefined
     valueHistory = []
 
     return ctx
@@ -175,7 +198,7 @@ export function createAnimateController<
 
       if (style) {
         return mapValues(style, (value) => {
-          return typeof value === 'number' ? [value] : value.values
+          return value.values
         })
       }
 
@@ -183,23 +206,11 @@ export function createAnimateController<
     },
 
     get realVelocity() {
-      const velocity = velocityFromHistory(valueHistory, performance.now())
-      if (velocity) {
-        return velocity
+      if (!style) {
+        throw new Error('style is not set yet. Call setStyle() first.')
       }
 
-      if (ctx) {
-        return ctx.realVelocity
-      }
-
-      if (style) {
-        return mapValues(style, (value) => {
-          const values = typeof value === 'number' ? [value] : value.values
-          return [...values].fill(0)
-        })
-      }
-
-      throw new Error('style is not set yet. Call setStyle() first.')
+      return getRealVelocity(style)
     },
 
     stop,
@@ -276,13 +287,25 @@ function createContext<Style extends Record<string, ParsedStyleValue>>(
   }
 }
 
-function isSameStyle<Style extends Record<string, ParsedStyleValue>>(
+export function isSameStyle<Style extends Record<string, AnimateValue>>(
   a: Style,
   b: Style,
 ): boolean {
-  return Object.keys(a).every((key) => {
-    const aValues = a[key]?.values ?? []
-    const bValues = b[key]?.values ?? []
-    return aValues.every((value, i) => value === bValues[i])
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)])
+
+  return Array.from(keys).every((key) => {
+    const aValue = a[key]
+    const bValue = b[key]
+
+    if (typeof aValue !== 'object' || typeof bValue !== 'object') {
+      return aValue === bValue
+    }
+
+    const aValues = aValue.values
+    const bValues = bValue.values
+    return (
+      aValues.length === bValues.length &&
+      aValues.every((value, i) => value === bValues[i])
+    )
   })
 }

@@ -182,8 +182,8 @@ export function interpolateParsedStyle(
       values[i] === undefined
         ? ''
         : typeof values[i] === 'number'
-        ? `${values[i]}${unit}`
-        : `calc(1${unit} * (${values[i]}))`
+          ? `${values[i]}${unit}`
+          : `calc(1${unit} * (${values[i]}))`
 
     return acc + wrap + value
   }, '')

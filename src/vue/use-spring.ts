@@ -11,11 +11,13 @@ import {
   watch,
 } from 'vue'
 import { AnimateValue, SpringOptions, createAnimateController } from '../core'
+import { isSameStyle } from '../core/controller'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
 export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
+  relocating?: boolean
 }
 
 type SpringStyleRef = Readonly<Ref<Record<string, string>>>
@@ -34,6 +36,9 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   const input = computed(() => toValue(styleMapper))
   const optionsRef = computed(() => toValue(options) ?? {})
   const disabled = computed(() => optionsRef.value.disabled ?? false)
+  const relocating = computed(() => optionsRef.value.relocating ?? false)
+
+  const stopped = computed((): boolean => disabled.value || relocating.value)
 
   const style = ref<Record<string, string>>({})
 
@@ -59,21 +64,22 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     })
   }
 
-  watch(disabled, (disabled) => {
-    if (!disabled) {
-      return
-    }
+  watch(
+    [stopped, () => ({ ...input.value }), () => ({ ...optionsRef.value })],
+    ([stopped, input, options], [prevStopped, prevInput]) => {
+      if (stopped && !prevStopped) {
+        controller.stop({
+          keepVelocity: relocating.value,
+        })
+      }
 
-    controller.stop()
-  })
+      controller.setOptions(options)
 
-  watch(input, (input) => {
-    controller.setStyle(input, { animate: !disabled.value })
-  })
-
-  watch(optionsRef, (options) => {
-    controller.setOptions(options)
-  })
+      if (!isSameStyle(input, prevInput)) {
+        controller.setStyle(input, { animate: !stopped })
+      }
+    },
+  )
 
   return {
     style: readonly(style),

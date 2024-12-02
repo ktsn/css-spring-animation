@@ -1,3 +1,40 @@
+# [0.15.0](https://github.com/ktsn/css-spring-animation/compare/v0.14.0...v0.15.0) (2024-11-20)
+
+
+### Features
+
+* add relocating option for `useSpring` and `<spring>` ([fdae4cb](https://github.com/ktsn/css-spring-animation/commit/fdae4cb8eff466fa801dde241e318e4c33cae713))
+
+
+
+# [0.14.0](https://github.com/ktsn/css-spring-animation/compare/v0.13.0...v0.14.0) (2024-11-18)
+
+
+### Bug Fixes
+
+* set spring style value immediately if the value is not animatable ([df35daf](https://github.com/ktsn/css-spring-animation/commit/df35daf34c6420844615e83f7633da9637e42450))
+
+
+### Features
+
+* set enter/leave transition classes to transitioning elements as same as Vue's transition components ([8a70820](https://github.com/ktsn/css-spring-animation/commit/8a70820229ece3214a63fc1d14a7f12c9fd53340))
+
+
+
+# [0.13.0](https://github.com/ktsn/css-spring-animation/compare/v0.12.3...v0.13.0) (2024-10-03)
+
+
+### Bug Fixes
+
+* ensure triggering animation / update options when values passed to useSpring are mutated ([bc863ef](https://github.com/ktsn/css-spring-animation/commit/bc863ef16c7a8ef8f0736260570638f9d1212b58))
+
+
+### Features
+
+* add `disabled` prop for `<spring>` element ([fc54bac](https://github.com/ktsn/css-spring-animation/commit/fc54bac71cc3501b8050b7d767f1b467e6b07182))
+
+
+
 ## [0.12.3](https://github.com/ktsn/css-spring-animation/compare/v0.12.2...v0.12.3) (2024-06-16)
 
 

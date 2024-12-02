@@ -154,7 +154,16 @@ export interface SpringTransitionProps {
   leaveTo?: Record<string, AnimateValue>
   bounce?: number | { enter?: number; leave?: number }
   duration?: number | { enter?: number; leave?: number }
+
+  // Inherit from <Transition>
+  name?: string
   mode?: 'in-out' | 'out-in' | 'default'
+  enterFromClass?: string
+  enterActiveClass?: string
+  enterToClass?: string
+  leaveFromClass?: string
+  leaveActiveClass?: string
+  leaveToClass?: string
 
   // Hooks
   onBeforeEnter?: (el: Element) => void
@@ -186,8 +195,6 @@ export const springTransitionProps = {
   duration: [Number, Object] as PropType<
     number | { enter: number; leave: number }
   >,
-
-  mode: String as PropType<'in-out' | 'out-in' | 'default'>,
 } as const
 
 const SpringTransition = defineComponent({
@@ -212,8 +219,6 @@ const SpringTransition = defineComponent({
         Transition,
         {
           ...attrs,
-          css: false,
-          mode: props.mode,
           onBeforeEnter,
           onEnter,
           onAfterEnter,

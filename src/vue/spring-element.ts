@@ -11,6 +11,8 @@ const createSpringElement = (tagName: string) => {
       },
       bounce: Number,
       duration: Number,
+      disabled: Boolean,
+      relocating: Boolean,
     },
 
     setup(props, { slots }) {
@@ -20,6 +22,8 @@ const createSpringElement = (tagName: string) => {
           return {
             bounce: props.bounce,
             duration: props.duration,
+            disabled: props.disabled,
+            relocating: props.relocating,
           }
         },
       )
