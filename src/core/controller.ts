@@ -1,6 +1,7 @@
 import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
 import {
   ParsedStyleValue,
+  completeParsedStyleUnit,
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
@@ -114,9 +115,11 @@ export function createAnimateController<
   ): AnimateContext<Record<keyof Style, number[]>> {
     const isAnimate = params.animate ?? true
 
-    const parsedStyle = mapValues(nextStyle, (value) =>
-      parseStyleValue(String(value)),
-    )
+    const parsedStyle = mapValues(nextStyle, (value, key) => {
+      const prev = style?.[key]
+      const parsed = parseStyleValue(String(value))
+      return prev ? completeParsedStyleUnit(parsed, prev) : parsed
+    })
 
     if (style && isSameStyle(style, parsedStyle)) {
       return ctx ?? createContext(style)
