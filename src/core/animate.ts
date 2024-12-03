@@ -7,7 +7,7 @@ import {
   springSettlingDuration,
   Spring,
 } from './spring'
-import { isBrowserSupported, mapValues, zip } from './utils'
+import { isBrowserSupported, mapValues, range, zip } from './utils'
 import {
   ParsedStyleValue,
   completeParsedStyleUnit,
@@ -85,7 +85,16 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     set,
   })
 
-  if (isBrowserSupported()) {
+  if (canUseLinearTimingFunction(parsedFromTo, options.velocity)) {
+    animateWithLinearTimingFunction({
+      spring,
+      fromTo: parsedFromTo,
+      velocity: options.velocity,
+      duration,
+      settlingDuration,
+      set,
+    })
+  } else if (isBrowserSupported()) {
     animateWithCssTransition({
       spring,
       fromTo: parsedFromTo,
@@ -104,6 +113,122 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   }
 
   return ctx
+}
+
+/**
+ * Check if the animation can be done with linear() timing function.
+ * The animation can be done with linear() timing function if:
+ * - All the velocities in the same property are zero or
+ * - Only one value will be animated in the same property.
+ */
+function canUseLinearTimingFunction(
+  fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>,
+  velocity: Partial<Record<string, number[]>> | undefined,
+): boolean {
+  if (!velocity) {
+    return true
+  }
+
+  return Object.keys(fromTo).every((key) => {
+    const [from, to] = fromTo[key]!
+    const velocities = velocity[key]
+
+    if (!velocities || velocities.every((v) => v === 0)) {
+      return true
+    }
+
+    const animatedValues = zip(from.values, to.values).filter(([from, to]) => {
+      return from !== to
+    })
+    if (animatedValues.length <= 1) {
+      return true
+    }
+
+    return false
+  })
+}
+
+function animateWithLinearTimingFunction({
+  spring,
+  fromTo,
+  velocity,
+  duration,
+  settlingDuration,
+  set,
+}: {
+  spring: Spring
+  fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
+  velocity: Partial<Record<string, number[]>> | undefined
+  duration: number
+  settlingDuration: number
+  set: (style: Record<string, string>) => void
+}): void {
+  const fromStyle = mapValues(fromTo, ([from, to]) => {
+    // Skip animation if the value is not consistent
+    if (from.values.length !== to.values.length) {
+      return interpolateParsedStyle(to, to.values)
+    }
+
+    return interpolateParsedStyle(from, from.values)
+  })
+
+  set({
+    ...fromStyle,
+    transition: 'none',
+  })
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const toStyle = mapValues(fromTo, ([_from, to]) => {
+        return interpolateParsedStyle(to, to.values)
+      })
+
+      // 60fps
+      const steps = settlingDuration / 60
+
+      const easingValues = mapValues(fromTo, ([from, to], key) => {
+        const initialVelocity = zip(from.values, to.values).reduce<
+          number | undefined
+        >((acc, [from, to], i) => {
+          if (acc !== undefined) {
+            return acc
+          }
+
+          if (from === to) {
+            return undefined
+          }
+
+          return (velocity?.[key]?.[i] ?? 0) / (to - from)
+        }, undefined)
+
+        return range(0, steps + 1).map((i) => {
+          const t = (i / steps) * (settlingDuration / duration)
+          const value = springValue(spring, {
+            time: t,
+            from: 0,
+            to: 1,
+            initialVelocity: initialVelocity ?? 0,
+          })
+          return value
+        })
+      })
+
+      const transition = Object.entries(easingValues)
+        .map(([key, value]) => {
+          if (value) {
+            return `${key} ${settlingDuration}ms linear(${value.join(',')})`
+          } else {
+            return `${key} 0s`
+          }
+        })
+        .join(',')
+
+      set({
+        ...toStyle,
+        transition,
+      })
+    })
+  })
 }
 
 function animateWithCssTransition({
