@@ -10,6 +10,10 @@ vitest.mock('../../src/core/utils', async () => {
   }
 })
 
+function raf(): Promise<void> {
+  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
+}
+
 describe('AnimationController', () => {
   test('set initial style', () => {
     let actual: Record<string, string> | undefined
@@ -33,7 +37,7 @@ describe('AnimationController', () => {
     expect(actual).toEqual({ width: '200px', transition: '', [t]: '' })
   })
 
-  test('set style with animation', () => {
+  test('set style with animation', async () => {
     let actual: Record<string, string> | undefined
     const controller = createAnimateController((style) => {
       actual = style
@@ -43,10 +47,12 @@ describe('AnimationController', () => {
     expect(actual?.width).toEqual('100px')
 
     controller.setStyle({ width: `200px` })
-    expect(actual?.width).not.toBe('100px')
-    expect(actual?.width).not.toBe('200px')
-    expect(actual?.transition).not.toBe('')
-    expect(actual?.[t]).not.toBe('')
+    expect(actual?.width).toBe('100px')
+    expect(actual?.transition).toBe('none')
+    await raf()
+    await raf()
+    expect(actual?.width).toBe('200px')
+    expect(actual?.[t]).not.toBe('none')
   })
 
   test('set style without animation if the value is not animatable', () => {
@@ -77,7 +83,7 @@ describe('AnimationController', () => {
     expect(actual?.[t]).toBe('')
   })
 
-  test('trigger animation if any style value is different', () => {
+  test('trigger animation if any style value is different', async () => {
     let actual: Record<string, string> | undefined
     const controller = createAnimateController((style) => {
       actual = style
@@ -88,10 +94,14 @@ describe('AnimationController', () => {
     expect(actual?.height).toBe('200px')
 
     controller.setStyle({ width: `100px`, height: `100px` })
-    expect(actual?.width).not.toBe('100px')
-    expect(actual?.height).not.toBe('200px')
-    expect(actual?.transition).not.toBe('')
-    expect(actual?.[t]).not.toBe('')
+    expect(actual?.width).toBe('100px')
+    expect(actual?.height).toBe('200px')
+    expect(actual?.transition).toBe('none')
+    await raf()
+    await raf()
+    expect(actual?.width).toBe('100px')
+    expect(actual?.height).toBe('100px')
+    expect(actual?.transition).not.toBe('none')
   })
 
   test('complete style unit if the value is 0 without unit', () => {
@@ -212,7 +222,7 @@ describe('AnimationController', () => {
     const controller = createAnimateController((_style) => {
       style = _style
     })
-    controller.setOptions({ duration: 10 })
+    controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
 

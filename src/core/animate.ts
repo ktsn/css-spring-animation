@@ -163,7 +163,12 @@ function animateWithLinearTimingFunction({
   settlingDuration: number
   set: (style: Record<string, string>) => void
 }): void {
-  const fromStyle = mapValues(fromTo, ([from]) => {
+  const fromStyle = mapValues(fromTo, ([from, to]) => {
+    // Skip animation if the value is not consistent
+    if (from.values.length !== to.values.length) {
+      return interpolateParsedStyle(to, to.values)
+    }
+
     return interpolateParsedStyle(from, from.values)
   })
 
@@ -174,20 +179,14 @@ function animateWithLinearTimingFunction({
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const toStyle = mapValues(fromTo, ([from, to]) => {
-        const completedTo = completeParsedStyleUnit(to, from)
-        return interpolateParsedStyle(completedTo, to.values)
+      const toStyle = mapValues(fromTo, ([_from, to]) => {
+        return interpolateParsedStyle(to, to.values)
       })
 
       // 60fps
       const steps = settlingDuration / 60
 
       const easingValues = mapValues(fromTo, ([from, to], key) => {
-        // Skip animation if the value is not consistent
-        if (from.values.length !== to.values.length) {
-          return undefined
-        }
-
         const initialVelocity = zip(from.values, to.values).reduce<
           number | undefined
         >((acc, [from, to], i) => {

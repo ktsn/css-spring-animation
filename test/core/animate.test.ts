@@ -186,18 +186,21 @@ describe('animate', () => {
         value = v
       },
       {
-        duration: 10,
+        duration: 100,
       },
     )
-    expect(value?.x).not.toBe('0')
-    expect(value?.x).not.toBe('10')
-    expect(value?.x).not.toMatch(/\d+px/)
-    expect(value?.y).not.toBe('0px')
-    expect(value?.y).not.toBe('20px')
-    expect(value?.y).toMatch(/\d+px/)
+    expect(value?.x).toBe('0')
+    expect(value?.y).toBe('0px')
+    expect(value?.transition).toBe('none')
+    await raf()
+    await raf()
+    expect(value?.x).toBe('10')
+    expect(value?.y).toBe('20px')
+    expect(value?.transition).not.toBe('none')
     await ctx.settlingPromise
     expect(value?.x).toBe('10')
     expect(value?.y).toBe('20px')
+    expect(value?.transition).toBe('')
   })
 
   test('pass to style value immediately if the value is not animatable (from is not animatable)', async () => {
