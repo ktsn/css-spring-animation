@@ -1,6 +1,6 @@
 {
   "name": "@css-spring-animation/vue",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "description": "Intuitive and predictable spring animation library powered by CSS Transition",
   "keywords": [
     "spring",

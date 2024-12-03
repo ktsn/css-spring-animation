@@ -1,3 +1,17 @@
+# [0.16.0](https://github.com/ktsn/css-spring-animation/compare/v0.15.0...v0.16.0) (2024-12-03)
+
+
+### Bug Fixes
+
+* fix the problem that unit completion is not applied in some cases ([9a77969](https://github.com/ktsn/css-spring-animation/commit/9a779690a29e93887c0f126e7b36d00e3ea93f53))
+
+
+### Features
+
+* trigger hardware accelerated transition if possible ([#10](https://github.com/ktsn/css-spring-animation/issues/10)) ([6f170fc](https://github.com/ktsn/css-spring-animation/commit/6f170fc5c46cbcaa29b8b55fa760c4d6e0238a08))
+
+
+
 # [0.15.0](https://github.com/ktsn/css-spring-animation/compare/v0.14.0...v0.15.0) (2024-11-20)
 
 
