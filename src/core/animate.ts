@@ -174,24 +174,33 @@ function animateWithLinearTimingFunction({
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const toStyle = mapValues(fromTo, ([_from, to]) => {
-        const completedTo = completeParsedStyleUnit(to, _from)
+      const toStyle = mapValues(fromTo, ([from, to]) => {
+        const completedTo = completeParsedStyleUnit(to, from)
         return interpolateParsedStyle(completedTo, to.values)
       })
 
-      const steps = 100
-      const easingValues = mapValues(fromTo, ([from, to], key) => {
-        const fromValue = from.values[0]
-        const toValue = to.values[0]
+      // 60fps
+      const steps = settlingDuration / 60
 
-        let initialVelocity = 0
-        if (
-          fromValue !== undefined &&
-          toValue !== undefined &&
-          fromValue !== toValue
-        ) {
-          initialVelocity = (velocity?.[key]?.[0] ?? 0) / (toValue - fromValue)
+      const easingValues = mapValues(fromTo, ([from, to], key) => {
+        // Skip animation if the value is not consistent
+        if (from.values.length !== to.values.length) {
+          return undefined
         }
+
+        const initialVelocity = zip(from.values, to.values).reduce<
+          number | undefined
+        >((acc, [from, to], i) => {
+          if (acc !== undefined) {
+            return acc
+          }
+
+          if (from === to) {
+            return undefined
+          }
+
+          return (velocity?.[key]?.[i] ?? 0) / (to - from)
+        }, undefined)
 
         return range(0, steps + 1).map((i) => {
           const t = (i / steps) * (settlingDuration / duration)
@@ -199,7 +208,7 @@ function animateWithLinearTimingFunction({
             time: t,
             from: 0,
             to: 1,
-            initialVelocity,
+            initialVelocity: initialVelocity ?? 0,
           })
           return value
         })
@@ -207,7 +216,11 @@ function animateWithLinearTimingFunction({
 
       const transition = Object.entries(easingValues)
         .map(([key, value]) => {
-          return `${key} ${settlingDuration}ms linear(${value.join(',')})`
+          if (value) {
+            return `${key} ${settlingDuration}ms linear(${value.join(',')})`
+          } else {
+            return `${key} 0s`
+          }
         })
         .join(',')
 
