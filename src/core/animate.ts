@@ -193,7 +193,7 @@ function animateWithLinearTimingFunction({
       })
 
       // 60fps
-      const steps = settlingDuration / 60
+      const steps = Math.ceil(settlingDuration / (1000 / 60))
 
       const easingValues = mapValues(fromTo, ([from, to], key) => {
         const initialVelocity = zip(from.values, to.values).reduce<
