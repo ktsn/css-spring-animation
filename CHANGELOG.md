@@ -1,3 +1,17 @@
+## [0.16.1](https://github.com/ktsn/css-spring-animation/compare/v0.16.0...v0.16.1) (2024-12-10)
+
+
+### Bug Fixes
+
+* do not try hardware acceleration if browser is not supported ([9d5644c](https://github.com/ktsn/css-spring-animation/commit/9d5644cf822e58b4c85bef49888b948c020f32e6))
+
+
+### Performance Improvements
+
+* improve hardware accelerated animation timing function precision ([657333f](https://github.com/ktsn/css-spring-animation/commit/657333fbde9f8ca18465153e24551222f9ac49fe))
+
+
+
 # [0.16.0](https://github.com/ktsn/css-spring-animation/compare/v0.15.0...v0.16.0) (2024-12-03)
 
 
