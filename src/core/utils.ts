@@ -26,7 +26,14 @@ export function range(start: number, end: number): number[] {
   return result
 }
 
-export function isBrowserSupported(): boolean {
+export function isCssLinearTimingFunctionSupported(): boolean {
+  return (
+    typeof CSS !== 'undefined' &&
+    CSS.supports('transition-timing-function', 'linear(0, 1)')
+  )
+}
+
+export function isCssMathAnimationSupported(): boolean {
   return (
     typeof CSS !== 'undefined' &&
     typeof CSS.registerProperty === 'function' &&

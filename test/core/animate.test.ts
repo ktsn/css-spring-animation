@@ -5,7 +5,7 @@ vitest.mock('../../src/core/utils', async () => {
   const actual = await vitest.importActual<object>('../../src/core/utils')
   return {
     ...actual,
-    isBrowserSupported: () => true,
+    isCssLinearTimingFunctionSupported: () => true,
   }
 })
 

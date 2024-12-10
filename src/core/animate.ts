@@ -7,7 +7,13 @@ import {
   springSettlingDuration,
   Spring,
 } from './spring'
-import { isBrowserSupported, mapValues, range, zip } from './utils'
+import {
+  isCssLinearTimingFunctionSupported,
+  isCssMathAnimationSupported,
+  mapValues,
+  range,
+  zip,
+} from './utils'
 import {
   ParsedStyleValue,
   completeParsedStyleUnit,
@@ -85,7 +91,10 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     set,
   })
 
-  if (canUseLinearTimingFunction(parsedFromTo, options.velocity)) {
+  if (
+    isCssLinearTimingFunctionSupported() &&
+    canUseLinearTimingFunction(parsedFromTo, options.velocity)
+  ) {
     animateWithLinearTimingFunction({
       spring,
       fromTo: parsedFromTo,
@@ -94,8 +103,8 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
       settlingDuration,
       set,
     })
-  } else if (isBrowserSupported()) {
-    animateWithCssTransition({
+  } else if (isCssMathAnimationSupported()) {
+    animateWithCssCustomPropertyMath({
       spring,
       fromTo: parsedFromTo,
       velocity: options.velocity,
@@ -231,7 +240,7 @@ function animateWithLinearTimingFunction({
   })
 }
 
-function animateWithCssTransition({
+function animateWithCssCustomPropertyMath({
   spring,
   fromTo,
   velocity,
