@@ -27,6 +27,7 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   realValue: DeepReadonly<Ref<Values>>
   realVelocity: DeepReadonly<Ref<Values>>
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
+  onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
 export function useSpring<Style extends Record<string, AnimateValue>>(
@@ -64,6 +65,19 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     })
   }
 
+  function onSettleCurrent(fn: (data: { stopped: boolean }) => void): void {
+    // Wait for the next tick to ensure that input changes in the same tick
+    // triggers a new animation that is a case like:
+    //
+    // springStyle.value = { width: '100px' }
+    // onSettleCurrent(() => {
+    //   ...
+    // })
+    nextTick().then(() => {
+      controller.onSettleCurrent(fn)
+    })
+  }
+
   watch(
     [stopped, () => ({ ...input.value }), () => ({ ...optionsRef.value })],
     ([stopped, input, options], [prevStopped, prevInput]) => {
@@ -86,5 +100,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     realValue: readonly(realValue),
     realVelocity: readonly(realVelocity),
     onFinishCurrent,
+    onSettleCurrent,
   }
 }

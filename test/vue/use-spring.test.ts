@@ -249,7 +249,29 @@ describe('useSpring', () => {
     })
   })
 
-  test('stopped == true when animation is stopped', () => {
+  test('register settle listener for the current animation', () => {
+    const value = ref(10)
+
+    const { style, onSettleCurrent } = useSpring(
+      () => ({
+        width: `${value.value}px`,
+      }),
+      {
+        duration: 100,
+      },
+    )
+
+    return new Promise<void>((resolve) => {
+      value.value = 20
+      onSettleCurrent(({ stopped }) => {
+        expect(stopped).toBe(false)
+        expect(style.value.width).toBe('20px')
+        resolve()
+      })
+    })
+  })
+
+  test('stopped == true in onFinishCurrent when animation is stopped', () => {
     const value = ref(10)
     const disabled = ref(false)
 
@@ -268,6 +290,32 @@ describe('useSpring', () => {
     return new Promise<void>((resolve) => {
       disabled.value = true
       onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        expect(style.value.width).toBe(realValue.value.width[0] + 'px')
+        resolve()
+      })
+    })
+  })
+
+  test('stopped == true in onSettleCurrent when animation is stopped', () => {
+    const value = ref(10)
+    const disabled = ref(false)
+
+    const { style, realValue, onSettleCurrent } = useSpring(
+      () => ({
+        width: `${value.value}px`,
+      }),
+      () => ({
+        duration: 100,
+        disabled: disabled.value,
+      }),
+    )
+
+    value.value = 20
+
+    return new Promise<void>((resolve) => {
+      disabled.value = true
+      onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
         expect(style.value.width).toBe(realValue.value.width[0] + 'px')
         resolve()

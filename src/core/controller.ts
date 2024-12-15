@@ -33,6 +33,7 @@ export interface AnimationController<
   stop: (options?: StopOptions) => void
 
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
+  onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
 interface ValueHistoryItem<Key extends keyof any> {
@@ -193,6 +194,20 @@ export function createAnimateController<
     })
   }
 
+  function onSettleCurrent(fn: (data: { stopped: boolean }) => void): void {
+    if (!ctx) {
+      fn({ stopped: false })
+      return
+    }
+
+    // Must store ctx to local variable because ctx in the callback of `then` can be
+    // different from when the time onFinishCurrent
+    const _ctx = ctx
+    _ctx.settlingPromise.then(() => {
+      fn({ stopped: _ctx.stoppedDuration !== undefined })
+    })
+  }
+
   return {
     get realValue() {
       if (ctx) {
@@ -220,6 +235,7 @@ export function createAnimateController<
     setStyle,
     setOptions,
     onFinishCurrent,
+    onSettleCurrent,
   }
 }
 

@@ -235,7 +235,25 @@ describe('AnimationController', () => {
     })
   })
 
-  test('stopped == true when animation is stopped by stop()', () => {
+  test('register settle listener for the current animation', () => {
+    let style: any
+    const controller = createAnimateController((_style) => {
+      style = _style
+    })
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ width: '100px' }, { animate: false })
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onSettleCurrent(({ stopped }) => {
+        expect(stopped).toBe(false)
+        expect(style.width).toBe('200px')
+        resolve()
+      })
+    })
+  })
+
+  test('stopped == true in onFinishCurrent when animation is stopped by stop()', () => {
     let style: any
     const controller = createAnimateController((_style) => {
       style = _style
@@ -254,7 +272,7 @@ describe('AnimationController', () => {
     })
   })
 
-  test('stopped == true when animation is stopped by a new animation', () => {
+  test('stopped == true in onFinishCurrent when animation is stopped by a new animation', () => {
     const controller = createAnimateController(() => {})
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
@@ -262,6 +280,40 @@ describe('AnimationController', () => {
 
     return new Promise<void>((resolve) => {
       controller.onFinishCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        resolve()
+      })
+      controller.setStyle({ width: '300px' })
+    })
+  })
+
+  test('stopped == true in onSettleCurrent when animation is stopped by stop()', () => {
+    let style: any
+    const controller = createAnimateController((_style) => {
+      style = _style
+    })
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ width: '100px' }, { animate: false })
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onSettleCurrent(({ stopped }) => {
+        expect(stopped).toBe(true)
+        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        resolve()
+      })
+      controller.stop()
+    })
+  })
+
+  test('stopped == true in onSettleCurrent when animation is stopped by a new animation', () => {
+    const controller = createAnimateController(() => {})
+    controller.setOptions({ duration: 100 })
+    controller.setStyle({ width: '100px' }, { animate: false })
+    controller.setStyle({ width: '200px' })
+
+    return new Promise<void>((resolve) => {
+      controller.onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
         resolve()
       })
