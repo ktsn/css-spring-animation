@@ -324,7 +324,7 @@ const { style, realValue, realVelocity } = useSpring(
 </template>
 ```
 
-`useSpring` が返す値には、現在のアニメーションが完了するまで待つ `onFinishCurrent` 関数があります。この関数には、進行中のアニメーションが完了したときに呼ばれるコールバック関数を登録できます。
+`useSpring` が返す値には、現在のアニメーションが完了、もしくは、settle するまで待つ `onFinishCurrent`、`onSettleCurrent` 関数があります。この関数には、進行中のアニメーションが完了・settle したときに呼ばれるコールバック関数を登録できます。
 
 ```vue
 <script setup>
@@ -343,10 +343,15 @@ function move() {
   // 100px まで移動
   position.value = 100
 
-  // 上記の position の更新によってトリガーされたアニメーションが完了するまで待つ
+  // 上記の position の更新によってトリガーされたアニメーションが完了（duration が経過）するまで待つ
   onFinishCurrent(() => {
     // 0px まで移動
     position.value = 0
+  })
+
+  // 上記の position の更新によってトリガーされたアニメーションが settle（見た目が停止）するまで待つ
+  onSettleCurrent(() => {
+    console.log('settled')
   })
 }
 </script>

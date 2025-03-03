@@ -1,3 +1,17 @@
+## [0.16.2](https://github.com/ktsn/css-spring-animation/compare/v0.16.1...v0.16.2) (2025-03-03)
+
+
+### Bug Fixes
+
+* allow to import with modern moduleResolution TypeScript config ([45b9989](https://github.com/ktsn/css-spring-animation/commit/45b9989a773ed159b16edba4e1b40a6f53259200))
+
+
+### Features
+
+* add `onSettleCurrent` to `useSpring` ([c42dfaa](https://github.com/ktsn/css-spring-animation/commit/c42dfaa0103b076179b4841fd512b2389e83febf))
+
+
+
 ## [0.16.1](https://github.com/ktsn/css-spring-animation/compare/v0.16.0...v0.16.1) (2024-12-10)
 
 

@@ -324,7 +324,7 @@ const { style, realValue, realVelocity } = useSpring(
 </template>
 ```
 
-`useSpring` provides `onFinishCurrent` function that is for waiting until the current animation is finished. You can register a callback function that will be called when an ongoing animation is finished.
+`useSpring` provides `onFinishCurrent` and `onSettleCurrent` functions for waiting until the current animation is finished or settled. You can register a callback function that will be called when an ongoing animation is finished/settled.
 
 ```vue
 <script setup>
@@ -343,10 +343,15 @@ function move() {
   // Move to 100px
   position.value = 100
 
-  // Wait for the animation is finished triggered by the above position update
+  // Wait for the animation is finished (duration passed) triggered by the above position update
   onFinishCurrent(() => {
     // Move to 0px
     position.value = 0
+  })
+
+  // Wait for the animation is settled (visually stopped) triggered by the above position update
+  onSettleCurrent(() => {
+    console.log('settled')
   })
 }
 </script>
