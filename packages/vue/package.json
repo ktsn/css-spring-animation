@@ -22,10 +22,10 @@
     "types"
   ],
   "main": "./dist/css-spring-animation-vue.umd.cjs",
-  "module": "./dist/css-spring-animation-vue.js",
   "types": "./types/vue/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/vue/index.d.ts",
       "import": "./dist/css-spring-animation-vue.js",
       "require": "./dist/css-spring-animation-vue.umd.cjs"
     }

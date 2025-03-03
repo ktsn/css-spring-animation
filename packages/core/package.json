@@ -21,10 +21,10 @@
     "types"
   ],
   "main": "./dist/css-spring-animation-core.umd.cjs",
-  "module": "./dist/css-spring-animation-core.js",
   "types": "./types/core/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/core/index.d.ts",
       "import": "./dist/css-spring-animation-core.js",
       "require": "./dist/css-spring-animation-core.umd.cjs"
     }
