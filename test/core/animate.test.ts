@@ -105,7 +105,7 @@ describe('animate', () => {
 
   test('ctx.realValue returns the real value when it is stopped', async () => {
     const ctx = animate({ scale: [0, 10] }, () => {}, {
-      duration: 100,
+      duration: 1000,
     })
     await raf()
     ctx.stop()
@@ -152,7 +152,7 @@ describe('animate', () => {
   test('ctx.realVelocity returns 0 after stopped', async () => {
     const ctx = animate({ scale: [0, 10] }, () => {}, {
       velocity: { scale: [100] },
-      duration: 100,
+      duration: 1000,
     })
     await raf()
     ctx.stop()

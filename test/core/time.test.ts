@@ -2,11 +2,11 @@ import { describe, expect, test } from 'vitest'
 import { wait } from '../../src/core/time'
 
 describe('time', () => {
-  test('wait: 10ms', () => {
+  test('wait: 16ms', () => {
     const start = performance.now()
-    return wait(10).then(() => {
+    return wait(16).then(() => {
       const end = performance.now()
-      expect(end - start).toBeGreaterThan(9.8)
+      expect(end - start).toBeGreaterThan(15.8)
     })
   })
 
