@@ -410,11 +410,11 @@ function createContext<
           configurable: true,
           enumerable: true,
           get(): number[] {
-            const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
-            if (elapsed >= settlingDuration) {
+            if (ctx.settled && ctx.stoppedDuration === undefined) {
               return to.values
             }
 
+            const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
             const time = elapsed / duration
 
             return zip(from.values, to.values).map(([from, to], i) => {
