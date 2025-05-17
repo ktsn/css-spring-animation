@@ -68,16 +68,23 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const fromToValueList = Object.values(parsedFromTo).flatMap((value) => {
-    const [from, to] = value
-    return zip(from.values, to.values)
-  })
+  const settlingDurationList = Object.entries(parsedFromTo).flatMap(
+    ([key, value]) => {
+      const [from, to] = value
+      const initialVelocity = options.velocity?.[key] ?? []
 
-  const settlingDuration = Math.max(
-    ...fromToValueList.map(([from, to]) =>
-      springSettlingDuration(spring, { from, to }),
-    ),
+      return zip(from.values, to.values).map(([from, to], i) => {
+        const velocity = initialVelocity[i] ?? 0
+        return springSettlingDuration(spring, {
+          from,
+          to,
+          initialVelocity: velocity,
+        })
+      })
+    },
   )
+
+  const settlingDuration = Math.max(...settlingDurationList)
 
   const startTime = performance.now()
 

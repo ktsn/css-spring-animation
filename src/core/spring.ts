@@ -12,11 +12,7 @@ import {
 } from './math'
 
 export interface Spring {
-  expression: (data: {
-    from: number
-    to: number
-    initialVelocity: number
-  }) => Expression
+  duration: number
 
   bounce: (data: {
     from: number
@@ -36,8 +32,6 @@ export interface Spring {
     to: number
     initialVelocity: number
   }) => number
-
-  settlingDuration: (data: { from: number; to: number }) => number
 }
 
 export function springStyle(
@@ -45,7 +39,7 @@ export function springStyle(
   data: { from: number; to: number; initialVelocity: number },
 ): string {
   const wrap = (exp: string) => `calc(${exp})`
-  return wrap(generateCSSValue(spring.expression(data)))
+  return wrap(generateCSSValue(springExpression(spring, data)))
 }
 
 export function springValue(
@@ -55,7 +49,19 @@ export function springValue(
   const variables = {
     [t]: data.time,
   }
-  return calculate(spring.expression(data), variables)
+  return calculate(springExpression(spring, data), variables)
+}
+
+function springExpression(
+  spring: Spring,
+  data: { from: number; to: number; initialVelocity: number },
+): Expression {
+  if (isNotAnimating(data)) {
+    return v(data.to)
+  }
+
+  const curve = mul(spring.bounce(data), spring.decay(data))
+  return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
 }
 
 export function springBounceValue(
@@ -85,14 +91,63 @@ export function springVelocity(
   return spring.velocity(data)
 }
 
+/**
+ * Because duration in this spring animation library is not real CSS transition duration,
+ * we need to find settling duration that the time when the animation looks making no visual difference.
+ *
+ * We check both the distance to 'to' value, and the velocity to calculate it.
+ */
 export function springSettlingDuration(
   spring: Spring,
   data: {
     from: number
     to: number
+    initialVelocity: number
   },
 ): number {
-  return spring.settlingDuration(data)
+  const volume = Math.abs(data.from - data.to)
+
+  // Set max duration to make sure the animation eventually ends.
+  const maxDuration = 60_000
+
+  // Decide the threshold distance and velocity where we can consider the animation is settled.
+  // We use smaller threshold when the volume is small because the property might be sensitive.
+  // For example, 'scale' property usually takes smaller distance of value on animation.
+  // With scaling animation, the user would find the animation is jagged unless we set the thresholds smaller.
+  const sensitive = volume < 5
+  const settleDistance = sensitive ? 0.001 : 1
+  const settleVelocity = sensitive ? 0.0005 : 0.01
+
+  const step = Math.min(50, Math.ceil(spring.duration / 30))
+
+  let currentDuration = spring.duration
+
+  // Iterate the position and velocity for each step of timing in the spring animation.
+  // When both the position and velocity are in the threshold, we consider the animation is settled then.
+  while (currentDuration < maxDuration) {
+    const time = currentDuration / spring.duration
+
+    const position = springValue(spring, {
+      ...data,
+      time,
+    })
+
+    const velocity = springVelocity(spring, {
+      ...data,
+      time,
+    })
+
+    const distanceInThreshold = Math.abs(position - data.to) <= settleDistance
+    const velocityInThreshold = Math.abs(velocity) <= settleVelocity
+
+    if (distanceInThreshold && velocityInThreshold) {
+      return currentDuration
+    }
+
+    currentDuration += step
+  }
+
+  return maxDuration
 }
 
 /**
@@ -243,16 +298,9 @@ function bouncySpring({
   bounce: number
   duration: number
 }): Spring {
+  // A * cos(a * t + b) * e ^ (-c * t)
   const spring: Spring = {
-    // A * cos(a * t + b) * e ^ (-c * t)
-    expression: (data) => {
-      if (isNotAnimating(data)) {
-        return v(data.to)
-      }
-
-      const curve = mul(spring.bounce(data), spring.decay(data))
-      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
-    },
+    duration,
 
     bounce: (data) => {
       const { A, a, b } = bouncySpringConstants({
@@ -279,40 +327,28 @@ function bouncySpring({
         return 0
       }
 
-      return bouncySpringVelocity({
+      const { A, a, b, c } = bouncySpringConstants({
         ...data,
         bounce,
         duration,
       })
-    },
 
-    settlingDuration: (data) =>
-      settlingDuration({
+      const time = data.time
+
+      // Derivative of bouncy spring expression
+      const v =
+        -A *
+        Math.exp(-c * time) *
+        (c * Math.cos(a * time + b) + a * Math.sin(a * time + b))
+
+      return denormalizeVelocity(v, {
         ...data,
-        bounce,
         duration,
-      }),
+      })
+    },
   }
 
   return spring
-}
-
-function bouncySpringVelocity(data: {
-  time: number
-  from: number
-  to: number
-  bounce: number
-  duration: number
-  initialVelocity: number
-}): number {
-  const t = data.time
-  const { A, a, b, c } = bouncySpringConstants(data)
-
-  // Derivative of bouncy spring expression
-  const v =
-    -A * Math.exp(-c * t) * (c * Math.cos(a * t + b) + a * Math.sin(a * t + b))
-
-  return denormalizeVelocity(v, data)
 }
 
 /**
@@ -325,16 +361,9 @@ function smoothSpring({
   bounce: number
   duration: number
 }): Spring {
+  // (A * t + B) * e ^ (-c * t)
   const spring: Spring = {
-    // (A * t + B) * e ^ (-c * t)
-    expression: (data) => {
-      if (isNotAnimating(data)) {
-        return v(data.to)
-      }
-
-      const curve = mul(spring.bounce(data), spring.decay(data))
-      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
-    },
+    duration,
 
     bounce: (data) => {
       const { A, B } = smoothSpringConstants({
@@ -361,39 +390,25 @@ function smoothSpring({
         return 0
       }
 
-      return smoothSpringVelocity({
+      const { A, B, c } = smoothSpringConstants({
         ...data,
         bounce,
         duration,
       })
-    },
 
-    settlingDuration: (data) =>
-      settlingDuration({
+      const time = data.time
+
+      // Derivative of smooth spring expression
+      const v = Math.exp(-c * time) * (A * -c * time + A - B * c)
+
+      return denormalizeVelocity(v, {
         ...data,
-        bounce,
         duration,
-      }),
+      })
+    },
   }
 
   return spring
-}
-
-function smoothSpringVelocity(data: {
-  time: number
-  from: number
-  to: number
-  bounce: number
-  duration: number
-  initialVelocity: number
-}): number {
-  const t = data.time
-  const { A, B, c } = smoothSpringConstants(data)
-
-  // Derivative of smooth spring expression
-  const v = Math.exp(-c * t) * (A * -c * t + A - B * c)
-
-  return denormalizeVelocity(v, data)
 }
 
 /**
@@ -406,16 +421,9 @@ function flattenedSpring({
   bounce: number
   duration: number
 }): Spring {
+  // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
   const spring: Spring = {
-    // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
-    expression: (data) => {
-      if (isNotAnimating(data)) {
-        return v(data.to)
-      }
-
-      const curve = mul(spring.bounce(data), spring.decay(data))
-      return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
-    },
+    duration,
 
     bounce: (data) => {
       const { A, B, a } = flattenedSpringConstants({
@@ -445,66 +453,28 @@ function flattenedSpring({
         return 0
       }
 
-      return flattenedSpringVelocity({
+      const { A, B, a, c } = flattenedSpringConstants({
         ...data,
         bounce,
         duration,
       })
-    },
 
-    settlingDuration: (data) =>
-      settlingDuration({
+      const time = data.time
+
+      // Derivative of flattened spring expression
+      const v =
+        Math.exp(-c * time) *
+          (a * A * Math.exp(a * time) - a * B * Math.exp(-a * time)) -
+        c *
+          Math.exp(-c * time) *
+          (A * Math.exp(a * time) + B * Math.exp(-a * time))
+
+      return denormalizeVelocity(v, {
         ...data,
-        bounce,
         duration,
-      }),
+      })
+    },
   }
 
   return spring
-}
-
-function flattenedSpringVelocity(data: {
-  time: number
-  from: number
-  to: number
-  bounce: number
-  duration: number
-  initialVelocity: number
-}): number {
-  const t = data.time
-  const { A, B, a, c } = flattenedSpringConstants(data)
-
-  // Derivative of flattened spring expression
-  const v =
-    Math.exp(-c * t) * (a * A * Math.exp(a * t) - a * B * Math.exp(-a * t)) -
-    c * Math.exp(-c * t) * (A * Math.exp(a * t) + B * Math.exp(-a * t))
-
-  return denormalizeVelocity(v, data)
-}
-
-/**
- * Naive implementation to find the settling duration.
- * Check what time value makes the decay part of the spring expression under settlingThreshold.
- * Solving this equation for t:
- *
- * position = distance * e ^ (-c * t) (= settlingThreshold)
- * t = log(distance / settlingThreshold) / c
- *
- * Since t is normalized time with duration, we have to multiply it by actual duration.
- *
- * The return value may not be actual settling time because we do not consider the bounce part and initial velocity.
- */
-function settlingDuration(data: {
-  from: number
-  to: number
-  bounce: number
-  duration: number
-}): number {
-  const c = constant(data.bounce)
-  const distance = Math.abs(volume(data.from, data.to))
-  const settlingThreshold = 0.0001
-  return Math.max(
-    data.duration,
-    (Math.log(distance / settlingThreshold) * data.duration) / c,
-  )
 }

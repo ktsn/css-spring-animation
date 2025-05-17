@@ -1,4 +1,4 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { describe, expect, test, vi, vitest } from 'vitest'
 import { createAnimateController } from '../../src/core'
 import { t } from '../../src/core/time'
 
@@ -114,11 +114,8 @@ describe('AnimationController', () => {
     controller.setStyle({ width: '0' })
     expect(actual?.width).toContain('px')
 
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        expect(actual?.width).toBe('0px')
-        resolve()
-      }, 20)
+    return vi.waitFor(() => {
+      expect(actual?.width).toBe('0px')
     })
   })
 
