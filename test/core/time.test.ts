@@ -1,23 +1,35 @@
-import { describe, expect, test } from 'vitest'
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
 import { wait } from '../../src/core/time'
 
 describe('time', () => {
-  test('wait: 16ms', () => {
-    const start = performance.now()
-    return wait(16).then(() => {
-      const end = performance.now()
-      expect(end - start).toBeGreaterThan(15.8)
-    })
+  beforeAll(() => {
+    vi.useFakeTimers()
   })
 
-  test('wait: force resolve', () => {
+  afterAll(() => {
+    vi.useRealTimers()
+  })
+
+  test('wait: 16ms', async () => {
+    const start = performance.now()
+    const promise = wait(16)
+
+    vi.advanceTimersByTimeAsync(16)
+    await promise
+
+    const end = performance.now()
+    expect(end - start).toBeGreaterThan(15.8)
+  })
+
+  test('wait: force resolve', async () => {
     const start = performance.now()
     const forceResolve = { fn: [] as (() => void)[] }
     const promise = wait(10000, forceResolve)
     forceResolve.fn.forEach((fn) => fn())
-    return promise.then(() => {
-      const end = performance.now()
-      expect(end - start).toBeLessThan(100)
-    })
+
+    await promise
+
+    const end = performance.now()
+    expect(end - start).toBeLessThan(100)
   })
 })
