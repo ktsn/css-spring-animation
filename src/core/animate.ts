@@ -68,21 +68,17 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const settlingDurationList = Object.entries(parsedFromTo).flatMap(
-    ([key, value]) => {
-      const [from, to] = value
-      const initialVelocity = options.velocity?.[key] ?? []
+  const inputValues = groupInputValues(parsedFromTo, options.velocity)
 
-      return zip(from.values, to.values).map(([from, to], i) => {
-        const velocity = initialVelocity[i] ?? 0
-        return springSettlingDuration(spring, {
-          from,
-          to,
-          initialVelocity: velocity,
-        })
+  const settlingDurationList = Object.values(inputValues).flatMap((values) => {
+    return values.map(({ from, to, velocity }) => {
+      return springSettlingDuration(spring, {
+        from,
+        to,
+        initialVelocity: velocity,
       })
-    },
-  )
+    })
+  })
 
   const settlingDuration = Math.max(...settlingDurationList)
 
@@ -91,7 +87,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   const ctx = createContext({
     spring,
     fromTo: parsedFromTo,
-    velocity: options.velocity,
+    inputValues,
     startTime,
     duration,
     settlingDuration,
@@ -105,7 +101,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     animateWithLinearTimingFunction({
       spring,
       fromTo: parsedFromTo,
-      velocity: options.velocity,
+      inputValues,
       duration,
       settlingDuration,
       set,
@@ -114,7 +110,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     animateWithCssCustomPropertyMath({
       spring,
       fromTo: parsedFromTo,
-      velocity: options.velocity,
+      inputValues,
       duration,
       settlingDuration,
       set,
@@ -129,6 +125,29 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   }
 
   return ctx
+}
+
+interface InputValueGroup {
+  from: number
+  to: number
+  velocity: number
+}
+
+function groupInputValues<
+  FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
+>(
+  fromTo: FromTo,
+  velocity: Partial<Record<keyof FromTo, number[]>> | undefined,
+): Record<keyof FromTo, InputValueGroup[]> {
+  return mapValues(fromTo, ([from, to], key) => {
+    return zip(from.values, to.values).map(([from, to], i) => {
+      return {
+        from,
+        to,
+        velocity: velocity?.[key]?.[i] ?? 0,
+      }
+    })
+  })
 }
 
 /**
@@ -167,14 +186,14 @@ function canUseLinearTimingFunction(
 function animateWithLinearTimingFunction({
   spring,
   fromTo,
-  velocity,
+  inputValues,
   duration,
   settlingDuration,
   set,
 }: {
   spring: Spring
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
-  velocity: Partial<Record<string, number[]>> | undefined
+  inputValues: Record<string, InputValueGroup[]>
   duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
@@ -202,20 +221,21 @@ function animateWithLinearTimingFunction({
       // 60fps
       const steps = Math.ceil(settlingDuration / (1000 / 60))
 
-      const easingValues = mapValues(fromTo, ([from, to], key) => {
-        const initialVelocity = zip(from.values, to.values).reduce<
-          number | undefined
-        >((acc, [from, to], i) => {
-          if (acc !== undefined) {
-            return acc
-          }
+      const easingValues = mapValues(inputValues, (values) => {
+        const initialVelocity = values.reduce<number | undefined>(
+          (acc, { from, to, velocity }) => {
+            if (acc !== undefined) {
+              return acc
+            }
 
-          if (from === to) {
-            return undefined
-          }
+            if (from === to) {
+              return undefined
+            }
 
-          return (velocity?.[key]?.[i] ?? 0) / (to - from)
-        }, undefined)
+            return velocity / (to - from)
+          },
+          undefined,
+        )
 
         return range(0, steps + 1).map((i) => {
           const t = (i / steps) * (settlingDuration / duration)
@@ -231,11 +251,7 @@ function animateWithLinearTimingFunction({
 
       const transition = Object.entries(easingValues)
         .map(([key, value]) => {
-          if (value) {
-            return `${key} ${settlingDuration}ms linear(${value.join(',')})`
-          } else {
-            return `${key} 0s`
-          }
+          return `${key} ${settlingDuration}ms linear(${value.join(',')})`
         })
         .join(',')
 
@@ -250,14 +266,14 @@ function animateWithLinearTimingFunction({
 function animateWithCssCustomPropertyMath({
   spring,
   fromTo,
-  velocity,
+  inputValues,
   duration,
   settlingDuration,
   set,
 }: {
   spring: Spring
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
-  velocity: Partial<Record<string, number[]>> | undefined
+  inputValues: Record<string, InputValueGroup[]>
   duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
@@ -270,12 +286,13 @@ function animateWithCssCustomPropertyMath({
       return interpolateParsedStyle(to, to.values)
     }
 
-    const style = zip(from.values, to.values).map(([from, to], i) => {
-      const initialVelocity = velocity?.[key]?.[i] ?? 0
+    const values = inputValues[key]!
+
+    const style = values.map(({ from, to, velocity }) => {
       return generateSpringExpressionStyle(spring, {
         from,
         to,
-        initialVelocity,
+        initialVelocity: velocity,
       })
     })
 
@@ -345,7 +362,7 @@ function createContext<
 >({
   spring,
   fromTo,
-  velocity,
+  inputValues,
   startTime,
   duration,
   settlingDuration,
@@ -353,7 +370,7 @@ function createContext<
 }: {
   spring: Spring
   fromTo: FromTo
-  velocity: Partial<Record<keyof FromTo, number[]>> | undefined
+  inputValues: Record<keyof FromTo, InputValueGroup[]>
   startTime: number
   duration: number
   settlingDuration: number
@@ -410,8 +427,8 @@ function createContext<
 
     get realValue() {
       const result: Record<string, number[]> = {}
-      for (const key of Object.keys(fromTo)) {
-        const [from, to] = fromTo[key]!
+      for (const [key, [_from, to]] of Object.entries(fromTo)) {
+        const values = inputValues[key]!
 
         Object.defineProperty(result, key, {
           configurable: true,
@@ -424,12 +441,11 @@ function createContext<
             const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
             const time = elapsed / duration
 
-            return zip(from.values, to.values).map(([from, to], i) => {
-              const initialVelocity = velocity?.[key]?.[i] ?? 0
+            return values.map(({ from, to, velocity }) => {
               return evaluateSpring(spring, {
                 from,
                 to,
-                initialVelocity,
+                initialVelocity: velocity,
                 time,
               })
             })
@@ -442,26 +458,23 @@ function createContext<
 
     get realVelocity() {
       const result: Record<string, number[]> = {}
-      for (const key of Object.keys(fromTo)) {
-        const [from, to] = fromTo[key]!
-
+      for (const [key, values] of Object.entries(inputValues)) {
         Object.defineProperty(result, key, {
           configurable: true,
           enumerable: true,
           get(): number[] {
             if (ctx.settled) {
-              return new Array(to.values.length).fill(0)
+              return new Array(values.length).fill(0)
             }
 
             const time = (performance.now() - startTime) / duration
 
-            return zip(from.values, to.values).map(([from, to], i) => {
-              const initialVelocity = velocity?.[key]?.[i] ?? 0
+            return values.map(({ from, to, velocity }) => {
               return evaluateSpringVelocity(spring, {
                 time,
                 from,
                 to,
-                initialVelocity,
+                initialVelocity: velocity,
               })
             })
           },
