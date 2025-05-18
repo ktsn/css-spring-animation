@@ -2,14 +2,9 @@ import { describe, expect, test } from 'vitest'
 import {
   createSpring,
   springSettlingDuration,
-  springValue,
-  springVelocity,
+  evaluateSpring,
+  evaluateSpringVelocity,
 } from '../../src/core/spring'
-
-function toMostlyEqual(actual: number, expected: number, tolerance = 0.000001) {
-  expect(actual).toBeLessThan(expected + tolerance)
-  expect(actual).toBeGreaterThan(expected - tolerance)
-}
 
 describe('spring', () => {
   describe('value constraints', () => {
@@ -20,7 +15,7 @@ describe('spring', () => {
       })
 
       expect(
-        springValue(spring, {
+        evaluateSpring(spring, {
           from: 0,
           to: 0,
           initialVelocity: 1000,
@@ -36,25 +31,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 100,
             to: 200,
             initialVelocity: 0,
             time: 0,
           }),
-          100,
-        )
+        ).toBeCloseTo(100)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 200,
             initialVelocity: 1000,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
       })
 
       test('bounce = 0', () => {
@@ -63,25 +56,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 100,
             to: 200,
             initialVelocity: 0,
             time: 0,
           }),
-          100,
-        )
+        ).toBeCloseTo(100)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 200,
             initialVelocity: 1000,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
       })
 
       test('bounce < 0', () => {
@@ -90,25 +81,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 100,
             to: 200,
             initialVelocity: 0,
             time: 0,
           }),
-          100,
-        )
+        ).toBeCloseTo(100)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 200,
             initialVelocity: 1000,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
       })
     })
   })
@@ -120,25 +109,23 @@ describe('spring', () => {
         duration: 1000,
       })
 
-      toMostlyEqual(
-        springVelocity(spring, {
+      expect(
+        evaluateSpringVelocity(spring, {
           from: 100,
           to: 100,
           initialVelocity: 0,
           time: 0,
         }),
-        0,
-      )
+      ).toBeCloseTo(0)
 
-      toMostlyEqual(
-        springVelocity(spring, {
+      expect(
+        evaluateSpringVelocity(spring, {
           from: 100,
           to: 100,
           initialVelocity: 1000,
           time: 0,
         }),
-        1000,
-      )
+      ).toBeCloseTo(1000)
     })
 
     describe('velocity when time = 0 must mostly equal to initialVelocity value', () => {
@@ -148,25 +135,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 1000,
             time: 0,
           }),
-          1000,
-        )
+        ).toBeCloseTo(1000)
       })
 
       test('bounce = 0', () => {
@@ -175,25 +160,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 1000,
             time: 0,
           }),
-          1000,
-        )
+        ).toBeCloseTo(1000)
       })
 
       test('bounce < 0', () => {
@@ -202,25 +185,23 @@ describe('spring', () => {
           duration: 1000,
         })
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
             time: 0,
           }),
-          0,
-        )
+        ).toBeCloseTo(0)
 
-        toMostlyEqual(
-          springVelocity(spring, {
+        expect(
+          evaluateSpringVelocity(spring, {
             from: 0,
             to: 100,
             initialVelocity: 1000,
             time: 0,
           }),
-          1000,
-        )
+        ).toBeCloseTo(1000)
       })
     })
   })
@@ -235,6 +216,7 @@ describe('spring', () => {
       const actual = springSettlingDuration(spring, {
         from: 100,
         to: 100,
+        initialVelocity: 0,
       })
 
       expect(Number.isFinite(actual)).toBe(true)
@@ -250,8 +232,8 @@ describe('spring', () => {
           duration,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -259,14 +241,13 @@ describe('spring', () => {
               springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
+                initialVelocity: 0,
               }) / duration,
           }),
-          100,
-          0.01,
-        )
+        ).toBeCloseTo(100, 0.01)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 6000,
@@ -274,11 +255,10 @@ describe('spring', () => {
               springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
+                initialVelocity: 6000,
               }) / duration,
           }),
-          100,
-          0.01,
-        )
+        ).toBeCloseTo(100, 0.01)
       })
 
       test('bounce = 0', () => {
@@ -289,8 +269,8 @@ describe('spring', () => {
           duration,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -298,25 +278,23 @@ describe('spring', () => {
               springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
+                initialVelocity: 0,
               }) / duration,
           }),
-          100,
-          0.01,
-        )
+        ).toBeCloseTo(100, 0.01)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 6000,
             time: springSettlingDuration(spring, {
               from: 0,
               to: 100,
+              initialVelocity: 6000,
             }),
           }),
-          100,
-          0.01,
-        )
+        ).toBeCloseTo(100, 0.01)
       })
 
       test('bounce < 0', () => {
@@ -327,8 +305,8 @@ describe('spring', () => {
           duration,
         })
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -336,14 +314,13 @@ describe('spring', () => {
               springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
+                initialVelocity: 0,
               }) / duration,
           }),
-          100,
-          0.01,
-        )
+        ).toBeCloseTo(100, 0.01)
 
-        toMostlyEqual(
-          springValue(spring, {
+        expect(
+          evaluateSpring(spring, {
             from: 0,
             to: 100,
             initialVelocity: 6000,
@@ -351,11 +328,10 @@ describe('spring', () => {
               springSettlingDuration(spring, {
                 from: 0,
                 to: 100,
+                initialVelocity: 6000,
               }) / duration,
           }),
-          100,
-          0.05,
-        )
+        ).toBeCloseTo(100, 0.05)
       })
     })
   })
