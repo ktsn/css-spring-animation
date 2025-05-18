@@ -26,7 +26,7 @@ export interface AnimationController<
   setStyle: (
     style: Style,
     options?: SetStyleOptions<keyof Style>,
-  ) => AnimateContext<Record<keyof Style, number[]>>
+  ) => AnimateContext<keyof Style>
 
   setOptions: (options: SpringOptions) => void
 
@@ -36,7 +36,7 @@ export interface AnimationController<
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
-interface ValueHistoryItem<Key extends keyof any> {
+interface ValueHistoryItem<Key extends PropertyKey> {
   value: Record<Key, number[]>
   timestamp: number
 }
@@ -51,7 +51,7 @@ export function createAnimateController<
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
   // Pseudo context for intiial state (before triggering animation)
-  let ctx: AnimateContext<Record<keyof Style, number[]>> | undefined
+  let ctx: AnimateContext<keyof Style> | undefined
 
   function calculateCurrentValues(
     next: Record<keyof Style, ParsedStyleValue>,
@@ -113,7 +113,7 @@ export function createAnimateController<
   function setStyle(
     nextStyle: Style,
     params: SetStyleOptions<keyof Style> = {},
-  ): AnimateContext<Record<keyof Style, number[]>> {
+  ): AnimateContext<keyof Style> {
     const isAnimate = params.animate ?? true
 
     const parsedStyle = mapValues(nextStyle, (value, key) => {
@@ -293,7 +293,7 @@ function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
  */
 function createContext<Style extends Record<string, ParsedStyleValue>>(
   value: Style,
-): AnimateContext<Record<keyof Style, number[]>> {
+): AnimateContext<keyof Style> {
   return {
     realValue: mapValues(value, (v) => v.values),
     realVelocity: mapValues(value, (v) => new Array(v.values.length).fill(0)),

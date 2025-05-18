@@ -28,14 +28,14 @@ export interface SpringOptions {
   bounce?: number
 }
 
-export interface AnimateOptions<Velocity extends Record<string, number[]>>
+export interface AnimateOptions<Keys extends PropertyKey>
   extends SpringOptions {
-  velocity?: Partial<Velocity>
+  velocity?: Partial<Record<Keys, number[]>>
 }
 
-export interface AnimateContext<Values extends Record<string, number[]>> {
-  realValue: Values
-  realVelocity: Values
+export interface AnimateContext<Keys extends PropertyKey> {
+  realValue: Record<Keys, number[]>
+  realVelocity: Record<Keys, number[]>
 
   finished: boolean
   settled: boolean
@@ -50,8 +50,8 @@ export interface AnimateContext<Values extends Record<string, number[]>> {
 export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
-  options: AnimateOptions<Record<keyof T, number[]>> = {},
-): AnimateContext<Record<keyof T, number[]>> {
+  options: AnimateOptions<keyof T> = {},
+): AnimateContext<keyof T> {
   const parsedFromTo = mapValues(fromTo, ([from, to]) => {
     const parsedFrom =
       typeof from === 'object' ? from : parseStyleValue(String(from))
@@ -306,7 +306,7 @@ function animateWithRaf({
   set,
 }: {
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
-  context: AnimateContext<Record<string, number[]>>
+  context: AnimateContext<string>
   set: (style: Record<string, string>) => void
 }): void {
   function render(): void {
@@ -358,7 +358,7 @@ function createContext<
   duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
-}): AnimateContext<Record<keyof FromTo, number[]>> {
+}): AnimateContext<keyof FromTo> {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
   function stop() {
@@ -389,7 +389,7 @@ function createContext<
     })
   }
 
-  const ctx: AnimateContext<Record<keyof FromTo, number[]>> = {
+  const ctx: AnimateContext<keyof FromTo> = {
     finishingPromise: wait(duration + 1, forceResolve).then(() => {
       ctx.finished = true
     }),
