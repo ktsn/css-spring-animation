@@ -11,10 +11,10 @@ export type { AnimationController } from './controller'
 
 export {
   createSpring,
-  springValue,
-  springBounceValue,
-  springDecayValue,
-  springVelocity,
+  evaluateSpring,
+  evaluateSpringBounce,
+  evaluateSpringDecay,
+  evaluateSpringVelocity,
   springSettlingDuration,
 } from './spring'
 

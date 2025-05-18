@@ -1,8 +1,8 @@
 import { registerPropertyIfNeeded, t, wait } from './time'
 import {
-  springValue,
-  springStyle,
-  springVelocity,
+  evaluateSpring,
+  generateSpringExpressionStyle,
+  evaluateSpringVelocity,
   createSpring,
   springSettlingDuration,
   Spring,
@@ -219,7 +219,7 @@ function animateWithLinearTimingFunction({
 
         return range(0, steps + 1).map((i) => {
           const t = (i / steps) * (settlingDuration / duration)
-          const value = springValue(spring, {
+          const value = evaluateSpring(spring, {
             time: t,
             from: 0,
             to: 1,
@@ -272,7 +272,7 @@ function animateWithCssCustomPropertyMath({
 
     const style = zip(from.values, to.values).map(([from, to], i) => {
       const initialVelocity = velocity?.[key]?.[i] ?? 0
-      return springStyle(spring, {
+      return generateSpringExpressionStyle(spring, {
         from,
         to,
         initialVelocity,
@@ -426,7 +426,7 @@ function createContext<
 
             return zip(from.values, to.values).map(([from, to], i) => {
               const initialVelocity = velocity?.[key]?.[i] ?? 0
-              return springValue(spring, {
+              return evaluateSpring(spring, {
                 from,
                 to,
                 initialVelocity,
@@ -457,7 +457,7 @@ function createContext<
 
             return zip(from.values, to.values).map(([from, to], i) => {
               const initialVelocity = velocity?.[key]?.[i] ?? 0
-              return springVelocity(spring, {
+              return evaluateSpringVelocity(spring, {
                 time,
                 from,
                 to,

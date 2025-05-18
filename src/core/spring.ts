@@ -34,7 +34,7 @@ export interface Spring {
   }) => number
 }
 
-export function springStyle(
+export function generateSpringExpressionStyle(
   spring: Spring,
   data: { from: number; to: number; initialVelocity: number },
 ): string {
@@ -42,7 +42,7 @@ export function springStyle(
   return wrap(generateCSSValue(springExpression(spring, data)))
 }
 
-export function springValue(
+export function evaluateSpring(
   spring: Spring,
   data: { time: number; from: number; to: number; initialVelocity: number },
 ): number {
@@ -64,7 +64,7 @@ function springExpression(
   return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
 }
 
-export function springBounceValue(
+export function evaluateSpringBounce(
   spring: Spring,
   data: { time: number; from: number; to: number; initialVelocity: number },
 ): number {
@@ -74,7 +74,7 @@ export function springBounceValue(
   return calculate(spring.bounce(data), variables)
 }
 
-export function springDecayValue(
+export function evaluateSpringDecay(
   spring: Spring,
   data: { time: number; from: number; to: number; initialVelocity: number },
 ): number {
@@ -84,7 +84,7 @@ export function springDecayValue(
   return calculate(spring.decay(data), variables)
 }
 
-export function springVelocity(
+export function evaluateSpringVelocity(
   spring: Spring,
   data: { time: number; from: number; to: number; initialVelocity: number },
 ): number {
@@ -127,12 +127,12 @@ export function springSettlingDuration(
   while (currentDuration < maxDuration) {
     const time = currentDuration / spring.duration
 
-    const position = springValue(spring, {
+    const position = evaluateSpring(spring, {
       ...data,
       time,
     })
 
-    const velocity = springVelocity(spring, {
+    const velocity = evaluateSpringVelocity(spring, {
       ...data,
       time,
     })

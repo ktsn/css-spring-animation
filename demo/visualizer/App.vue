@@ -4,9 +4,9 @@ import {
   AnimateContext,
   animate,
   createSpring,
-  springValue,
-  springBounceValue,
-  springDecayValue,
+  evaluateSpring,
+  evaluateSpringBounce,
+  evaluateSpringDecay,
 } from '../../src/core'
 import { Spring } from '../../src/core/spring'
 
@@ -73,7 +73,7 @@ function renderBounceGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = springBounceValue(spring, {
+    const value = evaluateSpringBounce(spring, {
       time: t,
       from,
       to,
@@ -103,7 +103,7 @@ function renderDecayGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = springDecayValue(spring, {
+    const value = evaluateSpringDecay(spring, {
       time: t,
       from,
       to,
@@ -133,7 +133,7 @@ function renderSpringGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = springValue(spring, {
+    const value = evaluateSpring(spring, {
       time: t,
       from,
       to,
@@ -166,7 +166,7 @@ function renderCurrentTime(
   ctx.fillStyle = '#f00'
 
   const x = Math.floor(time * width) / 2
-  const value = springValue(spring, {
+  const value = evaluateSpring(spring, {
     time,
     from,
     to,
