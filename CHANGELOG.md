@@ -1,3 +1,13 @@
+# [0.17.0](https://github.com/ktsn/css-spring-animation/compare/v0.16.2...v0.17.0) (2025-07-02)
+
+
+### Features
+
+* add springCSS utility ([950ea8b](https://github.com/ktsn/css-spring-animation/commit/950ea8b3c02d141296906f22e52b3ad92aeaeda3))
+* make settling duration more precise ([b3b3e63](https://github.com/ktsn/css-spring-animation/commit/b3b3e634972a51a1371f512244c5f244d19ae0fb))
+
+
+
 ## [0.16.2](https://github.com/ktsn/css-spring-animation/compare/v0.16.1...v0.16.2) (2025-03-03)
 
 

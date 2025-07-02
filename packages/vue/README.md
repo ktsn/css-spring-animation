@@ -388,3 +388,36 @@ Then you can use the directives in a template:
   ></div>
 </template>
 ```
+
+### `springCSS` utility
+
+A utility function that generates a CSS transition string with spring animation easing. This allows you to use spring animations with native CSS transitions.
+
+**Parameters**
+
+- `duration`: Duration in milliseconds (required)
+- `bounce`: Bounciness (-1 to 1, default: 0)
+
+**Return value**
+
+Returns a CSS transition value string that can be used in the `transition` CSS property.
+
+```js
+import { springCSS } from '@css-spring-animation/vue'
+
+// Generate spring transition CSS
+const transition = springCSS(400, 0.1)
+
+// Use with DOM element directly
+const element = document.querySelector('.my-element')
+element.style.transition = `transform ${springCSS(600, 0.3)}`
+element.style.transform = 'translateX(100px)'
+
+// Use for multiple properties
+element.style.transition = `
+  transform ${springCSS(600, 0.3)},
+  opacity ${springCSS(400, 0)}
+`
+element.style.transform = 'translateX(100px)'
+element.style.opacity = '0.5'
+```
