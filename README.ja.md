@@ -388,3 +388,36 @@ createApp(App).use(springDirectives).mount('#app')
   ></div>
 </template>
 ```
+
+### `springCSS` ユーティリティ
+
+スプリングアニメーションのイージングを持つ CSS トランジション文字列を生成するユーティリティ関数です。これにより、ネイティブの CSS トランジションでスプリングアニメーションを使用できます。
+
+**パラメータ**
+
+- `duration`: ミリ秒単位の時間（必須）
+- `bounce`: バウンス度合い（-1 から 1、デフォルト: 0）
+
+**戻り値**
+
+`transition` CSS プロパティで使用できる CSS トランジション値の文字列を返します。
+
+```js
+import { springCSS } from '@css-spring-animation/vue'
+
+// スプリングトランジション CSS を生成
+const transition = springCSS(400, 0.1)
+
+// DOM 要素に直接適用
+const element = document.querySelector('.my-element')
+element.style.transition = `transform ${springCSS(600, 0.3)}`
+element.style.transform = 'translateX(100px)'
+
+// 複数のプロパティで使用
+element.style.transition = `
+  transform ${springCSS(600, 0.3)},
+  opacity ${springCSS(400, 0)}
+`
+element.style.transform = 'translateX(100px)'
+element.style.opacity = '0.5'
+```
