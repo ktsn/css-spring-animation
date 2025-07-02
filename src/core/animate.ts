@@ -6,12 +6,12 @@ import {
   createSpring,
   springSettlingDuration,
   Spring,
+  springCSSInternal,
 } from './spring'
 import {
   isCssLinearTimingFunctionSupported,
   isCssMathAnimationSupported,
   mapValues,
-  range,
   zip,
 } from './utils'
 import {
@@ -102,7 +102,6 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
       spring,
       fromTo: parsedFromTo,
       inputValues,
-      duration,
       settlingDuration,
       set,
     })
@@ -187,14 +186,12 @@ function animateWithLinearTimingFunction({
   spring,
   fromTo,
   inputValues,
-  duration,
   settlingDuration,
   set,
 }: {
   spring: Spring
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   inputValues: Record<string, InputValueGroup[]>
-  duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
 }): void {
@@ -218,11 +215,8 @@ function animateWithLinearTimingFunction({
         return interpolateParsedStyle(to, to.values)
       })
 
-      // 60fps
-      const steps = Math.ceil(settlingDuration / (1000 / 60))
-
-      const easingValues = mapValues(inputValues, (values) => {
-        const initialVelocity = values.reduce<number | undefined>(
+      const transitionValues = mapValues(inputValues, (values) => {
+        const normalizedVelocity = values.reduce<number | undefined>(
           (acc, { from, to, velocity }) => {
             if (acc !== undefined) {
               return acc
@@ -237,21 +231,16 @@ function animateWithLinearTimingFunction({
           undefined,
         )
 
-        return range(0, steps + 1).map((i) => {
-          const t = (i / steps) * (settlingDuration / duration)
-          const value = evaluateSpring(spring, {
-            time: t,
-            from: 0,
-            to: 1,
-            initialVelocity: initialVelocity ?? 0,
-          })
-          return value
+        return springCSSInternal({
+          spring,
+          settlingDuration,
+          normalizedVelocity: normalizedVelocity ?? 0,
         })
       })
 
-      const transition = Object.entries(easingValues)
-        .map(([key, value]) => {
-          return `${key} ${settlingDuration}ms linear(${value.join(',')})`
+      const transition = Object.entries(transitionValues)
+        .map(([key, transitionValue]) => {
+          return `${key} ${transitionValue}`
         })
         .join(',')
 

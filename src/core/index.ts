@@ -16,6 +16,7 @@ export {
   evaluateSpringDecay,
   evaluateSpringVelocity,
   springSettlingDuration,
+  springCSS,
 } from './spring'
 
 export { interpolateParsedStyle } from './style'

@@ -10,6 +10,7 @@ import {
   v,
   var_,
 } from './math'
+import { range } from './utils'
 
 export interface Spring {
   duration: number
@@ -148,6 +149,69 @@ export function springSettlingDuration(
   }
 
   return maxDuration
+}
+
+/**
+ * Generate CSS transition string from spring parameters.
+ * The result can be passed to where transition style value is expected.
+ *
+ * @example
+ * ```js
+ * // For all CSS properties
+ * el.style.transition = springCSS(400, 0.1)
+ *
+ * // Specify animating property
+ * el.style.transition = `transform ${springCSS(400, 0.1)}`
+ * ```
+ */
+export function springCSS(duration: number, bounce: number = 0): string {
+  const spring = createSpring({
+    bounce,
+    duration,
+  })
+
+  const settlingDuration = springSettlingDuration(spring, {
+    from: 0,
+    to: 1,
+    initialVelocity: 0,
+  })
+
+  return springCSSInternal({
+    spring,
+    settlingDuration,
+    normalizedVelocity: 0,
+  })
+}
+
+/**
+ * @private
+ *
+ * Generate CSS transition string from animation-related values.
+ * Only used internally.
+ * @param params.normalizedVelocity initial velocity rebased to 0-1 range
+ */
+export function springCSSInternal(params: {
+  spring: Spring
+  settlingDuration: number
+  normalizedVelocity: number
+}): string {
+  const { spring, settlingDuration, normalizedVelocity } = params
+
+  // 60fps
+  const steps = Math.ceil(settlingDuration / (1000 / 60))
+
+  const easingValues = range(0, steps + 1).map((i) => {
+    const t = (i / steps) * (settlingDuration / spring.duration)
+    const value = evaluateSpring(spring, {
+      time: t,
+      from: 0,
+      to: 1,
+      initialVelocity: normalizedVelocity,
+    })
+    return value
+  })
+
+  return `${settlingDuration}ms linear(${easingValues.join(',')})`
 }
 
 /**

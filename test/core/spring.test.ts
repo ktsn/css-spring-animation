@@ -4,6 +4,7 @@ import {
   springSettlingDuration,
   evaluateSpring,
   evaluateSpringVelocity,
+  springCSS,
 } from '../../src/core/spring'
 
 describe('spring', () => {
@@ -334,5 +335,10 @@ describe('spring', () => {
         ).toBeCloseTo(100, 0.05)
       })
     })
+  })
+
+  test('generate valid spring CSS', () => {
+    const css = springCSS(400, 0.1)
+    expect(css).toMatch(/^\d+ms linear\(.+\)$/)
   })
 })
