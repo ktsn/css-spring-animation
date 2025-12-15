@@ -92,6 +92,15 @@ export function evaluateSpringVelocity(
   return spring.velocity(data)
 }
 
+export interface SpringGeneratorResult {
+  value: number
+  done: boolean
+}
+
+export interface SpringGenerator {
+  next(elapsedMs: number): SpringGeneratorResult
+}
+
 /**
  * Because duration in this spring animation library is not real CSS transition duration,
  * we need to find settling duration that the time when the animation looks making no visual difference.
@@ -149,6 +158,58 @@ export function springSettlingDuration(
   }
 
   return maxDuration
+}
+
+/**
+ * Creates a spring generator that yields animation values based on elapsed time.
+ *
+ * @example
+ * ```js
+ * const iter = springGenerator({
+ *   from: 0,
+ *   to: 100,
+ *   bounce: 0.2,
+ *   duration: 500,
+ * })
+ *
+ * let result = iter.next(0)     // { value: 0, done: false }
+ * result = iter.next(100)       // { value: ~80, done: false }
+ * result = iter.next(1200)      // { value: 100, done: true }
+ * ```
+ */
+export function springGenerator(options: {
+  from: number
+  to: number
+  bounce?: number
+  duration?: number
+  velocity?: number
+}): SpringGenerator {
+  const { from, to, bounce = 0, duration = 1000, velocity = 0 } = options
+
+  const spring = createSpring({ bounce, duration })
+  const settlingMs = springSettlingDuration(spring, {
+    from,
+    to,
+    initialVelocity: velocity,
+  })
+
+  return {
+    next(elapsedMs: number): SpringGeneratorResult {
+      if (elapsedMs >= settlingMs) {
+        return { value: to, done: true }
+      }
+
+      const time = elapsedMs / duration
+      const value = evaluateSpring(spring, {
+        time,
+        from,
+        to,
+        initialVelocity: velocity,
+      })
+
+      return { value, done: false }
+    },
+  }
 }
 
 /**

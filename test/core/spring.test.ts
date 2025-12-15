@@ -5,6 +5,7 @@ import {
   evaluateSpring,
   evaluateSpringVelocity,
   springCSS,
+  springGenerator,
 } from '../../src/core/spring'
 
 describe('spring', () => {
@@ -334,6 +335,75 @@ describe('spring', () => {
           }),
         ).toBeCloseTo(100, 0.05)
       })
+    })
+  })
+
+  describe('springGenerator', () => {
+    test('yields correct values at various time points', () => {
+      const gen = springGenerator({
+        from: 0,
+        to: 100,
+        bounce: 0,
+        duration: 1000,
+      })
+
+      const first = gen.next(0)
+      expect(first.value).toBe(0)
+      expect(first.done).toBe(false)
+
+      const mid = gen.next(500)
+      expect(mid.value).toBeGreaterThan(0)
+      expect(mid.value).toBeLessThan(100)
+      expect(mid.done).toBe(false)
+    })
+
+    test('completes (done: true) after settling duration', () => {
+      const gen = springGenerator({
+        from: 0,
+        to: 100,
+        bounce: 0,
+        duration: 1000,
+      })
+
+      const spring = createSpring({ bounce: 0, duration: 1000 })
+      const settlingMs = springSettlingDuration(spring, {
+        from: 0,
+        to: 100,
+        initialVelocity: 0,
+      })
+
+      // Pass time beyond settling duration
+      const result = gen.next(settlingMs + 100)
+      expect(result.value).toBe(100)
+      expect(result.done).toBe(true)
+    })
+
+    test('handles from === to edge case', () => {
+      const gen = springGenerator({
+        from: 100,
+        to: 100,
+        bounce: 0,
+        duration: 1000,
+      })
+
+      const first = gen.next(0)
+      expect(first.value).toBe(100)
+      expect(first.done).toBe(false)
+    })
+
+    test('handles initial velocity', () => {
+      const gen = springGenerator({
+        from: 0,
+        to: 100,
+        bounce: 0,
+        duration: 1000,
+        velocity: 1000,
+      })
+
+      const early = gen.next(700)
+      // With positive initial velocity, should progress faster
+      expect(early.value).toBeGreaterThan(100)
+      expect(early.done).toBe(false)
     })
   })
 

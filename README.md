@@ -421,3 +421,58 @@ element.style.transition = `
 element.style.transform = 'translateX(100px)'
 element.style.opacity = '0.5'
 ```
+
+### `springGenerator` utility
+
+A utility function that creates a spring iterator for manual animation control. It yields animation values based on elapsed time, useful for custom animation loops or non-DOM animations.
+
+**Parameters**
+
+- `from`: Starting value (required)
+- `to`: Target value (required)
+- `bounce`: Bounciness (-1 to 1, default: 0)
+- `duration`: Duration in milliseconds (default: 1000)
+- `velocity`: Initial velocity in units per second (default: 0)
+
+**Return value**
+
+Returns a `SpringGenerator` object with a `next(elapsedMs)` method that returns `{ value: number, done: boolean }`.
+
+```ts
+import { springGenerator } from '@css-spring-animation/vue'
+
+// Create a spring iterator
+const iter = springGenerator({
+  from: 0,
+  to: 100,
+  bounce: 0.2,
+  duration: 500,
+})
+
+// Get values at specific times
+let result = iter.next(0) // { value: 0, done: false }
+result = iter.next(100) // { value: ~80, done: false }
+result = iter.next(1200) // { value: 100, done: true }
+```
+
+```ts
+import { springGenerator } from '@css-spring-animation/vue'
+
+// Example: Custom animation loop
+const iter = springGenerator({ from: 0, to: 100, duration: 600 })
+const startTime = performance.now()
+
+function animate(now: number) {
+  const elapsed = now - startTime
+  const { value, done } = iter.next(elapsed)
+
+  // Use the value for custom rendering
+  console.log(value)
+
+  if (!done) {
+    requestAnimationFrame(animate)
+  }
+}
+
+requestAnimationFrame(animate)
+```

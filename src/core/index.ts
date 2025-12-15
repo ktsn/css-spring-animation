@@ -17,7 +17,10 @@ export {
   evaluateSpringVelocity,
   springSettlingDuration,
   springCSS,
+  springGenerator,
 } from './spring'
+
+export type { SpringGenerator, SpringGeneratorResult } from './spring'
 
 export { interpolateParsedStyle } from './style'
 export type { ParsedStyleValue } from './style'
