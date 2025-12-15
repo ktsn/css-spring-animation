@@ -421,3 +421,58 @@ element.style.transition = `
 element.style.transform = 'translateX(100px)'
 element.style.opacity = '0.5'
 ```
+
+### `springGenerator` ユーティリティ
+
+スプリングの値を返すジェネレーターを作成するユーティリティ関数です。手動でアニメーションを制御するために使います。経過時間に基づいてアニメーション値を生成し、カスタムアニメーションループや DOM 以外のアニメーションに使用できます。
+
+**パラメータ**
+
+- `from`: 開始値（必須）
+- `to`: 目標値（必須）
+- `bounce`: バウンス度合い（-1 から 1、デフォルト: 0）
+- `duration`: ミリ秒単位の時間（デフォルト: 1000）
+- `velocity`: 初期速度（単位/秒、デフォルト: 0）
+
+**戻り値**
+
+`next(elapsedMs)` メソッドを持つ `SpringGenerator` オブジェクトを返します。このメソッドは `{ value: number, done: boolean }` を返します。
+
+```ts
+import { springGenerator } from '@css-spring-animation/vue'
+
+// スプリングイテレータを作成
+const iter = springGenerator({
+  from: 0,
+  to: 100,
+  bounce: 0.2,
+  duration: 500,
+})
+
+// 特定の時間での値を取得
+let result = iter.next(0) // { value: 0, done: false }
+result = iter.next(100) // { value: ~80, done: false }
+result = iter.next(1200) // { value: 100, done: true }
+```
+
+```ts
+import { springGenerator } from '@css-spring-animation/vue'
+
+// 例: カスタムアニメーションループ
+const iter = springGenerator({ from: 0, to: 100, duration: 600 })
+const startTime = performance.now()
+
+function animate(now: number) {
+  const elapsed = now - startTime
+  const { value, done } = iter.next(elapsed)
+
+  // 値をカスタムレンダリングに使用
+  console.log(value)
+
+  if (!done) {
+    requestAnimationFrame(animate)
+  }
+}
+
+requestAnimationFrame(animate)
+```

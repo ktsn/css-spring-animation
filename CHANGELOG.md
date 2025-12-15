@@ -1,3 +1,12 @@
+# [0.18.0](https://github.com/ktsn/css-spring-animation/compare/v0.17.0...v0.18.0) (2025-12-15)
+
+
+### Features
+
+* add springGenerator helper ([74b0390](https://github.com/ktsn/css-spring-animation/commit/74b039039dc56baa5e8d152107951445375a568c))
+
+
+
 # [0.17.0](https://github.com/ktsn/css-spring-animation/compare/v0.16.2...v0.17.0) (2025-07-02)
 
 
