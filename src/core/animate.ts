@@ -28,8 +28,9 @@ export interface SpringOptions {
   bounce?: number
 }
 
-export interface AnimateOptions<Keys extends PropertyKey>
-  extends SpringOptions {
+export interface AnimateOptions<
+  Keys extends PropertyKey,
+> extends SpringOptions {
   velocity?: Partial<Record<Keys, number[]>>
 }
 

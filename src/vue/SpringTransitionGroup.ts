@@ -19,8 +19,10 @@ import {
 } from './SpringTransition.ts'
 import { createAnimateController, forceReflow } from './index.ts'
 
-interface SpringTransitionGroupProps
-  extends Omit<SpringTransitionProps, 'mode'> {
+interface SpringTransitionGroupProps extends Omit<
+  SpringTransitionProps,
+  'mode'
+> {
   tag?: string
   bounce?: number | { move?: number; enter?: number; leave?: number }
   duration?: number | { move?: number; enter?: number; leave?: number }
