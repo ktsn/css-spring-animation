@@ -13,7 +13,7 @@ importers:
         version: 25.6.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.3
-        version: 6.0.3(vite@7.3.2(@types/node@25.6.0))(vue@3.5.25(typescript@5.9.3))
+        version: 6.0.3(vite@7.3.2(@types/node@25.6.0))(vue@3.5.25(typescript@6.0.3))
       conventional-changelog-cli:
         specifier: ^5.0.0
         version: 5.0.0(conventional-commits-filter@5.0.0)
@@ -24,8 +24,8 @@ importers:
         specifier: ^3.8.3
         version: 3.8.3
       typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
+        specifier: ^6.0.0
+        version: 6.0.3
       vite:
         specifier: ^7.2.7
         version: 7.3.2(@types/node@25.6.0)
@@ -34,10 +34,10 @@ importers:
         version: 4.1.5(@types/node@25.6.0)(jsdom@29.0.2)(vite@7.3.2(@types/node@25.6.0))
       vue:
         specifier: ^3.5.25
-        version: 3.5.25(typescript@5.9.3)
+        version: 3.5.25(typescript@6.0.3)
       vue-tsc:
         specifier: ^3.2.7
-        version: 3.2.7(typescript@5.9.3)
+        version: 3.2.7(typescript@6.0.3)
 
   packages/core: {}
 
@@ -923,8 +923,8 @@ packages:
     resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
     engines: {node: '>=16'}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -1333,11 +1333,11 @@ snapshots:
 
   '@types/semver@7.7.1': {}
 
-  '@vitejs/plugin-vue@6.0.3(vite@7.3.2(@types/node@25.6.0))(vue@3.5.25(typescript@5.9.3))':
+  '@vitejs/plugin-vue@6.0.3(vite@7.3.2(@types/node@25.6.0))(vue@3.5.25(typescript@6.0.3))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-beta.53
       vite: 7.3.2(@types/node@25.6.0)
-      vue: 3.5.25(typescript@5.9.3)
+      vue: 3.5.25(typescript@6.0.3)
 
   '@vitest/expect@4.1.5':
     dependencies:
@@ -1448,11 +1448,11 @@ snapshots:
       '@vue/shared': 3.5.25
       csstype: 3.2.3
 
-  '@vue/server-renderer@3.5.25(vue@3.5.25(typescript@5.9.3))':
+  '@vue/server-renderer@3.5.25(vue@3.5.25(typescript@6.0.3))':
     dependencies:
       '@vue/compiler-ssr': 3.5.25
       '@vue/shared': 3.5.25
-      vue: 3.5.25(typescript@5.9.3)
+      vue: 3.5.25(typescript@6.0.3)
 
   '@vue/shared@3.5.25': {}
 
@@ -1871,7 +1871,7 @@ snapshots:
 
   type-fest@4.41.0: {}
 
-  typescript@5.9.3: {}
+  typescript@6.0.3: {}
 
   uglify-js@3.19.3:
     optional: true
@@ -1929,21 +1929,21 @@ snapshots:
 
   vscode-uri@3.1.0: {}
 
-  vue-tsc@3.2.7(typescript@5.9.3):
+  vue-tsc@3.2.7(typescript@6.0.3):
     dependencies:
       '@volar/typescript': 2.4.28
       '@vue/language-core': 3.2.7
-      typescript: 5.9.3
+      typescript: 6.0.3
 
-  vue@3.5.25(typescript@5.9.3):
+  vue@3.5.25(typescript@6.0.3):
     dependencies:
       '@vue/compiler-dom': 3.5.25
       '@vue/compiler-sfc': 3.5.25
       '@vue/runtime-dom': 3.5.25
-      '@vue/server-renderer': 3.5.25(vue@3.5.25(typescript@5.9.3))
+      '@vue/server-renderer': 3.5.25(vue@3.5.25(typescript@6.0.3))
       '@vue/shared': 3.5.25
     optionalDependencies:
-      typescript: 5.9.3
+      typescript: 6.0.3
 
   w3c-xmlserializer@5.0.0:
     dependencies:
