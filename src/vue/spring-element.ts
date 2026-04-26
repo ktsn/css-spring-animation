@@ -1,5 +1,6 @@
-import { PropType, defineComponent, h } from 'vue'
+import { PropType, defineComponent, h, watch } from 'vue'
 import { AnimateValue } from '../core'
+import { isSameStyle } from '../core/controller'
 import { useSpring } from './use-spring'
 
 const createSpringElement = (tagName: string) => {
@@ -15,8 +16,13 @@ const createSpringElement = (tagName: string) => {
       relocating: Boolean,
     },
 
-    setup(props, { slots }) {
-      const { style } = useSpring(
+    emits: {
+      springFinish: () => true,
+      springSettle: () => true,
+    },
+
+    setup(props, { emit, slots }) {
+      const { style, onFinishCurrent, onSettleCurrent } = useSpring(
         () => props.springStyle,
         () => {
           return {
@@ -25,6 +31,31 @@ const createSpringElement = (tagName: string) => {
             disabled: props.disabled,
             relocating: props.relocating,
           }
+        },
+      )
+
+      watch(
+        () => ({ ...props.springStyle }),
+        (input, prevInput) => {
+          if (
+            props.disabled ||
+            props.relocating ||
+            isSameStyle(input, prevInput)
+          ) {
+            return
+          }
+
+          onFinishCurrent(({ stopped }) => {
+            if (!stopped) {
+              emit('springFinish')
+            }
+          })
+
+          onSettleCurrent(({ stopped }) => {
+            if (!stopped) {
+              emit('springSettle')
+            }
+          })
         },
       )
 

@@ -134,11 +134,22 @@ requestAnimationFrame(() => {
 - `disabled`
 - `relocating`
 
+**イベント**
+
+- `spring-finish`: アニメーションが視覚的に完了したとき (duration が経過した時) に発火します。
+- `spring-settle`: アニメーションが完全に減衰して停止したときに発火します。
+
+イベントはアニメーションサイクル単位で、最新のサイクルに対してのみ発火します。アニメーション中に `spring-style` が再設定されて以前のサイクルが中断された場合、そのサイクルのイベントは発火しません。`disabled` / `relocating` 中も発火しません。
+
 ```vue
 <script setup>
 import { spring } from '@css-spring-animation/vue'
 
 const position = ref(0)
+
+function onFinish() {
+  // ...
+}
 </script>
 
 <template>
@@ -148,6 +159,7 @@ const position = ref(0)
     }"
     :duration="600"
     :bounce="0.3"
+    @spring-finish="onFinish"
   ></spring.div>
 </template>
 ```
