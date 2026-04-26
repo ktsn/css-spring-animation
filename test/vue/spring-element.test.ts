@@ -189,4 +189,146 @@ describe('Spring Element', () => {
     expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' })
     expect(vm.$el.style.height).toBe('100px')
   })
+
+  function mountWithEvents(template: string, setupExtra?: () => any) {
+    const root = document.createElement('div')
+    const finish = vitest.fn()
+    const settle = vitest.fn()
+    const app = createApp({
+      template,
+      components: {
+        springp: spring.p!,
+      },
+      setup() {
+        const springStyle = ref<Record<string, any>>({ width: '10px' })
+        return {
+          springStyle,
+          onFinish: finish,
+          onSettle: settle,
+          ...(setupExtra?.() ?? {}),
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+    return { vm, finish, settle }
+  }
+
+  function waitForCurrentCycleSettled(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      mockController.onSettleCurrent(() => resolve())
+    })
+  }
+
+  test('emit spring-finish and spring-settle on natural completion', async () => {
+    const { vm, finish, settle } = mountWithEvents(`
+      <springp
+        :spring-style="springStyle"
+        :duration="10"
+        @spring-finish="onFinish"
+        @spring-settle="onSettle"
+      />
+    `)
+
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+
+    expect(finish).toHaveBeenCalledTimes(1)
+    expect(settle).toHaveBeenCalledTimes(1)
+  })
+
+  test('do not emit for an interrupted cycle', async () => {
+    const { vm, finish, settle } = mountWithEvents(`
+      <springp
+        :spring-style="springStyle"
+        :duration="10"
+        @spring-finish="onFinish"
+        @spring-settle="onSettle"
+      />
+    `)
+
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    vm.springStyle = { width: '30px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+
+    expect(finish).toHaveBeenCalledTimes(1)
+    expect(settle).toHaveBeenCalledTimes(1)
+  })
+
+  test('do not emit when disabled', async () => {
+    const { vm, finish, settle } = mountWithEvents(
+      `
+        <springp
+          :spring-style="springStyle"
+          :duration="10"
+          disabled
+          @spring-finish="onFinish"
+          @spring-settle="onSettle"
+        />
+      `,
+    )
+
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+
+    expect(finish).not.toHaveBeenCalled()
+    expect(settle).not.toHaveBeenCalled()
+  })
+
+  test('do not emit when relocating', async () => {
+    const { vm, finish, settle } = mountWithEvents(
+      `
+        <springp
+          :spring-style="springStyle"
+          :duration="10"
+          relocating
+          @spring-finish="onFinish"
+          @spring-settle="onSettle"
+        />
+      `,
+    )
+
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+
+    expect(finish).not.toHaveBeenCalled()
+    expect(settle).not.toHaveBeenCalled()
+  })
+
+  test('do not emit when springStyle is reassigned with the same values', async () => {
+    const { vm, finish, settle } = mountWithEvents(`
+      <springp
+        :spring-style="springStyle"
+        :duration="10"
+        @spring-finish="onFinish"
+        @spring-settle="onSettle"
+      />
+    `)
+
+    // Run a real animation to completion first so the second reassignment
+    // hits a settled (non-pseudo) ctx, which is the case isSameStyle must guard.
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+    expect(finish).toHaveBeenCalledTimes(1)
+    expect(settle).toHaveBeenCalledTimes(1)
+
+    vm.springStyle = { width: '20px' }
+    await nextTick()
+    await nextTick()
+    await waitForCurrentCycleSettled()
+
+    expect(finish).toHaveBeenCalledTimes(1)
+    expect(settle).toHaveBeenCalledTimes(1)
+  })
 })
