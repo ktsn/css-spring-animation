@@ -55,13 +55,16 @@ const moved = ref(false)
 **duration**<br>
 アニメーションの長さ（ミリ秒）を指定します。デフォルト値は 1000 です。
 
-## `disabled` と `relocating`
+## `disabled` と `inferVelocity`
 
-`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` と `relocating` オプションを指定できます。両方とも実行中のアニメーションを止めて、以降のスタイルの変更でアニメーションを行わなくします。
+`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
 
-`disabled` はスプリングアニメーションを無効にしながら、継続的なスタイルの値の更新で要素の移動を表現し、その値の更新で計算された速度を使って再度スプリングアニメーションを行うときに使用します。[Swipe](./demo/swipe/) デモでその例を見ることができます。要素をドラッグしている間は `disabled` が `true` になり、離したときにドラッグ中の速度を引き継いでスプリングアニメーションが行われます。
+アニメーションが再開する際の初速の扱いは、`inferVelocity` で切り替えられます。
 
-`relocating` はスプリングアニメーションを実行せずにスタイルを更新し、直後に以前のアニメーションの速度を引き継いだアニメーションを行うときに使用します。[Picker](./demo/picker/) デモでは、マウスホイールでピッカーを無限に回転させることができます。これを実現するために、回転のアニメーションを維持しながら、`relocating = true` のときにピッカーを反対方向に戻す処理を行っています。
+- **`inferVelocity: true` (デフォルト)** — 直近のスタイル更新の変化量から速度を推定します。要素をドラッグなどで手動で動かしている間は `disabled` を `true` にし、離した瞬間にドラッグの速度を引き継いだスプリングアニメーションを行いたい場合に使用します。[Swipe](./demo/swipe/) デモがその例です。
+- **`inferVelocity: false`** — 速度を一切変更せず、直前のアニメーションの速度をそのまま保持します。要素の位置だけを瞬時に動かしたいが回転などの勢いは保ちたい場合に使用します。[Picker](./demo/picker/) デモでは、`disabled: true, inferVelocity: false` でピッカーを反対側へワープさせつつ、回転の勢いを維持しています。
+
+`inferVelocity` は `disabled` が `true` のときのみ有効です。`disabled` が `false` のときはアニメーションが値と速度の両方を管理するため、このオプションは無視されます。
 
 ## スタイル指定時の注意点
 
@@ -132,14 +135,15 @@ requestAnimationFrame(() => {
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
 
 **イベント**
 
 - `spring-finish`: アニメーションが視覚的に完了したとき (duration が経過した時) に発火します。
 - `spring-settle`: アニメーションが完全に減衰して停止したときに発火します。
 
-イベントはアニメーションサイクル単位で、最新のサイクルに対してのみ発火します。アニメーション中に `spring-style` が再設定されて以前のサイクルが中断された場合、そのサイクルのイベントは発火しません。`disabled` / `relocating` 中も発火しません。
+イベントはアニメーションサイクル単位で、最新のサイクルに対してのみ発火します。アニメーション中に `spring-style` が再設定されて以前のサイクルが中断された場合、そのサイクルのイベントは発火しません。`disabled` 中も発火しません。
 
 ```vue
 <script setup>
@@ -301,7 +305,8 @@ const list = ref([
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
 
 `<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
 
