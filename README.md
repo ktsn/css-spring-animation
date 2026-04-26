@@ -55,13 +55,16 @@ Bounciness of an animation. The value is between -1 and 1. The default value is 
 **duration**<br>
 Perceptive duration (ms) of an animation. The default value is 1000.
 
-## `disabled` vs. `relocating`
+## `disabled` and `inferVelocity`
 
-`<spring>` component and `useSpring` composable have `disabled` and `relocating` options. They both stop ongoing animation and the component/composable will not trigger animations for further style changes.
+`<spring>` component and `useSpring` composable accept a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
 
-You should use `disabled` when you want to disable a spring animation but keep rendering an element move by continuously updating the style value, then trigger a spring animation again with using velocity of the style value updates. You can see the example of it in [Swipe](./demo/swipe/) demo. `disabled` is `true` while you drag an element and trigger spring animation with the inherited velocity of the dragging when releasing it.
+When animation later resumes, the spring's initial velocity comes from one of two sources, controlled by `inferVelocity`:
 
-`relocating` is used in case of updating the style value without triggering a spring animation and you will immediately trigger an animation with using the inherited velocity of the previous animation. In [Picker](./demo/picker/) demo, you can rotate the picker by mouse wheel endlessly. To do that, it rewinds the picker to the opposite side of the rotation with `relocating = true` while keeping the rotation animation.
+- **`inferVelocity: true` (default)** — velocity is inferred from the rate of recent style updates. Use this when you drive the element manually (e.g. by dragging) and want the spring to pick up momentum from your motion. See the [Swipe](./demo/swipe/) demo: while the user drags, `disabled` is `true`, and on release the spring fires with the inferred drag velocity.
+- **`inferVelocity: false`** — velocity is left untouched, preserving the velocity of the previous spring animation. Use this when you want to teleport the element without disturbing momentum. See the [Picker](./demo/picker/) demo: scrolling the wheel wraps the picker around with `disabled: true, inferVelocity: false`, preserving the rotation momentum across the wrap.
+
+`inferVelocity` only takes effect while `disabled` is `true`. When `disabled` is `false`, the animation owns both value and velocity and `inferVelocity` is ignored.
 
 ## Spring Style Caveats
 
@@ -132,14 +135,15 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
 
 **Events**
 
 - `spring-finish`: Emitted when the animation completes visually (just after duration passes).
 - `spring-settle`: Emitted when the animation has fully settled (velocity decayed to zero).
 
-Events fire per animation cycle on the latest cycle only. If `spring-style` is updated mid-animation, the previous cycle is interrupted and its events are suppressed. Events are also suppressed while `disabled` or `relocating` is set.
+Events fire per animation cycle on the latest cycle only. If `spring-style` is updated mid-animation, the previous cycle is interrupted and its events are suppressed. Events are also suppressed while `disabled` is set.
 
 ```vue
 <script setup>
@@ -301,7 +305,8 @@ The options object expectes the following properties:
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
 
 It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
 

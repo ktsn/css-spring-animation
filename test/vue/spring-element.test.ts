@@ -88,6 +88,7 @@ describe('Spring Element', () => {
       bounce: 0.2,
       duration: 800,
       disabled: false,
+      inferVelocity: true,
       relocating: false,
     })
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 })

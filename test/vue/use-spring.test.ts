@@ -204,6 +204,35 @@ describe('useSpring', () => {
     expect(realVelocity.value.width[0]).toBeLessThan(0)
   })
 
+  test('keep last real velocity when disabled with inferVelocity=false', async () => {
+    const value = ref(10)
+    const disabled = ref(false)
+
+    const { realVelocity } = useSpring(
+      () => ({
+        width: value.value,
+      }),
+      () => ({
+        duration: 10,
+        disabled: disabled.value,
+        inferVelocity: false,
+      }),
+    )
+    expect(realVelocity.value.width).toEqual([0])
+
+    // Animate to negative direction
+    value.value = 0
+    await nextTick()
+
+    // Disable with inferVelocity=false to preserve current velocity
+    disabled.value = true
+    value.value = 30
+    await nextTick()
+
+    // Velocity should be kept as negative
+    expect(realVelocity.value.width[0]).toBeLessThan(0)
+  })
+
   test('return 0 as real velocity after stopped', async () => {
     const value = ref(10)
     const disabled = ref(false)

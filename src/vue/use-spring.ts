@@ -9,6 +9,7 @@ import {
   toRef,
   toValue,
   watch,
+  watchEffect,
 } from 'vue'
 import { AnimateValue, SpringOptions, createAnimateController } from '../core'
 import { isSameStyle } from '../core/controller'
@@ -17,6 +18,8 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 
 export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
+  inferVelocity?: boolean
+  /** @deprecated Use `disabled: true` with `inferVelocity: false` instead. */
   relocating?: boolean
 }
 
@@ -36,10 +39,29 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 ): UseSpringResult<Record<keyof Style, number[]>> {
   const input = computed(() => toValue(styleMapper))
   const optionsRef = computed(() => toValue(options) ?? {})
-  const disabled = computed(() => optionsRef.value.disabled ?? false)
-  const relocating = computed(() => optionsRef.value.relocating ?? false)
 
-  const stopped = computed((): boolean => disabled.value || relocating.value)
+  const disabled = computed(
+    () =>
+      (optionsRef.value.disabled ?? false) ||
+      (optionsRef.value.relocating ?? false),
+  )
+
+  const inferVelocity = computed(() => {
+    if (optionsRef.value.relocating) {
+      return false
+    }
+    return optionsRef.value.inferVelocity ?? true
+  })
+
+  let warnedRelocating = false
+  watchEffect(() => {
+    if (optionsRef.value.relocating && !warnedRelocating) {
+      warnedRelocating = true
+      console.warn(
+        '[css-spring-animation] `relocating` is deprecated. Use `disabled: true` with `inferVelocity: false` instead.',
+      )
+    }
+  })
 
   const style = ref<Record<string, string>>({})
 
@@ -79,18 +101,18 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   }
 
   watch(
-    [stopped, () => ({ ...input.value }), () => ({ ...optionsRef.value })],
-    ([stopped, input, options], [prevStopped, prevInput]) => {
-      if (stopped && !prevStopped) {
+    [disabled, () => ({ ...input.value }), () => ({ ...optionsRef.value })],
+    ([disabled, input, options], [prevDisabled, prevInput]) => {
+      if (disabled && !prevDisabled) {
         controller.stop({
-          keepVelocity: relocating.value,
+          keepVelocity: !inferVelocity.value,
         })
       }
 
       controller.setOptions(options)
 
       if (!isSameStyle(input, prevInput)) {
-        controller.setStyle(input, { animate: !stopped })
+        controller.setStyle(input, { animate: !disabled })
       }
     },
   )

@@ -40,7 +40,8 @@ const { style: sliderStyle, realValue } = useSpring(
     return {
       bounce: -0.2,
       duration: 300,
-      relocating: loopDirection.value !== undefined,
+      disabled: loopDirection.value !== undefined,
+      inferVelocity: false,
     }
   },
 )
