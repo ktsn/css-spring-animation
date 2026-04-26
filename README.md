@@ -134,11 +134,22 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `disabled`
 - `relocating`
 
+**Events**
+
+- `spring-finish`: Emitted when the animation completes visually (just after duration passes).
+- `spring-settle`: Emitted when the animation has fully settled (velocity decayed to zero).
+
+Events fire per animation cycle on the latest cycle only. If `spring-style` is updated mid-animation, the previous cycle is interrupted and its events are suppressed. Events are also suppressed while `disabled` or `relocating` is set.
+
 ```vue
 <script setup>
 import { spring } from '@css-spring-animation/vue'
 
 const position = ref(0)
+
+function onFinish() {
+  // ...
+}
 </script>
 
 <template>
@@ -148,6 +159,7 @@ const position = ref(0)
     }"
     :duration="600"
     :bounce="0.3"
+    @spring-finish="onFinish"
   ></spring.div>
 </template>
 ```
