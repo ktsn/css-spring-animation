@@ -17,8 +17,8 @@ const createSpringElement = (tagName: string) => {
     },
 
     emits: {
-      'spring-finish': () => true,
-      'spring-settle': () => true,
+      springFinish: () => true,
+      springSettle: () => true,
     },
 
     setup(props, { emit, slots }) {
@@ -47,13 +47,13 @@ const createSpringElement = (tagName: string) => {
 
           onFinishCurrent(({ stopped }) => {
             if (!stopped) {
-              emit('spring-finish')
+              emit('springFinish')
             }
           })
 
           onSettleCurrent(({ stopped }) => {
             if (!stopped) {
-              emit('spring-settle')
+              emit('springSettle')
             }
           })
         },
