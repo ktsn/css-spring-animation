@@ -1,55 +1,36 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSpring } from '../../src/vue'
+import { spring, springComputed, sv } from '../../src/vue'
 
 const pickerHeight = 240
 const itemHeight = 40
 
+const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
 const selectedIndex = ref(0)
 const loopDirection = ref<'up' | 'down'>()
 
-const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+const y = springComputed(() => {
+  const segmentHeight = itemHeight * hours.length
+  const centering = (pickerHeight - itemHeight) / 2
 
-const { style: sliderStyle, realValue } = useSpring(
-  () => {
-    const segmentHeight = itemHeight * hours.length
-    const centering = (pickerHeight - itemHeight) / 2
+  if (loopDirection.value) {
+    const realY = y.current()
+    const normalizedY = normalizeRealPosition(realY, segmentHeight, centering)
 
-    if (loopDirection.value) {
-      const realY = realValue.value.translate[1]!
-      const normalizedY = normalizeRealPosition(realY, segmentHeight, centering)
+    return loopDirection.value === 'up'
+      ? normalizedY - segmentHeight
+      : normalizedY + segmentHeight
+  }
 
-      if (loopDirection.value === 'up') {
-        return {
-          translate: `0px ${normalizedY - segmentHeight}px`,
-        }
-      } else {
-        return {
-          translate: `0px ${normalizedY + segmentHeight}px`,
-        }
-      }
-    }
-
-    const itemOffset = itemHeight * (hours.length + selectedIndex.value)
-
-    return {
-      translate: `0px ${centering - itemOffset}px`,
-    }
-  },
-  () => {
-    return {
-      bounce: -0.2,
-      duration: 300,
-      disabled: loopDirection.value !== undefined,
-      inferVelocity: false,
-    }
-  },
-)
+  const itemOffset = itemHeight * (hours.length + selectedIndex.value)
+  return centering - itemOffset
+})
 
 function normalizeRealPosition(
   y: number,
   segmentHeight: number,
-  centering,
+  centering: number,
 ): number {
   if (y <= -segmentHeight * 3 + centering) {
     return normalizeRealPosition(y + segmentHeight, segmentHeight, centering)
@@ -125,7 +106,14 @@ function onChange(event: Event, index: number): void {
     :style="{ height: `${pickerHeight}px` }"
     @wheel.prevent="onWheel"
   >
-    <div class="picker-slider" :style="sliderStyle">
+    <spring.div
+      class="picker-slider"
+      :spring-style="{ translate: sv`0px ${y}px` }"
+      :bounce="-0.2"
+      :duration="300"
+      :disabled="loopDirection !== undefined"
+      :infer-velocity="false"
+    >
       <label
         v-for="(hour, index) of [...hours, ...hours, ...hours]"
         :key="index"
@@ -140,7 +128,7 @@ function onChange(event: Event, index: number): void {
         />
         <span class="picker-item-label">{{ hour }}</span>
       </label>
-    </div>
+    </spring.div>
   </div>
 </template>
 

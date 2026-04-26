@@ -2,12 +2,15 @@ import { PropType, defineComponent, h, watch } from 'vue'
 import { AnimateValue } from '../core'
 import { isSameStyle } from '../core/controller'
 import { useSpring } from './use-spring'
+import { SpringStyleValue, resolveSpringStyle } from './spring-value'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({
     props: {
       springStyle: {
-        type: Object as PropType<Record<string, AnimateValue>>,
+        type: Object as PropType<
+          Record<string, AnimateValue | SpringStyleValue>
+        >,
         required: true,
       },
       bounce: Number,
@@ -43,7 +46,10 @@ const createSpringElement = (tagName: string) => {
           if (
             props.disabled ||
             props.relocating ||
-            isSameStyle(input, prevInput)
+            isSameStyle(
+              resolveSpringStyle(input),
+              resolveSpringStyle(prevInput),
+            )
           ) {
             return
           }

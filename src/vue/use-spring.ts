@@ -4,6 +4,7 @@ import {
   Ref,
   computed,
   nextTick,
+  onScopeDispose,
   readonly,
   ref,
   toRef,
@@ -13,6 +14,15 @@ import {
 } from 'vue'
 import { AnimateValue, SpringOptions, createAnimateController } from '../core'
 import { isSameStyle } from '../core/controller'
+import {
+  SpringComputed,
+  SpringStyleValue,
+  attachSpringValue,
+  detachSpringValue,
+  isSpringStyleValue,
+  isSpringValue,
+  resolveSpringStyle,
+} from './spring-value'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
@@ -33,11 +43,26 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
-export function useSpring<Style extends Record<string, AnimateValue>>(
+type UseSpringStyleEntry = AnimateValue | SpringStyleValue
+
+interface BindingLocation {
+  key: string
+  slotIndex: number
+}
+
+interface AttachmentRecord {
+  attachment: { readValue(): number; readVelocity(): number }
+  location: BindingLocation
+}
+
+export function useSpring<Style extends Record<string, UseSpringStyleEntry>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions>,
 ): UseSpringResult<Record<keyof Style, number[]>> {
-  const input = computed(() => toValue(styleMapper))
+  const rawInput = computed(() => toValue(styleMapper))
+
+  const input = computed(() => resolveSpringStyle(rawInput.value))
+
   const optionsRef = computed(() => toValue(options) ?? {})
 
   const disabled = computed(
@@ -65,14 +90,66 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   const style = ref<Record<string, string>>({})
 
-  const controller = createAnimateController<Style>((_style) => {
-    style.value = _style
-  })
+  const controller = createAnimateController<Record<keyof Style, AnimateValue>>(
+    (_style) => {
+      style.value = _style
+    },
+  )
   controller.setStyle(input.value)
   controller.setOptions(optionsRef.value)
 
   const realValue = toRef(() => controller.realValue)
   const realVelocity = toRef(() => controller.realVelocity)
+
+  const attachmentRecords = new Map<SpringComputed, AttachmentRecord>()
+
+  watchEffect(() => {
+    const raw = rawInput.value
+    const next = new Map<SpringComputed, BindingLocation>()
+    for (const key in raw) {
+      const v = raw[key] as UseSpringStyleEntry
+      if (isSpringStyleValue(v)) {
+        v.slots.forEach((slot, slotIndex) => {
+          if (isSpringValue(slot)) {
+            next.set(slot, { key, slotIndex })
+          }
+        })
+      }
+    }
+
+    for (const [sv, record] of attachmentRecords) {
+      const newLoc = next.get(sv)
+      if (
+        !newLoc ||
+        newLoc.key !== record.location.key ||
+        newLoc.slotIndex !== record.location.slotIndex
+      ) {
+        detachSpringValue(sv, record.attachment)
+        attachmentRecords.delete(sv)
+      }
+    }
+
+    for (const [sv, loc] of next) {
+      if (!attachmentRecords.has(sv)) {
+        const attachment = {
+          readValue: () =>
+            controller.realValue[loc.key as keyof Style]?.[loc.slotIndex] ?? 0,
+          readVelocity: () =>
+            controller.realVelocity[loc.key as keyof Style]?.[loc.slotIndex] ??
+            0,
+        }
+        attachSpringValue(sv, attachment)
+        attachmentRecords.set(sv, { attachment, location: loc })
+      }
+    }
+  })
+
+  onScopeDispose(() => {
+    for (const [sv, record] of attachmentRecords) {
+      detachSpringValue(sv, record.attachment)
+    }
+    attachmentRecords.clear()
+  })
 
   function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
     // Wait for the next tick to ensure that input changes in the same tick

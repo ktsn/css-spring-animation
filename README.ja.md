@@ -94,6 +94,55 @@ const moved = ref(false)
 </template>
 ```
 
+## `springValue` と `sv` タグ付きテンプレート
+
+`springValue` は単一の数値をアニメーションするためのリアクティブな値オブジェクトです。`sv` タグ付きテンプレートと組み合わせることで、`springValue` を CSS 値の中に埋め込めます。
+
+```vue
+<script setup>
+import { spring, springValue, sv } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+const y = springValue(0)
+
+function move() {
+  x.target = 200
+  y.target = 100
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
+```
+
+**`springValue(initial)`** が返すオブジェクトの API は次の通りです。
+
+- `target` — リアクティブな destination 値。`<spring>` 要素にバインドされているとき、代入によりスプリングアニメーションが起動します。バインド先の要素が `disabled: true` の場合、代入はアニメーションせずに即座に反映されます。
+- `current()` — 呼び出し時点の現在値を返すスナップショットメソッド。バインド中は spring 要素の現在のアニメーション値を、未バインド時は `target` を返します。
+- `velocity()` — 呼び出し時点の速度を返すスナップショットメソッド。バインド中は spring 要素の現在の速度を、未バインド時は `0` を返します。
+
+`current()` / `velocity()` をメソッド形式にしているのは、これらが requestAnimationFrame ごとに変化する生のスナップショットであり、Vue のリアクティビティには乗っていない、ということをシンタックスで示すためです。
+
+**`sv\`…\``** は `:spring-style` 用の値を構築するタグ付きテンプレートで、`springValue` インスタンスをスロットとして埋め込めます。アニメーション設定（`bounce`、`duration`、`disabled`、`inferVelocity`）はバインド先の `<spring>` 要素のプロパティで指定します。
+
+`springValue` は `<spring>` 要素に `:spring-style` 経由でバインドされている間のみアニメーションします。バインドされていない状態で `target` を変更しても、リアクティブな destination が更新されるだけでアニメーションは発生しません。
+
+**`springComputed(getter)`** は `springValue` の computed 版です。Vue の `computed` と同様に値を導出する関数を受け取り、その関数のリアクティブな依存先から `target` を自動的に算出します。インターフェースは `SpringValue` と同じで、`target` のみ `readonly` になります。`current()` / `velocity()` のスナップショットは `springValue` と同じ動作です。
+
+```ts
+import { springComputed } from '@css-spring-animation/vue'
+
+const offset = ref(0)
+const y = springComputed(() => offset.value * 2)
+// y.target は offset.value * 2 をリアクティブに反映する。代入は不可。
+```
+
 ## How It Works
 
 このライブラリはアニメーションの対象となるスタイルのプロパティに、経過時間のカスタムプロパティを含む、スプリングアニメーションの数式をセットしています（そのカスタムプロパティを `--t` とします）。そして、[`CSS.registerProperty`](https://developer.mozilla.org/en-US/docs/Web/API/CSS/registerProperty_static) を使って `--t` を登録し、そのプロパティに対して CSS トランジションを適用します。スプリングアニメーションの擬似コードは以下のようになります。
@@ -372,6 +421,67 @@ function move() {
   })
 }
 </script>
+```
+
+### `springValue(initial)` ファクトリ
+
+単一の数値をアニメーションするためのリアクティブな値オブジェクトを作成します。`sv` タグ付きテンプレートを介して `<spring>` 要素にバインドして使用します。
+
+**戻り値** のオブジェクトの API:
+
+- `target` (number, リアクティブ値、読み書き可) — アニメーションの destination 値。`<spring>` 要素にバインドされている状態で代入するとスプリングアニメーションが起動します。バインド先の要素が `disabled: true` の場合は即座に反映されます。
+- `current(): number` — 呼び出し時点の現在値を返すスナップショットメソッド。バインド中は spring 要素のコントローラから現在値を読み、未バインド時は `target` を返します。
+- `velocity(): number` — 呼び出し時点の速度を返すスナップショットメソッド。バインド中はコントローラの速度を、未バインド時は `0` を返します。
+
+```ts
+import { springValue } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+x.target = 100 // バインド中ならアニメーションが起動
+console.log(x.current(), x.velocity())
+```
+
+### `springComputed(getter)` ファクトリ
+
+`springValue` の computed 版。Vue の `computed` と同じく値を導出する関数を受け取り、`SpringComputed` を返します。インターフェースは `SpringValue` と同じですが、`target` が `readonly` になり、getter のリアクティブな依存先から自動的に算出されます。
+
+```ts
+import { springComputed } from '@css-spring-animation/vue'
+
+const offset = ref(0)
+const y = springComputed(() => offset.value * 2)
+// y.target は offset.value * 2 をリアクティブに反映する。代入は不可。
+```
+
+### `sv` タグ付きテンプレート
+
+`springValue` / `springComputed` のインスタンスをスロットとして埋め込んだ CSS 値を構築し、`:spring-style` 用の値を返すタグ付きテンプレートです。
+
+```ts
+import { sv } from '@css-spring-animation/vue'
+
+sv`${x}px ${y}px` // -> SpringStyleValue マーカー
+sv`translate(${x}px, ${y}px)`
+sv`scale(${x})`
+```
+
+このマーカーは `<spring>` 要素と `useSpring` の `:spring-style` で消費されます。アニメーション設定（`bounce`、`duration`、`disabled`、`inferVelocity`）はバインド先の `<spring>` 要素のプロパティで指定します。`springValue` / `springComputed` は `:spring-style` 経由でバインドされている間のみアニメーションします。
+
+```vue
+<script setup>
+import { spring, springValue, sv } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+const y = springValue(0)
+</script>
+
+<template>
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
 ```
 
 ### `v-spring-style`, `v-spring-options` ディレクティブ
