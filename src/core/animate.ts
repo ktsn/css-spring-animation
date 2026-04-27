@@ -64,16 +64,21 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     value: SpringComputed
   }> = []
 
+  const slotVelocities: Partial<Record<keyof T, number[]>> = {}
+
   const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
     const parsedFrom =
       typeof from === 'object' ? from : parseStyleValue(String(from))
     const parsedTo = typeof to === 'object' ? to : parseStyleValue(String(to))
 
+    const velocities: number[] = []
     parsedTo.values.forEach((v, i) => {
       if (isSpringValue(v)) {
         attachmentBindings.push({ key: key as keyof T, slotIndex: i, value: v })
+        velocities[i] = v.velocity()
       }
     })
+    slotVelocities[key as keyof T] = velocities
 
     return [snapshotParsed(parsedFrom), snapshotParsed(parsedTo)] as [
       ParsedStyleValue,
@@ -89,7 +94,19 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const inputValues = groupInputValues(parsedFromTo, options.velocity)
+  // Per-slot SpringValue velocities take precedence over options.velocity.
+  // Merge here so groupInputValues and canUseLinearTimingFunction agree on
+  // which velocity each slot uses.
+  const mergedVelocity: Partial<Record<keyof T, number[]>> = mapValues(
+    parsedFromTo,
+    ([_from, to], key) => {
+      const slotV = slotVelocities[key as keyof T] ?? []
+      const optV = options.velocity?.[key as keyof T] ?? []
+      return to.values.map((_v, i) => slotV[i] ?? optV[i] ?? 0)
+    },
+  )
+
+  const inputValues = groupInputValues(parsedFromTo, mergedVelocity)
 
   const settlingDurationList = Object.values(inputValues).flatMap((values) => {
     return values.map(({ from, to, velocity }) => {
@@ -124,7 +141,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 
   if (
     isCssLinearTimingFunctionSupported() &&
-    canUseLinearTimingFunction(parsedFromTo, options.velocity)
+    canUseLinearTimingFunction(parsedFromTo, mergedVelocity)
   ) {
     animateWithLinearTimingFunction({
       spring,
@@ -164,7 +181,7 @@ function groupInputValues<
   FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >(
   fromTo: FromTo,
-  velocity: Partial<Record<keyof FromTo, number[]>> | undefined,
+  velocity: Partial<Record<keyof FromTo, number[]>>,
 ): Record<keyof FromTo, InputValueGroup[]> {
   return mapValues(fromTo, ([from, to], key) => {
     // `from.values` and `to.values` here are post-snapshot — `animate()`
@@ -175,7 +192,7 @@ function groupInputValues<
         return {
           from,
           to,
-          velocity: velocity?.[key]?.[i] ?? 0,
+          velocity: velocity[key]?.[i] ?? 0,
         }
       },
     )

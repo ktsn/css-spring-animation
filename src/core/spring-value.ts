@@ -17,6 +17,7 @@ export interface SpringComputed {
   readonly target: number
   current(): number
   velocity(): number
+  setVelocity(v: number): void
 }
 
 export interface SpringValue extends SpringComputed {
@@ -29,6 +30,7 @@ interface InternalSpring {
   target: number
   current(): number
   velocity(): number
+  setVelocity(v: number): void
 }
 
 /**
@@ -57,16 +59,28 @@ export function createSpring(
   read: () => number,
   write?: (next: number) => void,
 ): InternalSpring {
+  let currentValue: number | undefined
+  let velocity = 0
+
   const obj = {
     [SPRING_VALUE_BRAND]: true as const,
     _attachment: undefined as Attachment | undefined,
 
     current(): number {
-      return obj._attachment ? obj._attachment.readValue() : read()
+      if (obj._attachment) return obj._attachment.readValue()
+      return currentValue ?? read()
     },
 
     velocity(): number {
-      return obj._attachment ? obj._attachment.readVelocity() : 0
+      return obj._attachment ? obj._attachment.readVelocity() : velocity
+    },
+
+    setVelocity(v: number): void {
+      if (obj._attachment) {
+        currentValue = obj._attachment.readValue()
+        obj._attachment = undefined
+      }
+      velocity = v
     },
   }
 
@@ -76,7 +90,15 @@ export function createSpring(
     configurable: false,
   }
   if (write) {
-    descriptor.set = write
+    descriptor.set = (next: number) => {
+      if (obj._attachment) {
+        currentValue = obj._attachment.readValue()
+        obj._attachment = undefined
+      } else {
+        currentValue = next
+      }
+      write(next)
+    }
   }
   Object.defineProperty(obj, 'target', descriptor)
 

@@ -5,7 +5,7 @@ import {
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
-import { attachSpringValue, isSpringValue } from './spring-value'
+import { isSpringValue } from './spring-value'
 import { t } from './time'
 import { mapValues } from './utils'
 
@@ -111,37 +111,24 @@ export function createAnimateController<
       return prev ? completeParsedStyleUnit(parsed, prev) : parsed
     })
 
-    // Attach every SpringComputed slot to read from this controller's state.
-    // Mirrors the public realValue / realVelocity getters so reads stay
-    // correct across animating, disabled (pseudo ctx + valueHistory), and
-    // stopped states. Re-attaching every call also handles slot replacement.
-    // `animate()` may overwrite this attachment with its own ctx-scoped one
-    // when it runs — that's intentional, so standalone `animate()` callers
-    // also see live values.
-    for (const key in parsedStyle) {
-      const styleKey = key as keyof Style
-      parsedStyle[styleKey].values.forEach((slot, slotIndex) => {
-        if (isSpringValue(slot)) {
-          attachSpringValue(slot, {
-            readValue: () =>
-              ctx
-                ? (ctx.realValue[styleKey]?.[slotIndex] ?? 0)
-                : ((style?.[styleKey]?.values[slotIndex] as
-                    | number
-                    | undefined) ?? 0),
-            readVelocity: () =>
-              style
-                ? (getRealVelocity(style)[styleKey]?.[slotIndex] ?? 0)
-                : 0,
-          })
-        }
-      })
-    }
-
     const parsedStyleSnap = mapValues(parsedStyle, snapshotParsed)
 
     if (style && isSameStyle(style, parsedStyleSnap)) {
       return ctx ?? createContext(style)
+    }
+
+    // Write inferred velocity onto every SpringComputed slot. After the
+    // isSameStyle early-return so a no-op call doesn't detach an in-flight
+    // attachment. SpringValue.setVelocity() snapshots+detaches if attached;
+    // animate() will re-attach below.
+    const inferredVelocity = params.velocity ?? getRealVelocity(parsedStyle)
+    for (const key in parsedStyle) {
+      const styleKey = key as keyof Style
+      parsedStyle[styleKey].values.forEach((slot, slotIndex) => {
+        if (isSpringValue(slot)) {
+          slot.setVelocity(inferredVelocity[styleKey]?.[slotIndex] ?? 0)
+        }
+      })
     }
 
     let prev = style
@@ -172,7 +159,6 @@ export function createAnimateController<
       prev = updateValues(prev, ctx.realValue)
     }
 
-    const velocity = params.velocity ?? getRealVelocity(style)
     const fromTo = mapValues(parsedStyle, (toV, key) => {
       return [prev![key], toV] as [ParsedStyleValue, ParsedStyleValue]
     })
@@ -183,7 +169,7 @@ export function createAnimateController<
 
     ctx = animate(fromTo, set, {
       ...options,
-      velocity,
+      velocity: inferredVelocity,
     })
     keptVelocity = undefined
     valueHistory = []

@@ -52,6 +52,20 @@ describe('springValue', () => {
     x.target = 42
     expect(x.velocity()).toBe(0)
   })
+
+  test('setVelocity sets velocity when unbound', () => {
+    const x = springValue(0)
+    x.setVelocity(5)
+    expect(x.velocity()).toBe(5)
+  })
+
+  test('setting target preserves manually set velocity when unbound', () => {
+    const x = springValue(0)
+    x.setVelocity(5)
+    x.target = 50
+    expect(x.velocity()).toBe(5)
+    expect(x.current()).toBe(50)
+  })
 })
 
 describe('sv tagged template', () => {
@@ -329,6 +343,39 @@ describe('springValue bound to <spring.div>', () => {
     // static "0" sitting earlier in the parsed value array.
     expect(x.current()).not.toBe(0)
     expect(x.current()).not.toBe(100)
+  })
+
+  test('setVelocity snapshots and detaches when bound', async () => {
+    const root = document.createElement('div')
+    const x = springValue(0)
+    const app = createApp({
+      template: `
+        <springp :spring-style="{ translate: svExpr }" :duration="100">
+          Hello
+        </springp>
+      `,
+      components: { springp: spring.p! },
+      setup() {
+        return { svExpr: sv`${x}px` }
+      },
+    })
+    app.mount(root)
+
+    x.target = 100
+    await nextTick()
+
+    // Mid-animation: while attached, current() reflects ctx.
+    const liveCurrent = x.current()
+    expect(liveCurrent).not.toBe(0)
+    expect(liveCurrent).not.toBe(100)
+
+    x.setVelocity(99)
+
+    // After setVelocity, the SpringValue is detached. current() returns
+    // the snapshot taken at detach time; velocity() returns the just-set
+    // value.
+    expect(x.current()).toBeCloseTo(liveCurrent, 1)
+    expect(x.velocity()).toBe(99)
   })
 
   test('static numeric slot is preserved through resolution', async () => {
