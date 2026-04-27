@@ -1,7 +1,8 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { createApp, nextTick, ref, watchEffect } from 'vue'
 import { spring } from '../../src/vue/spring-element'
-import { springComputed, springValue, sv } from '../../src/vue/spring-value'
+import { springComputed, springValue } from '../../src/vue/spring-value'
+import { sv } from '../../src/core/spring-value'
 import { AnimationController } from '../../src/core'
 
 let mockController: Record<keyof AnimationController<any>, any>
@@ -58,9 +59,9 @@ describe('sv tagged template', () => {
     const x = springValue(10)
     const result = sv`${x}px`
 
-    expect(result.template.wraps).toEqual(['', ''])
-    expect(result.template.units).toEqual(['px'])
-    expect(result.slots).toEqual([x])
+    expect(result.wraps).toEqual(['', ''])
+    expect(result.units).toEqual(['px'])
+    expect(result.values).toEqual([x])
   })
 
   test('multiple SpringValues', () => {
@@ -68,36 +69,36 @@ describe('sv tagged template', () => {
     const y = springValue(2)
     const result = sv`translate(${x}px, ${y}px)`
 
-    expect(result.template.wraps).toEqual(['translate(', ', ', ')'])
-    expect(result.template.units).toEqual(['px', 'px'])
-    expect(result.slots).toEqual([x, y])
+    expect(result.wraps).toEqual(['translate(', ', ', ')'])
+    expect(result.units).toEqual(['px', 'px'])
+    expect(result.values).toEqual([x, y])
   })
 
   test('static + dynamic mix', () => {
     const x = springValue(10)
     const result = sv`${x}px ${20}px`
 
-    expect(result.template.wraps).toEqual(['', ' ', ''])
-    expect(result.template.units).toEqual(['px', 'px'])
-    expect(result.slots).toEqual([x, 20])
+    expect(result.wraps).toEqual(['', ' ', ''])
+    expect(result.units).toEqual(['px', 'px'])
+    expect(result.values).toEqual([x, 20])
   })
 
   test('string interpolation appends to wrap', () => {
     const x = springValue(10)
     const result = sv`${'translate('}${x}px${')'}`
 
-    expect(result.template.wraps).toEqual(['translate(', ')'])
-    expect(result.template.units).toEqual(['px'])
-    expect(result.slots).toEqual([x])
+    expect(result.wraps).toEqual(['translate(', ')'])
+    expect(result.units).toEqual(['px'])
+    expect(result.values).toEqual([x])
   })
 
   test('no unit after slot', () => {
     const x = springValue(10)
     const result = sv`scale(${x})`
 
-    expect(result.template.wraps).toEqual(['scale(', ')'])
-    expect(result.template.units).toEqual([''])
-    expect(result.slots).toEqual([x])
+    expect(result.wraps).toEqual(['scale(', ')'])
+    expect(result.units).toEqual([''])
+    expect(result.values).toEqual([x])
   })
 
   test('static number in template text becomes a slot', () => {
@@ -107,9 +108,9 @@ describe('sv tagged template', () => {
     // The literal "0" is extracted so slot indices align with the
     // controller's parsed value array (otherwise x's binding would
     // read the static 0 instead of x's animating value).
-    expect(result.template.wraps).toEqual(['', ' ', ''])
-    expect(result.template.units).toEqual(['px', 'px'])
-    expect(result.slots).toEqual([0, x])
+    expect(result.wraps).toEqual(['', ' ', ''])
+    expect(result.units).toEqual(['px', 'px'])
+    expect(result.values).toEqual([0, x])
   })
 })
 
@@ -134,10 +135,12 @@ describe('springValue bound to <spring.div>', () => {
     x.target = 100
     await nextTick()
 
-    expect(mockController.setStyle).toHaveBeenLastCalledWith(
-      { translate: '100px' },
-      { animate: true },
-    )
+    // setStyle is called with the raw ParsedStyleValue carrying the
+    // SpringComputed slot — `animate()` snapshots and attaches it.
+    const calls = mockController.setStyle.mock.calls
+    const [styleArg, optsArg] = calls[calls.length - 1]
+    expect(styleArg.translate.values[0].target).toBe(100)
+    expect(optsArg).toEqual({ animate: true })
   })
 
   test('current() reads from controller when bound', async () => {
@@ -183,6 +186,39 @@ describe('springValue bound to <spring.div>', () => {
 
     x.target = 100
     await nextTick()
+    expect(x.velocity()).not.toBe(0)
+  })
+
+  test('velocity() reflects drag motion while disabled (swipe regression)', async () => {
+    const root = document.createElement('div')
+    const x = springValue(0)
+    const app = createApp({
+      template: `
+        <springp :spring-style="{ translate: svExpr }" disabled>
+          Hello
+        </springp>
+      `,
+      components: { springp: spring.p! },
+      setup() {
+        return { svExpr: sv`${x}px` }
+      },
+    })
+    app.mount(root)
+    await nextTick()
+
+    // Simulate drag-style updates — each target change triggers a
+    // setStyle(animate: false) that pushes into the controller's
+    // valueHistory.
+    x.target = 10
+    await nextTick()
+    x.target = 30
+    await nextTick()
+    x.target = 60
+    await nextTick()
+
+    // Synchronous read like the swipe demo's pointerup handler. Without
+    // the controller-scoped attachment, _attachment is unset/stale here
+    // and velocity() collapses to 0.
     expect(x.velocity()).not.toBe(0)
   })
 
@@ -235,7 +271,7 @@ describe('springValue bound to <spring.div>', () => {
     expect(y.current()).toBe(20)
   })
 
-  test('unmount detaches: current() falls back to target', async () => {
+  test('unmount: current() returns the stopped snapshot, not target', async () => {
     const root = document.createElement('div')
     const x = springValue(0)
     const app = createApp({
@@ -259,11 +295,14 @@ describe('springValue bound to <spring.div>', () => {
 
     app.unmount()
 
-    // After unmount the springValue is detached. With no attached
-    // controller and no animation running, current() / velocity() fall
-    // back to the underlying target ref / 0.
+    // After unmount the controller is stopped, but the springValue
+    // remains attached. current() reads from the (now-frozen) ctx and
+    // returns the snapshot at stop time, NOT the writable target ref.
+    const frozen = x.current()
+
     x.target = 50
-    expect(x.current()).toBe(50)
+    expect(x.current()).toBe(frozen)
+    expect(x.target).toBe(50)
     expect(x.velocity()).toBe(0)
   })
 
@@ -362,10 +401,10 @@ describe('springComputed', () => {
 
     source.value = 100
     await nextTick()
-    expect(mockController.setStyle).toHaveBeenLastCalledWith(
-      { translate: '100px' },
-      { animate: true },
-    )
+    const calls = mockController.setStyle.mock.calls
+    const [styleArg, optsArg] = calls[calls.length - 1]
+    expect(styleArg.translate.values[0].target).toBe(100)
+    expect(optsArg).toEqual({ animate: true })
   })
 
   test('current() reads from controller when bound', async () => {

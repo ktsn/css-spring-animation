@@ -25,4 +25,18 @@ export type { SpringGenerator, SpringGeneratorResult } from './spring'
 export { interpolateParsedStyle } from './style'
 export type { ParsedStyleValue } from './style'
 
+export {
+  attachSpringValue,
+  isSpringStyleValue,
+  isSpringValue,
+  resolveSpringStyle,
+  resolveSpringStyleValue,
+  sv,
+} from './spring-value'
+export type {
+  SpringComputed,
+  SpringStyleValue,
+  SpringValue,
+} from './spring-value'
+
 export * from './utils'

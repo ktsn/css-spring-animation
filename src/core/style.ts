@@ -10,6 +10,7 @@ import {
   regexp,
   seq,
 } from './combinator'
+import type { SpringComputed } from './spring-value'
 
 export interface ParsedStyleTemplate {
   units: string[]
@@ -17,7 +18,7 @@ export interface ParsedStyleTemplate {
 }
 
 export interface ParsedStyleValue extends ParsedStyleTemplate {
-  values: number[]
+  values: (number | SpringComputed)[]
 }
 
 type Token = CharToken | NumberToken | HexColorToken
@@ -42,6 +43,14 @@ interface HexColorToken {
 }
 
 const unit = regexp(/^([a-z%]+)/)
+
+export function parseLeadingUnit(text: string): { unit: string; rest: string } {
+  const result = unit(text)
+  if (!result.ok) {
+    return { unit: '', rest: text }
+  }
+  return { unit: result.value, rest: result.rest }
+}
 
 const parser: Parser<Token[]> = (value) => {
   const numberWithUnit = map(

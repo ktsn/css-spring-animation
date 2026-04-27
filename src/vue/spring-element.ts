@@ -2,7 +2,7 @@ import { PropType, defineComponent, h, watch } from 'vue'
 import { AnimateValue } from '../core'
 import { isSameStyle } from '../core/controller'
 import { useSpring } from './use-spring'
-import { SpringStyleValue, resolveSpringStyle } from './spring-value'
+import { SpringStyleValue, resolveSpringStyle } from '../core/spring-value'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({

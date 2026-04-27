@@ -20,6 +20,11 @@ import {
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
+import {
+  SpringComputed,
+  attachSpringValue,
+  isSpringValue,
+} from './spring-value'
 
 export type AnimateValue = number | string | ParsedStyleValue
 
@@ -53,12 +58,27 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<keyof T> = {},
 ): AnimateContext<keyof T> {
-  const parsedFromTo = mapValues(fromTo, ([from, to]) => {
+  const attachmentBindings: Array<{
+    key: keyof T
+    slotIndex: number
+    value: SpringComputed
+  }> = []
+
+  const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
     const parsedFrom =
       typeof from === 'object' ? from : parseStyleValue(String(from))
     const parsedTo = typeof to === 'object' ? to : parseStyleValue(String(to))
 
-    return [parsedFrom, parsedTo] as [ParsedStyleValue, ParsedStyleValue]
+    parsedTo.values.forEach((v, i) => {
+      if (isSpringValue(v)) {
+        attachmentBindings.push({ key: key as keyof T, slotIndex: i, value: v })
+      }
+    })
+
+    return [snapshotParsed(parsedFrom), snapshotParsed(parsedTo)] as [
+      ParsedStyleValue,
+      ParsedStyleValue,
+    ]
   })
 
   const duration = options.duration ?? 1000
@@ -94,6 +114,13 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     settlingDuration,
     set,
   })
+
+  for (const { key, slotIndex, value } of attachmentBindings) {
+    attachSpringValue(value, {
+      readValue: () => ctx.realValue[key]?.[slotIndex] ?? 0,
+      readVelocity: () => ctx.realVelocity[key]?.[slotIndex] ?? 0,
+    })
+  }
 
   if (
     isCssLinearTimingFunctionSupported() &&
@@ -140,13 +167,18 @@ function groupInputValues<
   velocity: Partial<Record<keyof FromTo, number[]>> | undefined,
 ): Record<keyof FromTo, InputValueGroup[]> {
   return mapValues(fromTo, ([from, to], key) => {
-    return zip(from.values, to.values).map(([from, to], i) => {
-      return {
-        from,
-        to,
-        velocity: velocity?.[key]?.[i] ?? 0,
-      }
-    })
+    // `from.values` and `to.values` here are post-snapshot — `animate()`
+    // resolves SpringComputed slots before calling this, so the values are
+    // guaranteed numeric.
+    return zip(from.values as number[], to.values as number[]).map(
+      ([from, to], i) => {
+        return {
+          from,
+          to,
+          velocity: velocity?.[key]?.[i] ?? 0,
+        }
+      },
+    )
   })
 }
 
@@ -199,10 +231,10 @@ function animateWithLinearTimingFunction({
   const fromStyle = mapValues(fromTo, ([from, to]) => {
     // Skip animation if the value is not consistent
     if (from.values.length !== to.values.length) {
-      return interpolateParsedStyle(to, to.values)
+      return interpolateParsedStyle(to, to.values as number[])
     }
 
-    return interpolateParsedStyle(from, from.values)
+    return interpolateParsedStyle(from, from.values as number[])
   })
 
   set({
@@ -213,7 +245,7 @@ function animateWithLinearTimingFunction({
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       const toStyle = mapValues(fromTo, ([_from, to]) => {
-        return interpolateParsedStyle(to, to.values)
+        return interpolateParsedStyle(to, to.values as number[])
       })
 
       const transitionValues = mapValues(inputValues, (values) => {
@@ -273,7 +305,7 @@ function animateWithCssCustomPropertyMath({
   const style = mapValues(fromTo, ([from, to], key) => {
     // Skip animation if the value is not consistent
     if (from.values.length !== to.values.length) {
-      return interpolateParsedStyle(to, to.values)
+      return interpolateParsedStyle(to, to.values as number[])
     }
 
     const values = inputValues[key]!
@@ -324,7 +356,7 @@ function animateWithRaf({
     const style = mapValues(fromTo, ([from, to], key) => {
       // Skip animation if the value is not consistent
       if (from.values.length !== to.values.length) {
-        return interpolateParsedStyle(to, to.values)
+        return interpolateParsedStyle(to, to.values as number[])
       }
 
       const realValue = context.realValue[key]
@@ -425,7 +457,7 @@ function createContext<
           enumerable: true,
           get(): number[] {
             if (ctx.settled && ctx.stoppedDuration === undefined) {
-              return to.values
+              return to.values as number[]
             }
 
             const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
@@ -476,4 +508,12 @@ function createContext<
   }
 
   return ctx
+}
+
+function snapshotParsed(p: ParsedStyleValue): ParsedStyleValue {
+  return {
+    wraps: p.wraps,
+    units: p.units,
+    values: p.values.map((v) => (isSpringValue(v) ? v.target : v)),
+  }
 }
