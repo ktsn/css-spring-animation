@@ -5,12 +5,49 @@ import {
   parseStyleValue,
 } from './style'
 import type { AnimateValue } from './animate'
+import { Spring, evaluateSpring, evaluateSpringVelocity } from './spring'
 
 const SPRING_VALUE_BRAND: unique symbol = Symbol('springValue')
 
-interface Attachment {
-  readValue(): number
-  readVelocity(): number
+export interface Attachment {
+  spring: Spring
+  from: number
+  to: number
+  initialVelocity: number
+  startTime: number
+  duration: number
+  ctx: { settled: boolean; stoppedDuration: number | undefined }
+}
+
+export function evaluateAttachmentValue(a: Attachment): number {
+  if (a.ctx.settled && a.ctx.stoppedDuration === undefined) {
+    return a.to
+  }
+
+  const elapsed = a.ctx.stoppedDuration ?? performance.now() - a.startTime
+  const time = elapsed / a.duration
+
+  return evaluateSpring(a.spring, {
+    from: a.from,
+    to: a.to,
+    initialVelocity: a.initialVelocity,
+    time,
+  })
+}
+
+export function evaluateAttachmentVelocity(a: Attachment): number {
+  if (a.ctx.settled) {
+    return 0
+  }
+
+  const time = (performance.now() - a.startTime) / a.duration
+
+  return evaluateSpringVelocity(a.spring, {
+    from: a.from,
+    to: a.to,
+    initialVelocity: a.initialVelocity,
+    time,
+  })
 }
 
 export interface SpringComputed {
@@ -55,6 +92,18 @@ export function isSpringStyleValue(value: unknown): value is ParsedStyleValue {
   )
 }
 
+/**
+ * Wrap a plain numeric slot in a frozen `SpringComputed` whose `target`
+ * mirrors the number. Existing `SpringComputed` values pass through
+ * unchanged. Lets the controller and `animate()` route every parsed slot
+ * through the SpringValue evaluation path uniformly.
+ */
+export function ensureSpring(value: number | SpringComputed): SpringComputed {
+  if (isSpringValue(value)) return value
+  const num = value
+  return createSpring(() => num)
+}
+
 export function createSpring(
   read: () => number,
   write?: (next: number) => void,
@@ -67,17 +116,21 @@ export function createSpring(
     _attachment: undefined as Attachment | undefined,
 
     current(): number {
-      if (obj._attachment) return obj._attachment.readValue()
+      if (obj._attachment) {
+        return evaluateAttachmentValue(obj._attachment)
+      }
       return currentValue ?? read()
     },
 
     velocity(): number {
-      return obj._attachment ? obj._attachment.readVelocity() : velocity
+      return obj._attachment
+        ? evaluateAttachmentVelocity(obj._attachment)
+        : velocity
     },
 
     setVelocity(v: number): void {
       if (obj._attachment) {
-        currentValue = obj._attachment.readValue()
+        currentValue = evaluateAttachmentValue(obj._attachment)
         obj._attachment = undefined
       }
       velocity = v
@@ -92,7 +145,10 @@ export function createSpring(
   if (write) {
     descriptor.set = (next: number) => {
       if (obj._attachment) {
-        currentValue = obj._attachment.readValue()
+        // Capture both position and velocity so the next animation can
+        // pick up smoothly from the user's takeover point.
+        currentValue = evaluateAttachmentValue(obj._attachment)
+        velocity = evaluateAttachmentVelocity(obj._attachment)
         obj._attachment = undefined
       } else {
         currentValue = next

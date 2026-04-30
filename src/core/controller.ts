@@ -5,7 +5,7 @@ import {
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
-import { isSpringValue } from './spring-value'
+import { SpringComputed, ensureSpring, isSpringValue } from './spring-value'
 import { t } from './time'
 import { mapValues } from './utils'
 
@@ -46,6 +46,11 @@ export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
   let style: Record<keyof Style, ParsedStyleValue> | undefined
+  // Per-slot SpringComputed for the most recently committed style. User
+  // SpringValues pass through, plain numerics get wrapped via ensureSpring,
+  // and animate() attaches each slot to a per-slot Attachment. realValue /
+  // realVelocity / inferredVelocity all derive from this record.
+  let liveSlots: Record<keyof Style, SpringComputed[]> | undefined
   let options: SpringOptions = {}
 
   let keptVelocity: Record<keyof Style, number[]> | undefined
@@ -53,6 +58,20 @@ export function createAnimateController<
 
   // Pseudo context for intiial state (before triggering animation)
   let ctx: AnimateContext<keyof Style> | undefined
+
+  function liveRealValue(): Record<keyof Style, number[]> {
+    if (!liveSlots) {
+      throw new Error('style is not set yet. Call setStyle() first.')
+    }
+    return mapValues(liveSlots, (slots) => slots.map((s) => s.current()))
+  }
+
+  function liveRealVelocity(): Record<keyof Style, number[]> {
+    if (!liveSlots) {
+      throw new Error('style is not set yet. Call setStyle() first.')
+    }
+    return mapValues(liveSlots, (slots) => slots.map((s) => s.velocity()))
+  }
 
   function getRealVelocity(
     next: Record<keyof Style, ParsedStyleValue>,
@@ -66,10 +85,11 @@ export function createAnimateController<
       return velocity
     }
 
-    if (ctx) {
-      const realVelocity = ctx.realVelocity
+    if (ctx && liveSlots) {
+      const slotsRef = liveSlots
       return mapValues(next, (value, key) => {
-        return value.values.map((_, i) => realVelocity[key]?.[i] ?? 0)
+        const keySlots = slotsRef[key]
+        return value.values.map((_, i) => keySlots?.[i]?.velocity() ?? 0)
       })
     }
 
@@ -77,15 +97,15 @@ export function createAnimateController<
   }
 
   function stop({ keepVelocity }: StopOptions = {}): void {
-    keptVelocity = keepVelocity && ctx ? { ...ctx.realVelocity } : undefined
+    keptVelocity = keepVelocity && liveSlots ? liveRealVelocity() : undefined
 
     if (ctx && !ctx.settled) {
       ctx.stop()
     }
 
     if (style) {
-      style = ctx ? updateValues(style, ctx.realValue) : style
-      ctx = createContext(style)
+      style = liveSlots ? updateValues(style, liveRealValue()) : style
+      ctx = createContext()
     }
 
     valueHistory = []
@@ -97,11 +117,8 @@ export function createAnimateController<
   ): AnimateContext<keyof Style> {
     const isAnimate = params.animate ?? true
 
-    // `parsedStyle` may carry SpringComputed slots in `.values`. We pass
-    // it as-is to `animate()` (which walks the `to` side to attach
-    // SpringValues), but store only a numeric snapshot in `style` so the
-    // next call's `prev` reflects the values that *were* set this turn,
-    // not the live SpringComputed targets read at that future moment.
+    // Parse each input. `parsedStyle.values` may carry user-provided
+    // SpringComputed slots alongside plain numerics from parseStyleValue.
     const parsedStyle = mapValues(nextStyle, (value, key) => {
       const prev = style?.[key]
       const parsed: ParsedStyleValue =
@@ -114,17 +131,42 @@ export function createAnimateController<
     const parsedStyleSnap = mapValues(parsedStyle, snapshotParsed)
 
     if (style && isSameStyle(style, parsedStyleSnap)) {
-      return ctx ?? createContext(style)
+      return ctx ?? createContext()
     }
 
-    // Write inferred velocity onto every SpringComputed slot. After the
-    // isSameStyle early-return so a no-op call doesn't detach an in-flight
-    // attachment. SpringValue.setVelocity() snapshots+detaches if attached;
-    // animate() will re-attach below.
-    const inferredVelocity = params.velocity ?? getRealVelocity(parsedStyle)
-    for (const key in parsedStyle) {
+    // Wrap every numeric slot in a SpringComputed (user-provided ones pass
+    // through), then build `wrappedParsedStyle` carrying only SpringComputed
+    // values. `newSlots` mirrors that for `liveSlots` updates. `liveSlots`
+    // is still the previous record at this point — used below for inferred
+    // velocity and prev-value lookups.
+    const newSlots: Record<keyof Style, SpringComputed[]> = {} as Record<
+      keyof Style,
+      SpringComputed[]
+    >
+    const wrappedParsedStyle = mapValues(
+      parsedStyle,
+      (parsed, key): ParsedStyleValue => {
+        const wrapped = parsed.values.map((v) => ensureSpring(v))
+        newSlots[key as keyof Style] = wrapped
+        return {
+          wraps: parsed.wraps,
+          units: parsed.units,
+          values: wrapped,
+        }
+      },
+    )
+
+    // Inferred velocity falls back to the previous animation's per-slot
+    // velocity via the OLD `liveSlots` (still in place here).
+    const inferredVelocity =
+      params.velocity ?? getRealVelocity(wrappedParsedStyle)
+
+    // Write inferred velocity onto every NEW slot. SpringValue.setVelocity
+    // snapshots+detaches any current attachment; animate() will re-attach
+    // below.
+    for (const key in wrappedParsedStyle) {
       const styleKey = key as keyof Style
-      parsedStyle[styleKey].values.forEach((slot, slotIndex) => {
+      wrappedParsedStyle[styleKey].values.forEach((slot, slotIndex) => {
         if (isSpringValue(slot)) {
           slot.setVelocity(inferredVelocity[styleKey]?.[slotIndex] ?? 0)
         }
@@ -138,7 +180,8 @@ export function createAnimateController<
       if (ctx && !ctx.settled) {
         ctx.stop()
       }
-      ctx = createContext(style)
+      liveSlots = newSlots
+      ctx = createContext()
       set({
         ...stringifyStyle(style),
         transition: '',
@@ -155,11 +198,16 @@ export function createAnimateController<
       return ctx
     }
 
-    if (ctx && !ctx.settled) {
-      prev = updateValues(prev, ctx.realValue)
+    // Capture the current animating values from the OLD slots before we
+    // hand off to the new ones — those become the `from` side of the new
+    // animation.
+    if (ctx && !ctx.settled && liveSlots) {
+      prev = updateValues(prev, liveRealValue())
     }
 
-    const fromTo = mapValues(parsedStyle, (toV, key) => {
+    liveSlots = newSlots
+
+    const fromTo = mapValues(wrappedParsedStyle, (toV, key) => {
       return [prev![key], toV] as [ParsedStyleValue, ParsedStyleValue]
     })
 
@@ -211,15 +259,7 @@ export function createAnimateController<
 
   return {
     get realValue() {
-      if (ctx) {
-        return ctx.realValue
-      }
-
-      if (style) {
-        return mapValues(style, snapshotValues)
-      }
-
-      throw new Error('style is not set yet. Call setStyle() first.')
+      return liveRealValue()
     },
 
     get realVelocity() {
@@ -299,15 +339,13 @@ function snapshotParsed(value: ParsedStyleValue): ParsedStyleValue {
 }
 
 /**
- * Create a pseudo context for the state when no animation is triggered.
- * It is used for initial state and disabled state.
+ * Create a pseudo context for the state when no animation is running. The
+ * SpringComputed slots in `liveSlots` carry their own values via the
+ * snapshot path (no attachment), so the pseudo ctx is just the lifecycle
+ * marker — settled, no live animation.
  */
-function createContext<Style extends Record<string, ParsedStyleValue>>(
-  value: Style,
-): AnimateContext<keyof Style> {
+function createContext<Style>(): AnimateContext<keyof Style> {
   return {
-    realValue: mapValues(value, snapshotValues),
-    realVelocity: mapValues(value, (v) => new Array(v.values.length).fill(0)),
     finished: true,
     settled: true,
     finishingPromise: Promise.resolve(),
