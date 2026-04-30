@@ -1,4 +1,5 @@
 import {
+  ParsedStyleTemplate,
   ParsedStyleValue,
   interpolateParsedStyle,
   parseLeadingUnit,
@@ -70,10 +71,9 @@ interface InternalSpring {
   setVelocity(v: number): void
 }
 
-/**
- * @deprecated Use `ParsedStyleValue` directly — the two types are unified.
- */
-export type SpringStyleValue = ParsedStyleValue
+export interface SpringStyleValue extends ParsedStyleTemplate {
+  values: SpringComputed[]
+}
 
 export function isSpringValue(value: unknown): value is SpringComputed {
   return (
@@ -83,12 +83,12 @@ export function isSpringValue(value: unknown): value is SpringComputed {
   )
 }
 
-export function isSpringStyleValue(value: unknown): value is ParsedStyleValue {
+export function isSpringStyleValue(value: unknown): value is SpringStyleValue {
   return (
     typeof value === 'object' &&
     value !== null &&
-    Array.isArray((value as ParsedStyleValue).values) &&
-    (value as ParsedStyleValue).values.some(isSpringValue)
+    Array.isArray((value as SpringStyleValue).values) &&
+    (value as SpringStyleValue).values.every(isSpringValue)
   )
 }
 
@@ -173,10 +173,10 @@ type SvInterpolation = number | string | SpringComputed
 export function sv(
   strings: TemplateStringsArray,
   ...values: SvInterpolation[]
-): ParsedStyleValue {
+): SpringStyleValue {
   const wraps: string[] = []
   const units: string[] = []
-  const slots: (number | SpringComputed)[] = []
+  const slots: SpringComputed[] = []
   let cur = ''
 
   // Run each static template chunk through `parseStyleValue` so any embedded
@@ -189,7 +189,7 @@ export function sv(
       cur += parsed.wraps[i] ?? ''
       wraps.push(cur)
       units.push(parsed.units[i] ?? '')
-      slots.push(parsed.values[i]!)
+      slots.push(ensureSpring(parsed.values[i]!))
       cur = ''
     }
     cur += parsed.wraps[parsed.values.length] ?? ''
@@ -211,7 +211,7 @@ export function sv(
 
     wraps.push(cur)
     units.push(unit)
-    slots.push(v as number | SpringComputed)
+    slots.push(typeof v === 'number' ? ensureSpring(v) : v!)
     cur = ''
     consumeStatic(rest)
   }
@@ -225,10 +225,38 @@ export function sv(
   }
 }
 
-function snapshotValues(
-  values: readonly (number | SpringComputed)[],
-): number[] {
-  return values.map((v) => (isSpringValue(v) ? v.target : v))
+/**
+ * Lift a parser-produced `ParsedStyleValue` (numeric slots) into a
+ * `SpringStyleValue` by wrapping each number in a constant `SpringComputed`.
+ * Already-spring slots pass through unchanged.
+ */
+export function liftToSpring(value: {
+  wraps: string[]
+  units: string[]
+  values: readonly (number | SpringComputed)[]
+}): SpringStyleValue {
+  return {
+    wraps: value.wraps,
+    units: value.units,
+    values: value.values.map((v) => ensureSpring(v)),
+  }
+}
+
+function snapshotValues(values: readonly SpringComputed[]): number[] {
+  return values.map((s) => s.target)
+}
+
+/**
+ * Snapshot a `SpringStyleValue` into a numeric `ParsedStyleValue` by reading
+ * each slot's `target`. Used by `animate()` and the controller to build
+ * static numeric forms of styles before passing them to renderers.
+ */
+export function snapshotParsed(value: SpringStyleValue): ParsedStyleValue {
+  return {
+    wraps: value.wraps,
+    units: value.units,
+    values: snapshotValues(value.values),
+  }
 }
 
 export function resolveSpringStyleValue(value: AnimateValue): AnimateValue {

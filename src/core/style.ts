@@ -10,7 +10,6 @@ import {
   regexp,
   seq,
 } from './combinator'
-import type { SpringComputed } from './spring-value'
 
 export interface ParsedStyleTemplate {
   units: string[]
@@ -18,7 +17,7 @@ export interface ParsedStyleTemplate {
 }
 
 export interface ParsedStyleValue extends ParsedStyleTemplate {
-  values: (number | SpringComputed)[]
+  values: number[]
 }
 
 type Token = CharToken | NumberToken | HexColorToken

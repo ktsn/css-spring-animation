@@ -94,7 +94,8 @@ describe('sv tagged template', () => {
 
     expect(result.wraps).toEqual(['', ' ', ''])
     expect(result.units).toEqual(['px', 'px'])
-    expect(result.values).toEqual([x, 20])
+    expect(result.values[0]).toBe(x)
+    expect(result.values[1]?.target).toBe(20)
   })
 
   test('string interpolation appends to wrap', () => {
@@ -124,7 +125,8 @@ describe('sv tagged template', () => {
     // read the static 0 instead of x's animating value).
     expect(result.wraps).toEqual(['', ' ', ''])
     expect(result.units).toEqual(['px', 'px'])
-    expect(result.values).toEqual([0, x])
+    expect(result.values[0]?.target).toBe(0)
+    expect(result.values[1]).toBe(x)
   })
 })
 

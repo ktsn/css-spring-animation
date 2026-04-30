@@ -1,11 +1,15 @@
 import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
 import {
   ParsedStyleValue,
-  completeParsedStyleUnit,
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
-import { SpringComputed, ensureSpring, isSpringValue } from './spring-value'
+import {
+  SpringComputed,
+  SpringStyleValue,
+  liftToSpring,
+  snapshotParsed,
+} from './spring-value'
 import { t } from './time'
 import { mapValues } from './utils'
 
@@ -45,6 +49,9 @@ interface ValueHistoryItem<Key extends PropertyKey> {
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
+  // `style` holds the snapshotted (numeric) form of the most recently
+  // committed style. `liveSlots` holds the matching `SpringComputed[]` that
+  // animate() attached to.
   let style: Record<keyof Style, ParsedStyleValue> | undefined
   // Per-slot SpringComputed for the most recently committed style. User
   // SpringValues pass through, plain numerics get wrapped via ensureSpring,
@@ -74,7 +81,7 @@ export function createAnimateController<
   }
 
   function getRealVelocity(
-    next: Record<keyof Style, ParsedStyleValue>,
+    next: Record<keyof Style, { values: readonly unknown[] }>,
   ): Record<keyof Style, number[]> {
     if (keptVelocity) {
       return keptVelocity
@@ -117,43 +124,28 @@ export function createAnimateController<
   ): AnimateContext<keyof Style> {
     const isAnimate = params.animate ?? true
 
-    // Parse each input. `parsedStyle.values` may carry user-provided
-    // SpringComputed slots alongside plain numerics from parseStyleValue.
-    const parsedStyle = mapValues(nextStyle, (value, key) => {
-      const prev = style?.[key]
-      const parsed: ParsedStyleValue =
+    // Parse each input into a `SpringStyleValue` (SpringComputed[]). Plain
+    // numerics get wrapped in constant `SpringComputed` via `liftToSpring`;
+    // user-provided `SpringStyleValue` (e.g. via sv`...`) passes through.
+    const wrappedParsedStyle: Record<keyof Style, SpringStyleValue> = mapValues(
+      nextStyle,
+      (value): SpringStyleValue =>
         typeof value === 'object'
-          ? (value as ParsedStyleValue)
-          : parseStyleValue(String(value))
-      return prev ? completeParsedStyleUnit(parsed, prev) : parsed
-    })
+          ? value
+          : liftToSpring(parseStyleValue(String(value))),
+    )
 
-    const parsedStyleSnap = mapValues(parsedStyle, snapshotParsed)
+    const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotParsed)
 
     if (style && isSameStyle(style, parsedStyleSnap)) {
       return ctx ?? createContext()
     }
 
-    // Wrap every numeric slot in a SpringComputed (user-provided ones pass
-    // through), then build `wrappedParsedStyle` carrying only SpringComputed
-    // values. `newSlots` mirrors that for `liveSlots` updates. `liveSlots`
-    // is still the previous record at this point — used below for inferred
-    // velocity and prev-value lookups.
-    const newSlots: Record<keyof Style, SpringComputed[]> = {} as Record<
-      keyof Style,
-      SpringComputed[]
-    >
-    const wrappedParsedStyle = mapValues(
-      parsedStyle,
-      (parsed, key): ParsedStyleValue => {
-        const wrapped = parsed.values.map((v) => ensureSpring(v))
-        newSlots[key as keyof Style] = wrapped
-        return {
-          wraps: parsed.wraps,
-          units: parsed.units,
-          values: wrapped,
-        }
-      },
+    // `newSlots` mirrors `wrappedParsedStyle.values` so `liveSlots` always
+    // references the SpringComputeds that `animate()` will attach to.
+    const newSlots: Record<keyof Style, SpringComputed[]> = mapValues(
+      wrappedParsedStyle,
+      (p) => p.values,
     )
 
     // Inferred velocity falls back to the previous animation's per-slot
@@ -167,9 +159,7 @@ export function createAnimateController<
     for (const key in wrappedParsedStyle) {
       const styleKey = key as keyof Style
       wrappedParsedStyle[styleKey].values.forEach((slot, slotIndex) => {
-        if (isSpringValue(slot)) {
-          slot.setVelocity(inferredVelocity[styleKey]?.[slotIndex] ?? 0)
-        }
+        slot.setVelocity(inferredVelocity[styleKey]?.[slotIndex] ?? 0)
       })
     }
 
@@ -190,7 +180,7 @@ export function createAnimateController<
 
       if (!keptVelocity) {
         valueHistory.push({
-          value: mapValues(style, snapshotValues),
+          value: mapValues(style, (s) => s.values),
           timestamp: performance.now(),
         })
       }
@@ -208,7 +198,12 @@ export function createAnimateController<
     liveSlots = newSlots
 
     const fromTo = mapValues(wrappedParsedStyle, (toV, key) => {
-      return [prev![key], toV] as [ParsedStyleValue, ParsedStyleValue]
+      // `prev` holds numeric slots; lift to SpringStyleValue so animate()
+      // sees a uniform shape.
+      return [liftToSpring(prev![key]), toV] as [
+        SpringStyleValue,
+        SpringStyleValue,
+      ]
     })
 
     if (ctx && !ctx.settled) {
@@ -322,20 +317,8 @@ function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
   style: Style,
 ): Record<keyof Style, string> {
   return mapValues(style, (value) =>
-    interpolateParsedStyle(value, snapshotValues(value)),
+    interpolateParsedStyle(value, value.values),
   )
-}
-
-function snapshotValues(value: ParsedStyleValue): number[] {
-  return value.values.map((v) => (isSpringValue(v) ? v.target : v))
-}
-
-function snapshotParsed(value: ParsedStyleValue): ParsedStyleValue {
-  return {
-    wraps: value.wraps,
-    units: value.units,
-    values: snapshotValues(value),
-  }
 }
 
 /**
@@ -355,10 +338,12 @@ function createContext<Style>(): AnimateContext<keyof Style> {
   }
 }
 
-export function isSameStyle<Style extends Record<string, AnimateValue>>(
-  a: Style,
-  b: Style,
-): boolean {
+export function isSameStyle<
+  Style extends Record<
+    string,
+    number | string | { values: readonly unknown[] }
+  >,
+>(a: Style, b: Style): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
 
   return Array.from(keys).every((key) => {
