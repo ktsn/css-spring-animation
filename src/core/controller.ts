@@ -325,10 +325,7 @@ function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
 }
 
 /**
- * Create a pseudo context for the state when no animation is running. The
- * SpringComputed slots in `liveSlots` carry their own values via the
- * snapshot path (no attachment), so the pseudo ctx is just the lifecycle
- * marker — settled, no live animation.
+ * Create a pseudo context for the state when no animation is running.
  */
 function createContext(): AnimateContext {
   return {
