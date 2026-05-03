@@ -144,6 +144,57 @@ describe('animate', () => {
     })
   })
 
+  test('SpringValue in `from` is attached even when `to` is a literal', () => {
+    const x = spring(0)
+    const ctx = animate({ scale: [sv`${x}`, '10'] }, () => {}, {
+      duration: 10,
+    })
+    return ctx.settlingPromise.then(() => {
+      expect(x.current()).toBe(10)
+    })
+  })
+
+  test('SpringValues in both `from` and `to` share the same animation', async () => {
+    const a = spring(0)
+    const b = spring(10)
+    const ctx = animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, {
+      duration: 1000,
+    })
+    await raf()
+    ctx.stop()
+    // After stop, both reads use the same frozen `stoppedDuration` from
+    // the shared AnimateContext, so identical values prove they're on
+    // the same animation.
+    expect(a.current()).toBe(b.current())
+    // Both report a mid-flight value, proving both are attached.
+    expect(a.current()).not.toBe(0)
+    expect(a.current()).not.toBe(10)
+  })
+
+  test('velocity set on a `from`-side SpringValue is used as the initial velocity', () => {
+    const x = spring(0)
+    x.setVelocity(50)
+    animate({ scale: [sv`${x}`, '10'] }, () => {}, { duration: 1000 })
+    expect(x.velocity()).toBeCloseTo(50, 0)
+  })
+
+  test('velocity set on a `to`-side SpringValue is used as the initial velocity', () => {
+    const x = spring(10)
+    x.setVelocity(50)
+    animate({ scale: ['0', sv`${x}`] }, () => {}, { duration: 1000 })
+    expect(x.velocity()).toBeCloseTo(50, 0)
+  })
+
+  test('prefers the `from`-side velocity when both `from` and `to` are SpringValues with velocities', () => {
+    const a = spring(0)
+    const b = spring(10)
+    a.setVelocity(50)
+    b.setVelocity(100)
+    animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, { duration: 1000 })
+    expect(a.velocity()).toBeCloseTo(50, 0)
+    expect(b.velocity()).toBeCloseTo(50, 0)
+  })
+
   test('SpringValue.velocity() is 0 after settled', () => {
     const x = spring(10)
     const y = spring(20)

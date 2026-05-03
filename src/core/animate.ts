@@ -22,6 +22,7 @@ import {
   SpringComputed,
   SpringStyleValue,
   attachSpringValue,
+  isSpringStyleValue,
   liftToSpring,
   snapshotParsed,
 } from './spring-value'
@@ -66,20 +67,40 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     keyof T,
     SpringComputed[]
   >
+  // Mirror of `slots` for the `from` side. When the user passes a
+  // SpringValue to `from`, this lets us attach it to the same Attachment
+  // as the `to` slot so both follow the same animation.
+  const fromSlots: Record<keyof T, SpringComputed[]> = {} as Record<
+    keyof T,
+    SpringComputed[]
+  >
 
-  const slotVelocities: Partial<Record<keyof T, number[]>> = {}
+  const slotVelocities: Partial<Record<keyof T, (number | undefined)[]>> = {}
 
   const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
-    const liftedFrom =
-      typeof from === 'object'
-        ? from
-        : liftToSpring(parseStyleValue(String(from)))
-    const liftedTo =
-      typeof to === 'object' ? to : liftToSpring(parseStyleValue(String(to)))
+    const fromIsUserSpring = isSpringStyleValue(from)
+    const toIsUserSpring = isSpringStyleValue(to)
 
-    const keySlots: SpringComputed[] = liftedTo.values
-    slots[key as keyof T] = keySlots
-    slotVelocities[key as keyof T] = keySlots.map((s) => s.velocity())
+    const liftedFrom: SpringStyleValue = fromIsUserSpring
+      ? from
+      : liftToSpring(parseStyleValue(String(from)))
+    const liftedTo: SpringStyleValue = toIsUserSpring
+      ? to
+      : liftToSpring(parseStyleValue(String(to)))
+
+    slots[key as keyof T] = liftedTo.values
+    fromSlots[key as keyof T] = liftedFrom.values
+
+    // Per-slot starting velocity: prefer the user-provided `from`
+    // SpringValue's velocity, then the user-provided `to` SpringValue's
+    // velocity. Lifted (fresh) wrappers don't contribute — those slots
+    // fall through to options.velocity in `mergedVelocity` below.
+    slotVelocities[key as keyof T] = liftedTo.values.map((toSlot, i) => {
+      const fromSlot = liftedFrom.values[i]
+      if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
+      if (toIsUserSpring) return toSlot.velocity()
+      return undefined
+    })
 
     return [snapshotParsed(liftedFrom), snapshotParsed(liftedTo)] as [
       ParsedStyleValue,
@@ -97,7 +118,8 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 
   // Per-slot SpringValue velocities take precedence over options.velocity.
   // Merge here so groupInputValues and canUseLinearTimingFunction agree on
-  // which velocity each slot uses.
+  // which velocity each slot uses. Slots that didn't come from a user
+  // SpringValue leave a hole (undefined) so options.velocity can fill in.
   const mergedVelocity: Partial<Record<keyof T, number[]>> = mapValues(
     parsedFromTo,
     ([_from, to], key) => {
@@ -134,12 +156,14 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 
   // Attach every slot's SpringComputed (user-provided or freshly wrapped)
   // to a per-slot Attachment carrying the data needed by
-  // evaluateAttachmentValue / evaluateAttachmentVelocity.
+  // evaluateAttachmentValue / evaluateAttachmentVelocity. The matching
+  // `from` slot — if any — gets the same Attachment so a user-provided
+  // SpringValue on either side follows the animation.
   for (const key in slots) {
     slots[key].forEach((slot, slotIndex) => {
       const v = inputValues[key]?.[slotIndex]
       if (!v) return
-      attachSpringValue(slot, {
+      const attachment = {
         spring,
         from: v.from,
         to: v.to,
@@ -147,7 +171,12 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
         startTime,
         duration,
         ctx,
-      })
+      }
+      attachSpringValue(slot, attachment)
+      const fromSlot = fromSlots[key]?.[slotIndex]
+      if (fromSlot && fromSlot !== slot) {
+        attachSpringValue(fromSlot, attachment)
+      }
     })
   }
 
