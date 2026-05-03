@@ -1,10 +1,10 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { animate } from '../../src/core/animate'
-import { createSpring, sv } from '../../src/core/spring-value'
+import { createSpringValue, sv } from '../../src/core/spring-value'
 import type { SpringComputed } from '../../src/core/spring-value'
 
 function spring(value: number): SpringComputed {
-  return createSpring(() => value)
+  return createSpringValue(() => value)
 }
 
 vitest.mock('../../src/core/utils', async () => {
