@@ -98,13 +98,18 @@ export function isSpringStyleValue(value: unknown): value is SpringStyleValue {
  * unchanged. Lets the controller and `animate()` route every parsed slot
  * through the SpringValue evaluation path uniformly.
  */
-export function ensureSpring(value: number | SpringComputed): SpringComputed {
+export function ensureSpringValue(
+  value: number | SpringComputed,
+): SpringComputed {
   if (isSpringValue(value)) return value
-  const num = value
-  return createSpring(() => num)
+  return createSpringValue(() => value)
 }
 
-export function createSpring(
+/**
+ * The base factory function of spring values.
+ * If `write` argument is omitted the spring value will be readonly.
+ */
+export function createSpringValue(
   read: () => number,
   write?: (next: number) => void,
 ): InternalSpring {
@@ -189,7 +194,7 @@ export function sv(
       cur += parsed.wraps[i] ?? ''
       wraps.push(cur)
       units.push(parsed.units[i] ?? '')
-      slots.push(ensureSpring(parsed.values[i]!))
+      slots.push(ensureSpringValue(parsed.values[i]!))
       cur = ''
     }
     cur += parsed.wraps[parsed.values.length] ?? ''
@@ -211,7 +216,7 @@ export function sv(
 
     wraps.push(cur)
     units.push(unit)
-    slots.push(typeof v === 'number' ? ensureSpring(v) : v!)
+    slots.push(typeof v === 'number' ? ensureSpringValue(v) : v!)
     cur = ''
     consumeStatic(rest)
   }
@@ -238,7 +243,7 @@ export function liftToSpring(value: {
   return {
     wraps: value.wraps,
     units: value.units,
-    values: value.values.map((v) => ensureSpring(v)),
+    values: value.values.map((v) => ensureSpringValue(v)),
   }
 }
 
