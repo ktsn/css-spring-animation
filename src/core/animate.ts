@@ -40,9 +40,6 @@ export interface AnimateOptions<
   velocity?: Partial<Record<Keys, number[]>>
 }
 
-// The generic is retained for callers that thread a Style key type
-// through, even though no field uses it directly.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export interface AnimateContext {
   finished: boolean
   settled: boolean
