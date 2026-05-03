@@ -31,6 +31,8 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   style: SpringStyleRef
   realValue: DeepReadonly<Ref<Values>>
   realVelocity: DeepReadonly<Ref<Values>>
+  onFinish: (fn: (data: { stopped: boolean }) => void) => void
+  onSettle: (fn: (data: { stopped: boolean }) => void) => void
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
@@ -116,6 +118,17 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     })
   }
 
+  const finishListeners = new Set<(data: { stopped: boolean }) => void>()
+  const settleListeners = new Set<(data: { stopped: boolean }) => void>()
+
+  function onFinish(fn: (data: { stopped: boolean }) => void): void {
+    finishListeners.add(fn)
+  }
+
+  function onSettle(fn: (data: { stopped: boolean }) => void): void {
+    settleListeners.add(fn)
+  }
+
   watch(
     [
       disabled,
@@ -133,6 +146,15 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
       if (!isSameStyle(snapshot, prevSnapshot)) {
         controller.setStyle(input.value, { animate: !disabled })
+
+        if (!disabled) {
+          controller.onFinishCurrent((data) => {
+            finishListeners.forEach((fn) => fn(data))
+          })
+          controller.onSettleCurrent((data) => {
+            settleListeners.forEach((fn) => fn(data))
+          })
+        }
       }
     },
   )
@@ -141,6 +163,8 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     style: readonly(style),
     realValue: readonly(realValue),
     realVelocity: readonly(realVelocity),
+    onFinish,
+    onSettle,
     onFinishCurrent,
     onSettleCurrent,
   }

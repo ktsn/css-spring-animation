@@ -1,8 +1,7 @@
-import { PropType, defineComponent, h, watch } from 'vue'
+import { PropType, defineComponent, h } from 'vue'
 import { AnimateValue } from '../core'
-import { isSameStyle } from '../core/controller'
 import { useSpring } from './use-spring'
-import { SpringStyleValue, resolveSpringStyle } from '../core/spring-value'
+import { SpringStyleValue } from '../core/spring-value'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({
@@ -27,7 +26,7 @@ const createSpringElement = (tagName: string) => {
     },
 
     setup(props, { emit, slots }) {
-      const { style, onFinishCurrent, onSettleCurrent } = useSpring(
+      const { style, onFinish, onSettle } = useSpring(
         () => props.springStyle,
         () => {
           return {
@@ -40,33 +39,17 @@ const createSpringElement = (tagName: string) => {
         },
       )
 
-      watch(
-        () => ({ ...props.springStyle }),
-        (input, prevInput) => {
-          if (
-            props.disabled ||
-            props.relocating ||
-            isSameStyle(
-              resolveSpringStyle(input),
-              resolveSpringStyle(prevInput),
-            )
-          ) {
-            return
-          }
+      onFinish(({ stopped }) => {
+        if (!stopped) {
+          emit('springFinish')
+        }
+      })
 
-          onFinishCurrent(({ stopped }) => {
-            if (!stopped) {
-              emit('springFinish')
-            }
-          })
-
-          onSettleCurrent(({ stopped }) => {
-            if (!stopped) {
-              emit('springSettle')
-            }
-          })
-        },
-      )
+      onSettle(({ stopped }) => {
+        if (!stopped) {
+          emit('springSettle')
+        }
+      })
 
       return () => {
         return h(tagName, { style: style.value }, slots.default?.())
