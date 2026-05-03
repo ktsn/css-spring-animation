@@ -180,9 +180,9 @@ export function sv(
   let cur = ''
 
   // Run each static template chunk through `parseStyleValue` so any embedded
-  // numbers (e.g. the `0` in `sv\`0px ${y}px\``) become slots too. This keeps
-  // slot indices aligned with the indices in the controller's parsed value
-  // array, which is critical for correct readValue / readVelocity binding.
+  // numbers (e.g. the `0` in sv`0px ${y}px`) become slots too. This lets
+  // the other module reuse the static spring value to retain animated value
+  // and velocity for later.
   function consumeStatic(text: string): void {
     const parsed = parseStyleValue(text)
     for (let i = 0; i < parsed.values.length; i++) {
@@ -257,13 +257,6 @@ export function snapshotParsed(value: SpringStyleValue): ParsedStyleValue {
     units: value.units,
     values: snapshotValues(value.values),
   }
-}
-
-export function resolveSpringStyleValue(value: AnimateValue): AnimateValue {
-  if (typeof value !== 'object' || !isSpringStyleValue(value)) {
-    return value
-  }
-  return interpolateParsedStyle(value, snapshotValues(value.values))
 }
 
 /**
