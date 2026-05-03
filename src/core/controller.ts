@@ -31,7 +31,7 @@ export interface AnimationController<
   setStyle: (
     style: Style,
     options?: SetStyleOptions<keyof Style>,
-  ) => AnimateContext<keyof Style>
+  ) => AnimateContext
 
   setOptions: (options: SpringOptions) => void
 
@@ -64,7 +64,7 @@ export function createAnimateController<
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
   // Pseudo context for intiial state (before triggering animation)
-  let ctx: AnimateContext<keyof Style> | undefined
+  let ctx: AnimateContext | undefined
 
   function liveRealValue(): Record<keyof Style, number[]> {
     if (!liveSlots) {
@@ -121,7 +121,7 @@ export function createAnimateController<
   function setStyle(
     nextStyle: Style,
     params: SetStyleOptions<keyof Style> = {},
-  ): AnimateContext<keyof Style> {
+  ): AnimateContext {
     const isAnimate = params.animate ?? true
 
     // Parse each input into a `SpringStyleValue` (SpringComputed[]). Plain
@@ -330,7 +330,7 @@ function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
  * snapshot path (no attachment), so the pseudo ctx is just the lifecycle
  * marker — settled, no live animation.
  */
-function createContext<Style>(): AnimateContext<keyof Style> {
+function createContext(): AnimateContext {
   return {
     finished: true,
     settled: true,

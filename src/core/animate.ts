@@ -43,7 +43,7 @@ export interface AnimateOptions<
 // The generic is retained for callers that thread a Style key type
 // through, even though no field uses it directly.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export interface AnimateContext<_Keys extends PropertyKey> {
+export interface AnimateContext {
   finished: boolean
   settled: boolean
 
@@ -58,7 +58,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<keyof T> = {},
-): AnimateContext<keyof T> {
+): AnimateContext {
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
   // so the rest of the evaluation pipeline (attach, current(), velocity())
@@ -226,15 +226,13 @@ function groupInputValues<
   velocity: Partial<Record<keyof FromTo, number[]>>,
 ): Record<keyof FromTo, InputValueGroup[]> {
   return mapValues(fromTo, ([from, to], key) => {
-    return zip(from.values, to.values).map(
-      ([from, to], i) => {
-        return {
-          from,
-          to,
-          velocity: velocity[key]?.[i] ?? 0,
-        }
-      },
-    )
+    return zip(from.values, to.values).map(([from, to], i) => {
+      return {
+        from,
+        to,
+        velocity: velocity[key]?.[i] ?? 0,
+      }
+    })
   })
 }
 
@@ -404,7 +402,7 @@ function animateWithRaf({
 }: {
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   slots: Record<string, SpringComputed[]>
-  context: AnimateContext<string>
+  context: AnimateContext
   set: (style: Record<string, string>) => void
 }): void {
   function render(): void {
@@ -455,7 +453,7 @@ function createContext<
   duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
-}): AnimateContext<keyof FromTo> {
+}): AnimateContext {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
   function stop() {
@@ -495,7 +493,7 @@ function createContext<
     })
   }
 
-  const ctx: AnimateContext<keyof FromTo> = {
+  const ctx: AnimateContext = {
     finishingPromise: wait(duration + 1, forceResolve).then(() => {
       ctx.finished = true
     }),
