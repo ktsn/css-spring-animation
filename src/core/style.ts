@@ -11,14 +11,16 @@ import {
   seq,
 } from './combinator'
 
-export interface ParsedStyleTemplate {
+export interface StyleTemplate {
   units: string[]
   wraps: string[]
 }
 
-export interface ParsedStyleValue extends ParsedStyleTemplate {
-  values: number[]
+export interface StyleValue<T> extends StyleTemplate {
+  values: T[]
 }
+
+export type ParsedStyleValue = StyleValue<number>
 
 type Token = CharToken | NumberToken | HexColorToken
 
@@ -164,7 +166,7 @@ export function parseStyleValue(value: string): ParsedStyleValue {
  */
 export function completeParsedStyleUnit(
   target: ParsedStyleValue,
-  context: ParsedStyleTemplate,
+  context: StyleTemplate,
 ): ParsedStyleValue {
   const completed = target.units.map((unit, i) => {
     if (!unit && target.values[i] === 0) {
@@ -180,7 +182,7 @@ export function completeParsedStyleUnit(
 }
 
 export function interpolateParsedStyle(
-  template: ParsedStyleTemplate,
+  template: StyleTemplate,
   values: (string | number)[],
 ): string {
   return template.wraps.reduce((acc, wrap, i) => {

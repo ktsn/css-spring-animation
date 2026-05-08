@@ -1,6 +1,6 @@
 import {
-  ParsedStyleTemplate,
   ParsedStyleValue,
+  StyleValue,
   interpolateParsedStyle,
   parseLeadingUnit,
   parseStyleValue,
@@ -71,9 +71,7 @@ interface InternalSpring {
   setVelocity(v: number): void
 }
 
-export interface SpringStyleValue extends ParsedStyleTemplate {
-  values: SpringComputed[]
-}
+export type SpringStyleValue = StyleValue<SpringComputed>
 
 export function isSpringValue(value: unknown): value is SpringComputed {
   return (

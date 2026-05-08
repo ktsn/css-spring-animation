@@ -1,6 +1,7 @@
 import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
 import {
   ParsedStyleValue,
+  StyleValue,
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
@@ -78,7 +79,7 @@ export function createAnimateController<
   }
 
   function getRealVelocity(
-    next: Record<keyof Style, { values: readonly unknown[] }>,
+    next: Record<keyof Style, StyleValue<unknown>>,
   ): Record<keyof Style, number[]> {
     if (keptVelocity) {
       return keptVelocity
@@ -324,10 +325,7 @@ function createContext(): AnimateContext {
 }
 
 export function isSameStyle<
-  Style extends Record<
-    string,
-    number | string | { values: readonly unknown[] }
-  >,
+  Style extends Record<string, number | string | StyleValue<unknown>>,
 >(a: Style, b: Style): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
 
