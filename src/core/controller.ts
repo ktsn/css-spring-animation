@@ -49,21 +49,18 @@ interface ValueHistoryItem<Key extends PropertyKey> {
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
-  // `style` holds the snapshotted (numeric) form of the most recently
-  // committed style. `liveSlots` holds the matching `SpringComputed[]` that
-  // animate() attached to.
+  /** Holding the snapshotted form of the most recently committed style */
   let style: Record<keyof Style, ParsedStyleValue> | undefined
-  // Per-slot SpringComputed for the most recently committed style. User
-  // SpringValues pass through, plain numerics get wrapped via ensureSpring,
-  // and animate() attaches each slot to a per-slot Attachment. realValue /
-  // realVelocity / inferredVelocity all derive from this record.
+
+  /** Per-slot SpringComputed for the most recently committed style */
   let liveSlots: Record<keyof Style, SpringComputed[]> | undefined
+
   let options: SpringOptions = {}
 
   let keptVelocity: Record<keyof Style, number[]> | undefined
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
-  // Pseudo context for intiial state (before triggering animation)
+  // Pseudo context for initial state (before triggering animation)
   let ctx: AnimateContext | undefined
 
   function liveRealValue(): Record<keyof Style, number[]> {
@@ -124,9 +121,6 @@ export function createAnimateController<
   ): AnimateContext {
     const isAnimate = params.animate ?? true
 
-    // Parse each input into a `SpringStyleValue` (SpringComputed[]). Plain
-    // numerics get wrapped in constant `SpringComputed` via `liftToSpring`;
-    // user-provided `SpringStyleValue` (e.g. via sv`...`) passes through.
     const wrappedParsedStyle: Record<keyof Style, SpringStyleValue> = mapValues(
       nextStyle,
       (value): SpringStyleValue =>
@@ -141,21 +135,12 @@ export function createAnimateController<
       return ctx ?? createContext()
     }
 
-    // `newSlots` mirrors `wrappedParsedStyle.values` so `liveSlots` always
-    // references the SpringComputeds that `animate()` will attach to.
-    const newSlots: Record<keyof Style, SpringComputed[]> = mapValues(
-      wrappedParsedStyle,
-      (p) => p.values,
-    )
+    const newSlots = mapValues(wrappedParsedStyle, (p) => p.values)
 
-    // Inferred velocity falls back to the previous animation's per-slot
-    // velocity via the OLD `liveSlots` (still in place here).
     const inferredVelocity =
       params.velocity ?? getRealVelocity(wrappedParsedStyle)
 
-    // Write inferred velocity onto every NEW slot. SpringValue.setVelocity
-    // snapshots+detaches any current attachment; animate() will re-attach
-    // below.
+    // Write inferred velocity onto every new slot
     for (const key in wrappedParsedStyle) {
       const styleKey = key as keyof Style
       wrappedParsedStyle[styleKey].values.forEach((slot, slotIndex) => {
@@ -188,7 +173,7 @@ export function createAnimateController<
       return ctx
     }
 
-    // Capture the current animating values from the OLD slots before we
+    // Capture the current animating values from the old slots before we
     // hand off to the new ones — those become the `from` side of the new
     // animation.
     if (ctx && !ctx.settled && liveSlots) {
