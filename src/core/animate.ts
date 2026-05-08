@@ -58,12 +58,12 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 ): AnimateContext {
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
-  // so the rest of the evaluation pipeline (attach, current(), velocity())
-  // is uniform.
+  // so the rest of the evaluation pipeline is uniform.
   const slots: Record<keyof T, SpringComputed[]> = {} as Record<
     keyof T,
     SpringComputed[]
   >
+
   // Mirror of `slots` for the `from` side. When the user passes a
   // SpringValue to `from`, this lets us attach it to the same Attachment
   // as the `to` slot so both follow the same animation.
@@ -88,10 +88,10 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     slots[key as keyof T] = liftedTo.values
     fromSlots[key as keyof T] = liftedFrom.values
 
-    // Per-slot starting velocity: prefer the user-provided `from`
-    // SpringValue's velocity, then the user-provided `to` SpringValue's
-    // velocity. Lifted (fresh) wrappers don't contribute — those slots
-    // fall through to options.velocity in `mergedVelocity` below.
+    // Choose initial velocity prioritized by follows:
+    // 1. user-provided `from` SpringValue's velocity
+    // 2. user-provided `to` SpringValue's velocity
+    // 3. options.velocity (will be removed in future)
     slotVelocities[key as keyof T] = liftedTo.values.map((toSlot, i) => {
       const fromSlot = liftedFrom.values[i]
       if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
@@ -113,10 +113,6 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  // Per-slot SpringValue velocities take precedence over options.velocity.
-  // Merge here so groupInputValues and canUseLinearTimingFunction agree on
-  // which velocity each slot uses. Slots that didn't come from a user
-  // SpringValue leave a hole (undefined) so options.velocity can fill in.
   const mergedVelocity: Partial<Record<keyof T, number[]>> = mapValues(
     parsedFromTo,
     ([_from, to], key) => {
@@ -151,11 +147,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     set,
   })
 
-  // Attach every slot's SpringComputed (user-provided or freshly wrapped)
-  // to a per-slot Attachment carrying the data needed by
-  // evaluateAttachmentValue / evaluateAttachmentVelocity. The matching
-  // `from` slot — if any — gets the same Attachment so a user-provided
-  // SpringValue on either side follows the animation.
+  // Attach animation info to every slot's SpringComputed.
   for (const key in slots) {
     slots[key].forEach((slot, slotIndex) => {
       const v = inputValues[key]?.[slotIndex]
