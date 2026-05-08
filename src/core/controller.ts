@@ -64,18 +64,16 @@ export function createAnimateController<
   // Pseudo context for initial state (before triggering animation)
   let ctx: AnimateContext | undefined
 
-  function liveRealValue(): Record<keyof Style, number[]> {
-    if (!liveSlots) {
-      throw new Error('style is not set yet. Call setStyle() first.')
-    }
-    return mapValues(liveSlots, (slots) => slots.map((s) => s.current()))
+  function liveRealValue(
+    slots: Record<keyof Style, SpringComputed[]>,
+  ): Record<keyof Style, number[]> {
+    return mapValues(slots, (s) => s.map((v) => v.current()))
   }
 
-  function liveRealVelocity(): Record<keyof Style, number[]> {
-    if (!liveSlots) {
-      throw new Error('style is not set yet. Call setStyle() first.')
-    }
-    return mapValues(liveSlots, (slots) => slots.map((s) => s.velocity()))
+  function liveRealVelocity(
+    slots: Record<keyof Style, SpringComputed[]>,
+  ): Record<keyof Style, number[]> {
+    return mapValues(slots, (s) => s.map((v) => v.velocity()))
   }
 
   function getRealVelocity(
@@ -90,7 +88,7 @@ export function createAnimateController<
       return velocity
     }
 
-    if (ctx && liveSlots) {
+    if (liveSlots) {
       const slotsRef = liveSlots
       return mapValues(next, (value, key) => {
         const keySlots = slotsRef[key]
@@ -102,14 +100,15 @@ export function createAnimateController<
   }
 
   function stop({ keepVelocity }: StopOptions = {}): void {
-    keptVelocity = keepVelocity && liveSlots ? liveRealVelocity() : undefined
+    keptVelocity =
+      keepVelocity && liveSlots ? liveRealVelocity(liveSlots) : undefined
 
     if (ctx && !ctx.settled) {
       ctx.stop()
     }
 
     if (style) {
-      style = liveSlots ? updateValues(style, liveRealValue()) : style
+      style = liveSlots ? updateValues(style, liveRealValue(liveSlots)) : style
       ctx = createContext()
     }
 
@@ -178,7 +177,7 @@ export function createAnimateController<
     // hand off to the new ones — those become the `from` side of the new
     // animation.
     if (ctx && !ctx.settled && liveSlots) {
-      prev = updateValues(prev, liveRealValue())
+      prev = updateValues(prev, liveRealValue(liveSlots))
     }
 
     liveSlots = newSlots
@@ -243,7 +242,11 @@ export function createAnimateController<
 
   return {
     get realValue() {
-      return liveRealValue()
+      if (!liveSlots) {
+        throw new Error('style is not set yet. Call setStyle() first.')
+      }
+
+      return liveRealValue(liveSlots)
     },
 
     get realVelocity() {
