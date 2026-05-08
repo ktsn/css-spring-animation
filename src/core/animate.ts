@@ -465,20 +465,12 @@ function createContext<
 
   function setRealStyle() {
     const style = mapValues(fromTo, ([from, to], key) => {
-      const completedTo = completeParsedStyleUnit(to, from)
-
-      // Naturally-settled animation: use `to` directly so length-mismatched
-      // sides (e.g. non-animatable `from`) still produce the target style
-      // even when no slots were built for them.
-      if (ctx.settled && ctx.stoppedDuration === undefined) {
-        return interpolateParsedStyle(completedTo, completedTo.values)
-      }
-
       const keySlots = slots[key]
       if (!keySlots) {
         return ''
       }
 
+      const completedTo = completeParsedStyleUnit(to, from)
       const realValue = keySlots.map((s) => s.current())
       return interpolateParsedStyle(completedTo, realValue)
     })
