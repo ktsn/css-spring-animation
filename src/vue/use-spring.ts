@@ -4,7 +4,6 @@ import {
   Ref,
   computed,
   nextTick,
-  onScopeDispose,
   readonly,
   ref,
   toRef,
@@ -109,10 +108,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   const realValue = toRef(() => controller.realValue)
   const realVelocity = toRef(() => controller.realVelocity)
-
-  onScopeDispose(() => {
-    controller.stop()
-  })
 
   function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
     // Wait for the next tick to ensure that input changes in the same tick
