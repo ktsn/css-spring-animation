@@ -1,6 +1,7 @@
 import {
   ParsedStyleValue,
   StyleValue,
+  joinStyleValues,
   parseLeadingUnit,
   parseStyleValue,
 } from './style'
@@ -184,56 +185,33 @@ export function sv(
   strings: TemplateStringsArray,
   ...values: SvInterpolation[]
 ): SpringStyleValue {
-  const wraps: string[] = []
-  const units: string[] = []
-  const slots: SpringComputed[] = []
-  let cur = ''
+  const parts: SpringStyleValue[] = []
 
-  // Run each static template chunk through `parseStyleValue` so any embedded
-  // numbers (e.g. the `0` in sv`0px ${y}px`) become slots too.
-  function consumeStatic(text: string): void {
-    const parsed = parseStyleValue(text)
+  // Parse the leading static string
+  parts.push(liftToSpringStyle(parseStyleValue(strings[0] ?? '')))
 
-    for (let i = 0; i < parsed.values.length; i++) {
-      cur += parsed.wraps[i] ?? ''
-      wraps.push(cur)
-      units.push(parsed.units[i] ?? '')
-      const value = parsed.values[i]!
-      slots.push(createSpringValue(() => value))
-      cur = ''
-    }
-
-    cur += parsed.wraps[parsed.values.length] ?? ''
-  }
-
-  consumeStatic(strings[0] ?? '')
-
+  // Process each interpolation, then parse trailing unit and static text
   for (let i = 0; i < values.length; i++) {
     const v = values[i]!
     const next = strings[i + 1] ?? ''
 
     if (typeof v === 'string') {
-      cur += v
-      consumeStatic(next)
+      // Literal text contribution; folds into the surrounding wrap on join.
+      parts.push({ wraps: [v], units: [], values: [] })
+      parts.push(liftToSpringStyle(parseStyleValue(next)))
       continue
     }
 
     const { unit, rest } = parseLeadingUnit(next)
-
-    wraps.push(cur)
-    units.push(unit)
-    slots.push(typeof v === 'number' ? createSpringValue(() => v) : v)
-    cur = ''
-    consumeStatic(rest)
+    parts.push({
+      wraps: ['', ''],
+      units: [unit],
+      values: [typeof v === 'number' ? createSpringValue(() => v) : v],
+    })
+    parts.push(liftToSpringStyle(parseStyleValue(rest)))
   }
 
-  wraps.push(cur)
-
-  return {
-    wraps,
-    units,
-    values: slots,
-  }
+  return joinStyleValues(parts)
 }
 
 /**

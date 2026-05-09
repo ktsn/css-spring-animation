@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest'
 import {
   completeParsedStyleUnit,
   interpolateParsedStyle,
+  joinStyleValues,
   parseStyleValue,
 } from '../../src/core/style'
 
@@ -226,6 +227,58 @@ describe('completeParsedStyleUnit', () => {
       expect(actual).toEqual(expected)
     })
   }
+})
+
+describe('joinStyleValues', () => {
+  test('empty input returns empty StyleValue', () => {
+    expect(joinStyleValues<number>([])).toEqual({
+      wraps: [''],
+      units: [],
+      values: [],
+    })
+  })
+
+  test('single part is returned as-is', () => {
+    const part = {
+      wraps: ['translate(', 'px)'],
+      units: ['px'],
+      values: [10],
+    }
+    expect(joinStyleValues([part])).toEqual(part)
+  })
+
+  test('parts without values fold into a single wrap', () => {
+    const a = { wraps: ['hello '], units: [], values: [] }
+    const b = { wraps: ['world'], units: [], values: [] }
+    expect(joinStyleValues<number>([a, b])).toEqual({
+      wraps: ['hello world'],
+      units: [],
+      values: [],
+    })
+  })
+
+  test('joins multiple parts preserving order', () => {
+    const parts = [
+      { wraps: ['a', 'b'], units: ['px'], values: [1] },
+      { wraps: ['c', 'd'], units: ['%'], values: [2] },
+      { wraps: ['e', 'f'], units: ['deg'], values: [3] },
+    ]
+    expect(joinStyleValues(parts)).toEqual({
+      wraps: ['a', 'bc', 'de', 'f'],
+      units: ['px', '%', 'deg'],
+      values: [1, 2, 3],
+    })
+  })
+
+  test('handles empty wrap string at part boundary', () => {
+    const a = { wraps: ['', ''], units: ['px'], values: [1] }
+    const b = { wraps: ['', ''], units: ['px'], values: [2] }
+    expect(joinStyleValues([a, b])).toEqual({
+      wraps: ['', '', ''],
+      units: ['px', 'px'],
+      values: [1, 2],
+    })
+  })
 })
 
 describe('stringifyInterpolatedStyle', () => {

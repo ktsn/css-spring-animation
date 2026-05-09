@@ -198,3 +198,25 @@ export function interpolateParsedStyle(
     return acc + wrap + value
   }, '')
 }
+
+/**
+ * Concatenate multiple StyleValues into one, folding the trailing wrap of each
+ * element with the leading wrap of the next so the boundary becomes a single
+ * wrap segment.
+ */
+export function joinStyleValues<T>(parts: StyleValue<T>[]): StyleValue<T> {
+  const wraps: string[] = ['']
+  const units: string[] = []
+  const values: T[] = []
+
+  for (const part of parts) {
+    wraps[wraps.length - 1] += part.wraps[0] ?? ''
+    for (let i = 1; i < part.wraps.length; i++) {
+      wraps.push(part.wraps[i]!)
+    }
+    units.push(...part.units)
+    values.push(...part.values)
+  }
+
+  return { wraps, units, values }
+}
