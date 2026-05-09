@@ -22,9 +22,8 @@ import {
   SpringComputed,
   SpringStyleValue,
   attachSpringValue,
-  isSpringStyleValue,
-  liftToSpring,
-  snapshotParsed,
+  liftToSpringStyle,
+  snapshotSpringStyle,
 } from './spring-value'
 
 export type AnimateValue = number | string | SpringStyleValue
@@ -75,15 +74,15 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   const slotVelocities: Partial<Record<keyof T, (number | undefined)[]>> = {}
 
   const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
-    const fromIsUserSpring = isSpringStyleValue(from)
-    const toIsUserSpring = isSpringStyleValue(to)
+    const fromIsUserSpring = typeof from === 'object'
+    const toIsUserSpring = typeof to === 'object'
 
     const liftedFrom: SpringStyleValue = fromIsUserSpring
       ? from
-      : liftToSpring(parseStyleValue(String(from)))
+      : liftToSpringStyle(parseStyleValue(String(from)))
     const liftedTo: SpringStyleValue = toIsUserSpring
       ? to
-      : liftToSpring(parseStyleValue(String(to)))
+      : liftToSpringStyle(parseStyleValue(String(to)))
 
     slots[key as keyof T] = liftedTo.values
     fromSlots[key as keyof T] = liftedFrom.values
@@ -99,7 +98,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
       return undefined
     })
 
-    return [snapshotParsed(liftedFrom), snapshotParsed(liftedTo)] as [
+    return [snapshotSpringStyle(liftedFrom), snapshotSpringStyle(liftedTo)] as [
       ParsedStyleValue,
       ParsedStyleValue,
     ]

@@ -1,15 +1,18 @@
 import {
   ParsedStyleValue,
   StyleValue,
-  interpolateParsedStyle,
   parseLeadingUnit,
   parseStyleValue,
 } from './style'
-import type { AnimateValue } from './animate'
 import { Spring, evaluateSpring, evaluateSpringVelocity } from './spring'
 
 const SPRING_VALUE_BRAND: unique symbol = Symbol('springValue')
 
+/**
+ * An animation info that is attached to a SpringValue.
+ * When attached, a SpringValue returns its current value and velocity
+ * computed from the animation info instead of its own state.
+ */
 export interface Attachment {
   spring: Spring
   from: number
@@ -20,7 +23,7 @@ export interface Attachment {
   ctx: { settled: boolean; stoppedDuration: number | undefined }
 }
 
-export function evaluateAttachmentValue(a: Attachment): number {
+function evaluateAttachmentValue(a: Attachment): number {
   if (a.ctx.settled && a.ctx.stoppedDuration === undefined) {
     return a.to
   }
@@ -36,7 +39,7 @@ export function evaluateAttachmentValue(a: Attachment): number {
   })
 }
 
-export function evaluateAttachmentVelocity(a: Attachment): number {
+function evaluateAttachmentVelocity(a: Attachment): number {
   if (a.ctx.settled) {
     return 0
   }
@@ -51,6 +54,9 @@ export function evaluateAttachmentVelocity(a: Attachment): number {
   })
 }
 
+/**
+ * A spring value that `target` value is readonly and derived from a getter function.
+ */
 export interface SpringComputed {
   readonly target: number
   current(): number
@@ -58,6 +64,9 @@ export interface SpringComputed {
   setVelocity(v: number): void
 }
 
+/**
+ * A spring value that allows setting the `target` value.
+ */
 export interface SpringValue extends SpringComputed {
   target: number
 }
@@ -79,28 +88,6 @@ export function isSpringValue(value: unknown): value is SpringComputed {
     value !== null &&
     (value as Record<PropertyKey, unknown>)[SPRING_VALUE_BRAND] === true
   )
-}
-
-export function isSpringStyleValue(value: unknown): value is SpringStyleValue {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Array.isArray((value as SpringStyleValue).values) &&
-    (value as SpringStyleValue).values.every(isSpringValue)
-  )
-}
-
-/**
- * Wrap a plain numeric slot in a frozen `SpringComputed` whose `target`
- * mirrors the number. Existing `SpringComputed` values pass through
- * unchanged. Lets the controller and `animate()` route every parsed slot
- * through the SpringValue evaluation path uniformly.
- */
-export function ensureSpringValue(
-  value: number | SpringComputed,
-): SpringComputed {
-  if (isSpringValue(value)) return value
-  return createSpringValue(() => value)
 }
 
 /**
@@ -133,6 +120,8 @@ export function createSpringValue(
 
     setVelocity(v: number): void {
       if (obj._attachment) {
+        // Detach from the animation and capture the current position
+        // so that the next animation can pick up smoothly from the user's takeover point.
         currentValue = evaluateAttachmentValue(obj._attachment)
         obj._attachment = undefined
       }
@@ -143,13 +132,13 @@ export function createSpringValue(
   const descriptor: PropertyDescriptor = {
     get: read,
     enumerable: true,
-    configurable: false,
+    configurable: true,
   }
   if (write) {
     descriptor.set = (next: number) => {
       if (obj._attachment) {
-        // Capture both position and velocity so the next animation can
-        // pick up smoothly from the user's takeover point.
+        // Detach from the animation and capture both position and velocity
+        // so the next animation can pick up smoothly from the user's takeover point.
         currentValue = evaluateAttachmentValue(obj._attachment)
         velocity = evaluateAttachmentVelocity(obj._attachment)
         obj._attachment = undefined
@@ -171,8 +160,26 @@ export function attachSpringValue(
   ;(value as InternalSpring)._attachment = attachment
 }
 
-type SvInterpolation = number | string | SpringComputed
+export type SvInterpolation = number | string | SpringComputed
 
+/**
+ * A template tag function for building a CSS property value with spring value
+ * interpolations. The returned value can be passed to a spring style prop.
+ *
+ * @example
+ * ```vue
+ * <script setup lang="ts">
+ * const x = springValue(10)
+ * const y = springValue(20)
+ * </script>
+ *
+ * <template>
+ *   <spring.div
+ *     :spring-style="{ translate: sv`${x}px ${y}px` }"
+ *   ></div>
+ * </template>
+ * ```
+ */
 export function sv(
   strings: TemplateStringsArray,
   ...values: SvInterpolation[]
@@ -183,25 +190,26 @@ export function sv(
   let cur = ''
 
   // Run each static template chunk through `parseStyleValue` so any embedded
-  // numbers (e.g. the `0` in sv`0px ${y}px`) become slots too. This lets
-  // the other module reuse the static spring value to retain animated value
-  // and velocity for later.
+  // numbers (e.g. the `0` in sv`0px ${y}px`) become slots too.
   function consumeStatic(text: string): void {
     const parsed = parseStyleValue(text)
+
     for (let i = 0; i < parsed.values.length; i++) {
       cur += parsed.wraps[i] ?? ''
       wraps.push(cur)
       units.push(parsed.units[i] ?? '')
-      slots.push(ensureSpringValue(parsed.values[i]!))
+      const value = parsed.values[i]!
+      slots.push(createSpringValue(() => value))
       cur = ''
     }
+
     cur += parsed.wraps[parsed.values.length] ?? ''
   }
 
   consumeStatic(strings[0] ?? '')
 
   for (let i = 0; i < values.length; i++) {
-    const v = values[i]
+    const v = values[i]!
     const next = strings[i + 1] ?? ''
 
     if (typeof v === 'string') {
@@ -214,7 +222,7 @@ export function sv(
 
     wraps.push(cur)
     units.push(unit)
-    slots.push(typeof v === 'number' ? ensureSpringValue(v) : v!)
+    slots.push(typeof v === 'number' ? createSpringValue(() => v) : v)
     cur = ''
     consumeStatic(rest)
   }
@@ -231,22 +239,13 @@ export function sv(
 /**
  * Lift a parser-produced `ParsedStyleValue` (numeric slots) into a
  * `SpringStyleValue` by wrapping each number in a constant `SpringComputed`.
- * Already-spring slots pass through unchanged.
  */
-export function liftToSpring(value: {
-  wraps: string[]
-  units: string[]
-  values: readonly (number | SpringComputed)[]
-}): SpringStyleValue {
+export function liftToSpringStyle(value: ParsedStyleValue): SpringStyleValue {
   return {
     wraps: value.wraps,
     units: value.units,
-    values: value.values.map((v) => ensureSpringValue(v)),
+    values: value.values.map((v) => createSpringValue(() => v)),
   }
-}
-
-function snapshotValues(values: readonly SpringComputed[]): number[] {
-  return values.map((s) => s.target)
 }
 
 /**
@@ -254,36 +253,10 @@ function snapshotValues(values: readonly SpringComputed[]): number[] {
  * each slot's `target`. Used by `animate()` and the controller to build
  * static numeric forms of styles before passing them to renderers.
  */
-export function snapshotParsed(value: SpringStyleValue): ParsedStyleValue {
+export function snapshotSpringStyle(value: SpringStyleValue): ParsedStyleValue {
   return {
     wraps: value.wraps,
     units: value.units,
-    values: snapshotValues(value.values),
+    values: value.values.map((s) => s.target),
   }
-}
-
-/**
- * Resolve a record of spring-style entries — replacing any entries that
- * contain `SpringComputed` slots with the interpolated CSS string built from
- * each slot's current `target`. Non-marker entries are passed through
- * unchanged. Returns the same object reference when no marker entries are
- * present.
- */
-export function resolveSpringStyle<T extends Record<string, AnimateValue>>(
-  raw: T,
-): Record<keyof T, AnimateValue> {
-  let hasSpringValue = false
-  const resolved: Record<string, AnimateValue> = {}
-
-  for (const key in raw) {
-    const v = raw[key]!
-    if (isSpringStyleValue(v)) {
-      resolved[key] = interpolateParsedStyle(v, snapshotValues(v.values))
-      hasSpringValue = true
-    } else {
-      resolved[key] = v
-    }
-  }
-
-  return (hasSpringValue ? resolved : raw) as Record<keyof T, AnimateValue>
 }

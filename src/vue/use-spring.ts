@@ -14,7 +14,7 @@ import {
 } from 'vue'
 import { AnimateValue, SpringOptions, createAnimateController } from '../core'
 import { isSameStyle } from '../core/controller'
-import { resolveSpringStyle } from '../core/spring-value'
+import { interpolateParsedStyle } from '../core/style'
 
 type RefOrGetter<T> = Ref<T> | (() => T)
 
@@ -43,12 +43,34 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 ): UseSpringResult<Record<keyof Style, number[]>> {
   const input = computed(() => toValue(styleMapper))
 
-  // Reactive snapshot — reads every `SpringComputed.target` (via
-  // `resolveSpringStyle`) so Vue reruns this whenever any target changes.
-  // Used as the comparison source in the `watch` below so target writes
-  // trigger setStyle, even though the input ParsedStyleValue reference
-  // itself doesn't change.
-  const inputSnapshot = computed(() => resolveSpringStyle(input.value))
+  // Reactive snapshot — reads every `SpringComputed.target` so Vue reruns
+  // this whenever any target changes. Used as the comparison source in the
+  // `watch` below so target writes trigger setStyle, even though the input
+  // ParsedStyleValue reference itself doesn't change.
+  const inputSnapshot = computed((): Record<keyof Style, string | number> => {
+    const raw = input.value
+
+    let hasSpringValue = false
+    const resolved: Record<string, string | number> = {}
+
+    for (const key in raw) {
+      const v = raw[key]!
+      if (typeof v === 'object') {
+        resolved[key] = interpolateParsedStyle(
+          v,
+          v.values.map((s) => s.target),
+        )
+        hasSpringValue = true
+      } else {
+        resolved[key] = v
+      }
+    }
+
+    return (hasSpringValue ? resolved : raw) as Record<
+      keyof Style,
+      string | number
+    >
+  })
 
   const optionsRef = computed(() => toValue(options) ?? {})
 

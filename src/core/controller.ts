@@ -8,8 +8,8 @@ import {
 import {
   SpringComputed,
   SpringStyleValue,
-  liftToSpring,
-  snapshotParsed,
+  liftToSpringStyle,
+  snapshotSpringStyle,
 } from './spring-value'
 import { t } from './time'
 import { mapValues } from './utils'
@@ -126,10 +126,10 @@ export function createAnimateController<
       (value): SpringStyleValue =>
         typeof value === 'object'
           ? value
-          : liftToSpring(parseStyleValue(String(value))),
+          : liftToSpringStyle(parseStyleValue(String(value))),
     )
 
-    const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotParsed)
+    const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotSpringStyle)
 
     if (style && isSameStyle(style, parsedStyleSnap)) {
       return ctx ?? createContext()

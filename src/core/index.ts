@@ -30,6 +30,7 @@ export type {
   SpringComputed,
   SpringStyleValue,
   SpringValue,
+  SvInterpolation,
 } from './spring-value'
 
 export * from './utils'
