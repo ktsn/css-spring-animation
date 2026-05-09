@@ -65,7 +65,7 @@ const SpringTransitionGroup = defineComponent({
 
   setup(props, ctx) {
     const { emit } = ctx
-    const attrs: TransitionGroupProps = ctx.attrs
+    const attrs = ctx.attrs as TransitionGroupProps
 
     let prevChildren: VNode[] = []
     let children: VNode[] = []
