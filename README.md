@@ -94,9 +94,9 @@ This is because the library parses the numbers in the style value, then calculat
 </template>
 ```
 
-## `springValue` and the `sv` tagged template
+## `springValue` and `springComputed`
 
-`springValue` is a small reactive holder for a single animated number. It is paired with the `sv` tagged template, which embeds `springValue` instances into a CSS expression.
+`springValue` holds a number that lives inside an animating style. Assigning to its `target` automatically triggers an animation toward that value. Combined with the `sv` tagged template, it can be embedded inside a CSS value.
 
 ```vue
 <script setup>
@@ -106,6 +106,7 @@ const x = springValue(0)
 const y = springValue(0)
 
 function move() {
+  // Assign the animation destination to `target`
   x.target = 200
   y.target = 100
 }
@@ -113,6 +114,8 @@ function move() {
 
 <template>
   <button @click="move">Move</button>
+
+  <!-- Embed spring values into the CSS value via `sv` -->
   <spring.div
     :spring-style="{ translate: sv`${x}px ${y}px` }"
     :duration="600"
@@ -121,26 +124,43 @@ function move() {
 </template>
 ```
 
-**`springValue(initial)`** returns an object with:
-
-- `target` — reactive destination. Assigning to it triggers a spring animation when the value is bound to a `<spring>` element. While the bound element has `disabled: true`, assignment is applied immediately without animation.
-- `current()` — non-reactive snapshot of the live value at call time. While bound, this reads through to the spring element's current animated value; otherwise it returns `target`.
-- `velocity()` — non-reactive snapshot of the live velocity. While bound, this reads through to the spring element; otherwise it returns `0`.
-
-`current()` and `velocity()` are methods (not properties) to signal that they return a freshly-read snapshot and are not part of Vue's reactivity graph — they change on every animation frame.
-
-**`sv\`…\``** is a tagged template that builds a `:spring-style` value containing one or more `springValue` slots. Animation options (`bounce`, `duration`, `disabled`, `inferVelocity`) are configured on the bound `<spring>` element.
-
-A `springValue` only animates while it is bound to a `<spring>` element through `:spring-style`. Setting `target` while unbound just updates the reactive destination.
-
-**`springComputed(getter)`** is a derived counterpart to `springValue`. It takes a getter (like Vue's `computed`) and produces a value whose `target` is automatically derived from the getter's reactive dependencies. The shape is identical to `SpringValue` except `target` is `readonly`, and the same `current()` / `velocity()` snapshots are available.
+You can also build CSS values with regular template literals over a Vue `ref` and the animation will still run. Using `springValue` instead lets you read the live value and velocity during the animation.
 
 ```ts
-import { springComputed } from '@css-spring-animation/vue'
+const x = springValue(0)
+
+// Snapshot the live value and velocity at the time of the call (not reactive).
+x.current()
+x.velocity()
+```
+
+`springComputed` is the spring value counterpart of Vue's `computed`. Like `computed`, it derives a spring value from other reactive sources.
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { spring, springComputed, sv } from '@css-spring-animation/vue'
 
 const offset = ref(0)
+
+// Derive spring values from offset. `target` is read-only.
+const x = springComputed(() => offset.value)
 const y = springComputed(() => offset.value * 2)
-// y.target reactively reflects offset.value * 2; you can't assign to y.target.
+
+function move() {
+  offset.value = offset.value === 0 ? 100 : 0
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
 ```
 
 ## How It Works
@@ -423,15 +443,15 @@ function move() {
 </script>
 ```
 
-### `springValue(initial)` factory
+### `springValue(initial)`
 
 Creates a reactive holder for a single animated number. Pair with `<spring>` element via the `sv` tagged template.
 
 **Returns** an object with:
 
-- `target` (number, reactive read/write) — destination. Assigning to it triggers a spring animation when bound to a `<spring>` element. Applied immediately while the bound element has `disabled: true`.
-- `current(): number` — non-reactive snapshot of the live animating value. While bound, reads through the spring element's controller; otherwise returns `target`.
-- `velocity(): number` — non-reactive snapshot of the live velocity. While bound, reads through the controller; otherwise returns `0`.
+- `target` (number, reactive read/write) — animation destination. Assigning to it triggers an animation when bound to a `<spring>` element. Applied immediately while the bound element has `disabled: true`.
+- `current(): number` — non-reactive snapshot of the live animating value. While bound, reads through the spring element's value; otherwise returns `target`.
+- `velocity(): number` — non-reactive snapshot of the live velocity. While bound, reads the animation velocity; otherwise returns `0`.
 
 ```ts
 import { springValue } from '@css-spring-animation/vue'
@@ -441,48 +461,13 @@ x.target = 100 // trigger animation when bound
 console.log(x.current(), x.velocity())
 ```
 
-### `springComputed(getter)` factory
+### `springComputed(getter)`
 
-Derived counterpart to `springValue`. Like Vue's `computed`, takes a getter that returns a number. Returns a `SpringComputed` whose shape is identical to `SpringValue` except `target` is `readonly` and is automatically derived from the getter's reactive dependencies.
-
-```ts
-import { springComputed } from '@css-spring-animation/vue'
-
-const offset = ref(0)
-const y = springComputed(() => offset.value * 2)
-// y.target reactively reflects offset.value * 2; cannot be assigned.
-```
+The `computed` version of `springValue`. Like Vue's `computed`, it takes a getter that returns a number and produces a spring value. The shape is identical to a `springValue` except `target` is read-only and is automatically derived from the getter's reactive dependencies.
 
 ### `sv` tagged template
 
-Builds a `:spring-style` value that embeds `springValue` / `springComputed` instances as slots in a CSS expression.
-
-```ts
-import { sv } from '@css-spring-animation/vue'
-
-sv`${x}px ${y}px` // -> a SpringStyleValue marker
-sv`translate(${x}px, ${y}px)`
-sv`scale(${x})`
-```
-
-The marker is consumed by `<spring>` element and `useSpring` via `:spring-style`. Animation options (`bounce`, `duration`, `disabled`, `inferVelocity`) are configured on the bound `<spring>` element. A SpringValue / SpringComputed only animates while it is bound through `:spring-style`.
-
-```vue
-<script setup>
-import { spring, springValue, sv } from '@css-spring-animation/vue'
-
-const x = springValue(0)
-const y = springValue(0)
-</script>
-
-<template>
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
-</template>
-```
+A tagged template that builds a `:spring-style` value by embedding `springValue` / `springComputed` instances into a CSS expression.
 
 ### `v-spring-style` and `v-spring-options` directivies
 
