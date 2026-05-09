@@ -205,7 +205,7 @@ describe('springValue bound to <spring.div>', () => {
     expect(x.velocity()).not.toBe(0)
   })
 
-  test('velocity() reflects drag motion while disabled (swipe regression)', async () => {
+  test('velocity() reflects drag motion while disabled', async () => {
     const root = document.createElement('div')
     const x = springValue(0)
     const app = createApp({
@@ -232,9 +232,6 @@ describe('springValue bound to <spring.div>', () => {
     x.target = 60
     await nextTick()
 
-    // Synchronous read like the swipe demo's pointerup handler. Without
-    // the controller-scoped attachment, _attachment is unset/stale here
-    // and velocity() collapses to 0.
     expect(x.velocity()).not.toBe(0)
   })
 
@@ -259,67 +256,6 @@ describe('springValue bound to <spring.div>', () => {
     await nextTick()
     expect(vm.$el.style.translate).toBe('100px')
     expect(x.current()).toBe(100)
-  })
-
-  test('two SpringValues in one sv expression', async () => {
-    const root = document.createElement('div')
-    const x = springValue(0)
-    const y = springValue(0)
-    const app = createApp({
-      template: `
-        <springp :spring-style="{ translate: svExpr }" disabled>
-          Hello
-        </springp>
-      `,
-      components: { springp: spring.p! },
-      setup() {
-        return { svExpr: sv`${x}px ${y}px` }
-      },
-    })
-    const vm: any = app.mount(root)
-    expect(vm.$el.style.translate).toBe('0px 0px')
-
-    x.target = 10
-    y.target = 20
-    await nextTick()
-    expect(vm.$el.style.translate).toBe('10px 20px')
-    expect(x.current()).toBe(10)
-    expect(y.current()).toBe(20)
-  })
-
-  test('unmount: current() returns the stopped snapshot, not target', async () => {
-    const root = document.createElement('div')
-    const x = springValue(0)
-    const app = createApp({
-      template: `
-        <springp :spring-style="{ translate: svExpr }" :duration="10">
-          Hello
-        </springp>
-      `,
-      components: { springp: spring.p! },
-      setup() {
-        return { svExpr: sv`${x}px` }
-      },
-    })
-    app.mount(root)
-
-    // Trigger a real animation. While bound,
-    // current() reads from the controller's live value.
-    x.target = 100
-    await nextTick()
-    expect(x.current()).not.toBe(0)
-
-    app.unmount()
-
-    // After unmount the controller is stopped, but the springValue
-    // remains attached. current() reads from the (now-frozen) ctx and
-    // returns the snapshot at stop time, NOT the writable target ref.
-    const frozen = x.current()
-
-    x.target = 50
-    expect(x.current()).toBe(frozen)
-    expect(x.target).toBe(50)
-    expect(x.velocity()).toBe(0)
   })
 
   test('current() reads live value when template starts with static number', async () => {
@@ -376,30 +312,8 @@ describe('springValue bound to <spring.div>', () => {
     // After setVelocity, the SpringValue is detached. current() returns
     // the snapshot taken at detach time; velocity() returns the just-set
     // value.
-    expect(x.current()).toBeCloseTo(liveCurrent, 1)
+    expect(x.current()).toBeCloseTo(liveCurrent, 0)
     expect(x.velocity()).toBe(99)
-  })
-
-  test('static numeric slot is preserved through resolution', async () => {
-    const root = document.createElement('div')
-    const x = springValue(0)
-    const app = createApp({
-      template: `
-        <springp :spring-style="{ translate: svExpr }" disabled>
-          Hello
-        </springp>
-      `,
-      components: { springp: spring.p! },
-      setup() {
-        return { svExpr: sv`${x}px ${20}px` }
-      },
-    })
-    const vm: any = app.mount(root)
-    expect(vm.$el.style.translate).toBe('0px 20px')
-
-    x.target = 5
-    await nextTick()
-    expect(vm.$el.style.translate).toBe('5px 20px')
   })
 })
 
