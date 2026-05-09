@@ -1,10 +1,16 @@
 import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
 import {
   ParsedStyleValue,
-  completeParsedStyleUnit,
+  StyleValue,
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
+import {
+  SpringComputed,
+  SpringStyleValue,
+  liftToSpringStyle,
+  snapshotSpringStyle,
+} from './spring-value'
 import { t } from './time'
 import { mapValues } from './utils'
 
@@ -26,7 +32,7 @@ export interface AnimationController<
   setStyle: (
     style: Style,
     options?: SetStyleOptions<keyof Style>,
-  ) => AnimateContext<keyof Style>
+  ) => AnimateContext
 
   setOptions: (options: SpringOptions) => void
 
@@ -44,37 +50,34 @@ interface ValueHistoryItem<Key extends PropertyKey> {
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
 >(set: (style: Record<string, string>) => void): AnimationController<Style> {
+  /** Holding the snapshotted form of the most recently committed style */
   let style: Record<keyof Style, ParsedStyleValue> | undefined
+
+  /** Per-slot SpringComputed for the most recently committed style */
+  let liveSlots: Record<keyof Style, SpringComputed[]> | undefined
+
   let options: SpringOptions = {}
 
   let keptVelocity: Record<keyof Style, number[]> | undefined
   let valueHistory: ValueHistoryItem<keyof Style>[] = []
 
-  // Pseudo context for intiial state (before triggering animation)
-  let ctx: AnimateContext<keyof Style> | undefined
+  // Pseudo context for initial state (before triggering animation)
+  let ctx: AnimateContext | undefined
 
-  function calculateCurrentValues(
-    next: Record<keyof Style, ParsedStyleValue>,
-    prev: Record<keyof Style, ParsedStyleValue>,
-    velocityOverride: Record<keyof Style, number[]> | undefined,
-  ): {
-    fromTo: Record<keyof Style, [ParsedStyleValue, ParsedStyleValue]>
-    velocity: Record<keyof Style, number[]>
-  } {
-    const velocity = velocityOverride ?? getRealVelocity(next)
+  function liveRealValue(
+    slots: Record<keyof Style, SpringComputed[]>,
+  ): Record<keyof Style, number[]> {
+    return mapValues(slots, (s) => s.map((v) => v.current()))
+  }
 
-    const fromTo = mapValues(prev, (prevV, key) => {
-      return [prevV, next[key]] as [ParsedStyleValue, ParsedStyleValue]
-    })
-
-    return {
-      fromTo,
-      velocity,
-    }
+  function liveRealVelocity(
+    slots: Record<keyof Style, SpringComputed[]>,
+  ): Record<keyof Style, number[]> {
+    return mapValues(slots, (s) => s.map((v) => v.velocity()))
   }
 
   function getRealVelocity(
-    next: Record<keyof Style, ParsedStyleValue>,
+    next: Record<keyof Style, StyleValue<unknown>>,
   ): Record<keyof Style, number[]> {
     if (keptVelocity) {
       return keptVelocity
@@ -85,10 +88,11 @@ export function createAnimateController<
       return velocity
     }
 
-    if (ctx) {
-      const realVelocity = ctx.realVelocity
+    if (liveSlots) {
+      const slotsRef = liveSlots
       return mapValues(next, (value, key) => {
-        return value.values.map((_, i) => realVelocity[key]?.[i] ?? 0)
+        const keySlots = slotsRef[key]
+        return value.values.map((_, i) => keySlots?.[i]?.velocity() ?? 0)
       })
     }
 
@@ -96,15 +100,16 @@ export function createAnimateController<
   }
 
   function stop({ keepVelocity }: StopOptions = {}): void {
-    keptVelocity = keepVelocity && ctx ? { ...ctx.realVelocity } : undefined
+    keptVelocity =
+      keepVelocity && liveSlots ? liveRealVelocity(liveSlots) : undefined
 
     if (ctx && !ctx.settled) {
       ctx.stop()
     }
 
     if (style) {
-      style = ctx ? updateValues(style, ctx.realValue) : style
-      ctx = createContext(style)
+      style = liveSlots ? updateValues(style, liveRealValue(liveSlots)) : style
+      ctx = createContext()
     }
 
     valueHistory = []
@@ -113,27 +118,45 @@ export function createAnimateController<
   function setStyle(
     nextStyle: Style,
     params: SetStyleOptions<keyof Style> = {},
-  ): AnimateContext<keyof Style> {
+  ): AnimateContext {
     const isAnimate = params.animate ?? true
 
-    const parsedStyle = mapValues(nextStyle, (value, key) => {
-      const prev = style?.[key]
-      const parsed = parseStyleValue(String(value))
-      return prev ? completeParsedStyleUnit(parsed, prev) : parsed
-    })
+    const wrappedParsedStyle: Record<keyof Style, SpringStyleValue> = mapValues(
+      nextStyle,
+      (value): SpringStyleValue =>
+        typeof value === 'object'
+          ? value
+          : liftToSpringStyle(parseStyleValue(String(value))),
+    )
 
-    if (style && isSameStyle(style, parsedStyle)) {
-      return ctx ?? createContext(style)
+    const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotSpringStyle)
+
+    if (style && isSameStyle(style, parsedStyleSnap)) {
+      return ctx ?? createContext()
+    }
+
+    const newSlots = mapValues(wrappedParsedStyle, (p) => p.values)
+
+    const inferredVelocity =
+      params.velocity ?? getRealVelocity(wrappedParsedStyle)
+
+    // Write inferred velocity onto every new slot
+    for (const key in wrappedParsedStyle) {
+      const styleKey = key as keyof Style
+      wrappedParsedStyle[styleKey].values.forEach((slot, slotIndex) => {
+        slot.setVelocity(inferredVelocity[styleKey]?.[slotIndex] ?? 0)
+      })
     }
 
     let prev = style
-    style = parsedStyle
+    style = parsedStyleSnap
 
     if (!isAnimate || !prev) {
       if (ctx && !ctx.settled) {
         ctx.stop()
       }
-      ctx = createContext(style)
+      liveSlots = newSlots
+      ctx = createContext()
       set({
         ...stringifyStyle(style),
         transition: '',
@@ -142,9 +165,7 @@ export function createAnimateController<
 
       if (!keptVelocity) {
         valueHistory.push({
-          value: mapValues(style, (value) => {
-            return typeof value === 'number' ? [value] : value.values
-          }),
+          value: mapValues(style, (s) => s.values),
           timestamp: performance.now(),
         })
       }
@@ -152,15 +173,26 @@ export function createAnimateController<
       return ctx
     }
 
-    if (ctx && !ctx.settled) {
-      prev = updateValues(prev, ctx.realValue)
+    // Capture the current animating values from the old slots before we
+    // hand off to the new ones — those become the `from` side of the new
+    // animation.
+    if (ctx && !ctx.settled && liveSlots) {
+      prev = updateValues(prev, liveRealValue(liveSlots))
     }
 
-    const { fromTo, velocity } = calculateCurrentValues(
-      style,
-      prev,
-      params.velocity,
-    )
+    liveSlots = newSlots
+
+    const fromTo = mapValues(wrappedParsedStyle, (toV, key) => {
+      // Pass `prev` as an interpolated string rather than a lifted
+      // SpringStyleValue so animate() can tell that the `from` side is
+      // controller-internal (not a user-provided SpringValue) and won't
+      // pull velocity from its fresh wrappers.
+      const prevValue = prev![key]
+      return [interpolateParsedStyle(prevValue, prevValue.values), toV] as [
+        string,
+        SpringStyleValue,
+      ]
+    })
 
     if (ctx && !ctx.settled) {
       ctx.stop()
@@ -168,7 +200,7 @@ export function createAnimateController<
 
     ctx = animate(fromTo, set, {
       ...options,
-      velocity,
+      velocity: inferredVelocity,
     })
     keptVelocity = undefined
     valueHistory = []
@@ -210,17 +242,11 @@ export function createAnimateController<
 
   return {
     get realValue() {
-      if (ctx) {
-        return ctx.realValue
+      if (!liveSlots) {
+        throw new Error('style is not set yet. Call setStyle() first.')
       }
 
-      if (style) {
-        return mapValues(style, (value) => {
-          return value.values
-        })
-      }
-
-      throw new Error('style is not set yet. Call setStyle() first.')
+      return liveRealValue(liveSlots)
     },
 
     get realVelocity() {
@@ -288,15 +314,10 @@ function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
 }
 
 /**
- * Create a pseudo context for the state when no animation is triggered.
- * It is used for initial state and disabled state.
+ * Create a pseudo context for the state when no animation is running.
  */
-function createContext<Style extends Record<string, ParsedStyleValue>>(
-  value: Style,
-): AnimateContext<keyof Style> {
+function createContext(): AnimateContext {
   return {
-    realValue: mapValues(value, (v) => v.values),
-    realVelocity: mapValues(value, (v) => new Array(v.values.length).fill(0)),
     finished: true,
     settled: true,
     finishingPromise: Promise.resolve(),
@@ -306,10 +327,9 @@ function createContext<Style extends Record<string, ParsedStyleValue>>(
   }
 }
 
-export function isSameStyle<Style extends Record<string, AnimateValue>>(
-  a: Style,
-  b: Style,
-): boolean {
+export function isSameStyle<
+  Style extends Record<string, number | string | StyleValue<unknown>>,
+>(a: Style, b: Style): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
 
   return Array.from(keys).every((key) => {

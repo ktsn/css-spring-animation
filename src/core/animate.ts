@@ -1,8 +1,6 @@
 import { registerPropertyIfNeeded, t, wait } from './time'
 import {
-  evaluateSpring,
   generateSpringExpressionStyle,
-  evaluateSpringVelocity,
   createSpring,
   springSettlingDuration,
   Spring,
@@ -20,8 +18,15 @@ import {
   interpolateParsedStyle,
   parseStyleValue,
 } from './style'
+import {
+  SpringComputed,
+  SpringStyleValue,
+  attachSpringValue,
+  liftToSpringStyle,
+  snapshotSpringStyle,
+} from './spring-value'
 
-export type AnimateValue = number | string | ParsedStyleValue
+export type AnimateValue = number | string | SpringStyleValue
 
 export interface SpringOptions {
   duration?: number
@@ -34,10 +39,7 @@ export interface AnimateOptions<
   velocity?: Partial<Record<Keys, number[]>>
 }
 
-export interface AnimateContext<Keys extends PropertyKey> {
-  realValue: Record<Keys, number[]>
-  realVelocity: Record<Keys, number[]>
-
+export interface AnimateContext {
   finished: boolean
   settled: boolean
 
@@ -52,13 +54,54 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
   options: AnimateOptions<keyof T> = {},
-): AnimateContext<keyof T> {
-  const parsedFromTo = mapValues(fromTo, ([from, to]) => {
-    const parsedFrom =
-      typeof from === 'object' ? from : parseStyleValue(String(from))
-    const parsedTo = typeof to === 'object' ? to : parseStyleValue(String(to))
+): AnimateContext {
+  // Each slot — whether the user passed a SpringValue or a plain number —
+  // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
+  // so the rest of the evaluation pipeline is uniform.
+  const slots: Record<keyof T, SpringComputed[]> = {} as Record<
+    keyof T,
+    SpringComputed[]
+  >
 
-    return [parsedFrom, parsedTo] as [ParsedStyleValue, ParsedStyleValue]
+  // Mirror of `slots` for the `from` side. When the user passes a
+  // SpringValue to `from`, this lets us attach it to the same Attachment
+  // as the `to` slot so both follow the same animation.
+  const fromSlots: Record<keyof T, SpringComputed[]> = {} as Record<
+    keyof T,
+    SpringComputed[]
+  >
+
+  const slotVelocities: Partial<Record<keyof T, (number | undefined)[]>> = {}
+
+  const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
+    const fromIsUserSpring = typeof from === 'object'
+    const toIsUserSpring = typeof to === 'object'
+
+    const liftedFrom: SpringStyleValue = fromIsUserSpring
+      ? from
+      : liftToSpringStyle(parseStyleValue(String(from)))
+    const liftedTo: SpringStyleValue = toIsUserSpring
+      ? to
+      : liftToSpringStyle(parseStyleValue(String(to)))
+
+    slots[key as keyof T] = liftedTo.values
+    fromSlots[key as keyof T] = liftedFrom.values
+
+    // Choose initial velocity prioritized by follows:
+    // 1. user-provided `from` SpringValue's velocity
+    // 2. user-provided `to` SpringValue's velocity
+    // 3. options.velocity (will be removed in future)
+    slotVelocities[key as keyof T] = liftedTo.values.map((toSlot, i) => {
+      const fromSlot = liftedFrom.values[i]
+      if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
+      if (toIsUserSpring) return toSlot.velocity()
+      return undefined
+    })
+
+    return [snapshotSpringStyle(liftedFrom), snapshotSpringStyle(liftedTo)] as [
+      ParsedStyleValue,
+      ParsedStyleValue,
+    ]
   })
 
   const duration = options.duration ?? 1000
@@ -69,7 +112,16 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const inputValues = groupInputValues(parsedFromTo, options.velocity)
+  const mergedVelocity: Partial<Record<keyof T, number[]>> = mapValues(
+    parsedFromTo,
+    ([_from, to], key) => {
+      const slotV = slotVelocities[key as keyof T] ?? []
+      const optV = options.velocity?.[key as keyof T] ?? []
+      return to.values.map((_v, i) => slotV[i] ?? optV[i] ?? 0)
+    },
+  )
+
+  const inputValues = groupInputValues(parsedFromTo, mergedVelocity)
 
   const settlingDurationList = Object.values(inputValues).flatMap((values) => {
     return values.map(({ from, to, velocity }) => {
@@ -86,18 +138,39 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   const startTime = performance.now()
 
   const ctx = createContext({
-    spring,
+    slots,
     fromTo: parsedFromTo,
-    inputValues,
     startTime,
     duration,
     settlingDuration,
     set,
   })
 
+  // Attach animation info to every slot's SpringComputed.
+  for (const key in slots) {
+    slots[key].forEach((slot, slotIndex) => {
+      const v = inputValues[key]?.[slotIndex]
+      if (!v) return
+      const attachment = {
+        spring,
+        from: v.from,
+        to: v.to,
+        initialVelocity: v.velocity,
+        startTime,
+        duration,
+        ctx,
+      }
+      attachSpringValue(slot, attachment)
+      const fromSlot = fromSlots[key]?.[slotIndex]
+      if (fromSlot && fromSlot !== slot) {
+        attachSpringValue(fromSlot, attachment)
+      }
+    })
+  }
+
   if (
     isCssLinearTimingFunctionSupported() &&
-    canUseLinearTimingFunction(parsedFromTo, options.velocity)
+    canUseLinearTimingFunction(parsedFromTo, mergedVelocity)
   ) {
     animateWithLinearTimingFunction({
       spring,
@@ -119,6 +192,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     // Graceful degradation
     animateWithRaf({
       fromTo: parsedFromTo,
+      slots,
       context: ctx,
       set,
     })
@@ -137,14 +211,14 @@ function groupInputValues<
   FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >(
   fromTo: FromTo,
-  velocity: Partial<Record<keyof FromTo, number[]>> | undefined,
+  velocity: Partial<Record<keyof FromTo, number[]>>,
 ): Record<keyof FromTo, InputValueGroup[]> {
   return mapValues(fromTo, ([from, to], key) => {
     return zip(from.values, to.values).map(([from, to], i) => {
       return {
         from,
         to,
-        velocity: velocity?.[key]?.[i] ?? 0,
+        velocity: velocity[key]?.[i] ?? 0,
       }
     })
   })
@@ -212,8 +286,9 @@ function animateWithLinearTimingFunction({
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      const toStyle = mapValues(fromTo, ([_from, to]) => {
-        return interpolateParsedStyle(to, to.values)
+      const toStyle = mapValues(fromTo, ([from, to]) => {
+        const completedTo = completeParsedStyleUnit(to, from)
+        return interpolateParsedStyle(completedTo, completedTo.values)
       })
 
       const transitionValues = mapValues(inputValues, (values) => {
@@ -309,11 +384,13 @@ function animateWithCssCustomPropertyMath({
 
 function animateWithRaf({
   fromTo,
+  slots,
   context,
   set,
 }: {
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
-  context: AnimateContext<string>
+  slots: Record<string, SpringComputed[]>
+  context: AnimateContext
   set: (style: Record<string, string>) => void
 }): void {
   function render(): void {
@@ -327,11 +404,12 @@ function animateWithRaf({
         return interpolateParsedStyle(to, to.values)
       }
 
-      const realValue = context.realValue[key]
-      if (!realValue) {
+      const keySlots = slots[key]
+      if (!keySlots) {
         return ''
       }
 
+      const realValue = keySlots.map((s) => s.current())
       const completedTo = completeParsedStyleUnit(to, from)
       return interpolateParsedStyle(completedTo, realValue)
     })
@@ -350,22 +428,20 @@ function animateWithRaf({
 function createContext<
   FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >({
-  spring,
+  slots,
   fromTo,
-  inputValues,
   startTime,
   duration,
   settlingDuration,
   set,
 }: {
-  spring: Spring
+  slots: Record<keyof FromTo, SpringComputed[]>
   fromTo: FromTo
-  inputValues: Record<keyof FromTo, InputValueGroup[]>
   startTime: number
   duration: number
   settlingDuration: number
   set: (style: Record<string, string>) => void
-}): AnimateContext<keyof FromTo> {
+}): AnimateContext {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
   function stop() {
@@ -380,12 +456,13 @@ function createContext<
 
   function setRealStyle() {
     const style = mapValues(fromTo, ([from, to], key) => {
-      const realValue = ctx.realValue[key]
-      if (!realValue) {
+      const keySlots = slots[key]
+      if (!keySlots) {
         return ''
       }
 
       const completedTo = completeParsedStyleUnit(to, from)
+      const realValue = keySlots.map((s) => s.current())
       return interpolateParsedStyle(completedTo, realValue)
     })
 
@@ -396,7 +473,7 @@ function createContext<
     })
   }
 
-  const ctx: AnimateContext<keyof FromTo> = {
+  const ctx: AnimateContext = {
     finishingPromise: wait(duration + 1, forceResolve).then(() => {
       ctx.finished = true
     }),
@@ -414,65 +491,6 @@ function createContext<
 
     stop,
     stoppedDuration: undefined,
-
-    get realValue() {
-      const result: Record<string, number[]> = {}
-      for (const [key, [_from, to]] of Object.entries(fromTo)) {
-        const values = inputValues[key]!
-
-        Object.defineProperty(result, key, {
-          configurable: true,
-          enumerable: true,
-          get(): number[] {
-            if (ctx.settled && ctx.stoppedDuration === undefined) {
-              return to.values
-            }
-
-            const elapsed = ctx.stoppedDuration ?? performance.now() - startTime
-            const time = elapsed / duration
-
-            return values.map(({ from, to, velocity }) => {
-              return evaluateSpring(spring, {
-                from,
-                to,
-                initialVelocity: velocity,
-                time,
-              })
-            })
-          },
-        })
-      }
-
-      return result as Record<keyof FromTo, number[]>
-    },
-
-    get realVelocity() {
-      const result: Record<string, number[]> = {}
-      for (const [key, values] of Object.entries(inputValues)) {
-        Object.defineProperty(result, key, {
-          configurable: true,
-          enumerable: true,
-          get(): number[] {
-            if (ctx.settled) {
-              return new Array(values.length).fill(0)
-            }
-
-            const time = (performance.now() - startTime) / duration
-
-            return values.map(({ from, to, velocity }) => {
-              return evaluateSpringVelocity(spring, {
-                time,
-                from,
-                to,
-                initialVelocity: velocity,
-              })
-            })
-          },
-        })
-      }
-
-      return result as Record<keyof FromTo, number[]>
-    },
   }
 
   return ctx

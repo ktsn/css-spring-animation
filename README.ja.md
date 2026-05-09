@@ -94,6 +94,75 @@ const moved = ref(false)
 </template>
 ```
 
+## `springValue` と `springComputed`
+
+`springValue` はアニメーションするスタイル内の数値を管理する値で、`target` にセットした値へのアニメーションが自動的に実装されます。`sv` タグ付きテンプレートと組み合わせることで CSS 値の中に埋め込めます。
+
+```vue
+<script setup>
+import { spring, springValue, sv } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+const y = springValue(0)
+
+function move() {
+  // アニメーション先の値を `target` に代入する
+  x.target = 200
+  y.target = 100
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <!-- sv を使って Spring Value を CSS 値に埋め込む -->
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
+```
+
+Vue の `ref` を使って通常のテンプレートリテラルで CSS 値を構築してもアニメーションは実行されますが、`springValue` を使うことでアニメーション中の実際の値や速度を取得することができます。
+
+```ts
+const x = springValue(0)
+
+// 呼び出した時点のアニメーション中の実際の値と速度を取得する（リアクティブではない）
+x.current()
+x.velocity()
+```
+
+`springComputed` は Vue の `computed` の Spring Value 版です。`computed` と同様に他のリアクティブな値から Spring Value を導出できます。
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { spring, springComputed, sv } from '@css-spring-animation/vue'
+
+const offset = ref(0)
+
+// offset から派生した Spring Value を作る。target は読み取り専用。
+const x = springComputed(() => offset.value)
+const y = springComputed(() => offset.value * 2)
+
+function move() {
+  offset.value = offset.value === 0 ? 100 : 0
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
+```
+
 ## How It Works
 
 このライブラリはアニメーションの対象となるスタイルのプロパティに、経過時間のカスタムプロパティを含む、スプリングアニメーションの数式をセットしています（そのカスタムプロパティを `--t` とします）。そして、[`CSS.registerProperty`](https://developer.mozilla.org/en-US/docs/Web/API/CSS/registerProperty_static) を使って `--t` を登録し、そのプロパティに対して CSS トランジションを適用します。スプリングアニメーションの擬似コードは以下のようになります。
@@ -373,6 +442,24 @@ function move() {
 }
 </script>
 ```
+
+### `springValue(initial)`
+
+単一の数値をアニメーションするためのリアクティブな値オブジェクトを作成します。`sv` タグ付きテンプレートを介して `<spring>` 要素にバインドして使用します。
+
+**戻り値** のオブジェクトの API:
+
+- `target` (number, リアクティブ値、読み書き可) — アニメーションの destination 値。`<spring>` 要素にバインドされている状態で代入するとアニメーションが起動します。バインド先の要素が `disabled: true` の場合は即座にスタイルが反映されます。
+- `current(): number` — 呼び出し時点の現在値を返すスナップショットメソッド。バインド中は spring 要素から現在値を読み、未バインド時は `target` の値を返します。
+- `velocity(): number` — 呼び出し時点の速度を返すスナップショットメソッド。バインド中はアニメーションの速度を、未バインド時は `0` を返します。
+
+### `springComputed(getter)`
+
+`springValue` の computed 版。Vue の `computed` と同じく値を導出する関数を受け取り、Spring Value を返します。インターフェースは `springValue` の値と同じですが、`target` が読み取り専用になり、getter のリアクティブな依存先から自動的に算出されます。
+
+### `sv` タグ付きテンプレート
+
+`springValue` / `springComputed` の値を埋め込んだ CSS 値を構築し、`:spring-style` 用の値を返すタグ付きテンプレートです。
 
 ### `v-spring-style`, `v-spring-options` ディレクティブ
 

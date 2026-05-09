@@ -11,14 +11,16 @@ import {
   seq,
 } from './combinator'
 
-export interface ParsedStyleTemplate {
+export interface StyleTemplate {
   units: string[]
   wraps: string[]
 }
 
-export interface ParsedStyleValue extends ParsedStyleTemplate {
-  values: number[]
+export interface StyleValue<T> extends StyleTemplate {
+  values: T[]
 }
+
+export type ParsedStyleValue = StyleValue<number>
 
 type Token = CharToken | NumberToken | HexColorToken
 
@@ -42,6 +44,14 @@ interface HexColorToken {
 }
 
 const unit = regexp(/^([a-z%]+)/)
+
+export function parseLeadingUnit(text: string): { unit: string; rest: string } {
+  const result = unit(text)
+  if (!result.ok) {
+    return { unit: '', rest: text }
+  }
+  return { unit: result.value, rest: result.rest }
+}
 
 const parser: Parser<Token[]> = (value) => {
   const numberWithUnit = map(
@@ -156,7 +166,7 @@ export function parseStyleValue(value: string): ParsedStyleValue {
  */
 export function completeParsedStyleUnit(
   target: ParsedStyleValue,
-  context: ParsedStyleTemplate,
+  context: StyleTemplate,
 ): ParsedStyleValue {
   const completed = target.units.map((unit, i) => {
     if (!unit && target.values[i] === 0) {
@@ -172,7 +182,7 @@ export function completeParsedStyleUnit(
 }
 
 export function interpolateParsedStyle(
-  template: ParsedStyleTemplate,
+  template: StyleTemplate,
   values: (string | number)[],
 ): string {
   return template.wraps.reduce((acc, wrap, i) => {
@@ -187,4 +197,26 @@ export function interpolateParsedStyle(
 
     return acc + wrap + value
   }, '')
+}
+
+/**
+ * Concatenate multiple StyleValues into one, folding the trailing wrap of each
+ * element with the leading wrap of the next so the boundary becomes a single
+ * wrap segment.
+ */
+export function joinStyleValues<T>(parts: StyleValue<T>[]): StyleValue<T> {
+  const wraps: string[] = ['']
+  const units: string[] = []
+  const values: T[] = []
+
+  for (const part of parts) {
+    wraps[wraps.length - 1] += part.wraps[0] ?? ''
+    for (let i = 1; i < part.wraps.length; i++) {
+      wraps.push(part.wraps[i]!)
+    }
+    units.push(...part.units)
+    values.push(...part.values)
+  }
+
+  return { wraps, units, values }
 }

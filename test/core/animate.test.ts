@@ -1,5 +1,11 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { animate } from '../../src/core/animate'
+import { createSpringValue, sv } from '../../src/core/spring-value'
+import type { SpringComputed } from '../../src/core/spring-value'
+
+function spring(value: number): SpringComputed {
+  return createSpringValue(() => value)
+}
 
 vitest.mock('../../src/core/utils', async () => {
   const actual = await vitest.importActual<object>('../../src/core/utils')
@@ -88,93 +94,153 @@ describe('animate', () => {
     return ctx.settlingPromise
   })
 
-  test('ctx.realValue returns record of to values after settled', () => {
-    const ctx = animate({ x: [0, 10], y: [10, 20] }, () => {}, {
-      duration: 10,
-    })
+  test('SpringValue.current() reaches `to` after settled', () => {
+    const x = spring(10)
+    const y = spring(20)
+    const ctx = animate(
+      { x: [sv`0`, sv`${x}`], y: [sv`10`, sv`${y}`] },
+      () => {},
+      { duration: 10 },
+    )
     return ctx.settlingPromise.then(() => {
-      expect(ctx.realValue).toEqual({ x: [10], y: [20] })
+      expect(x.current()).toBe(10)
+      expect(y.current()).toBe(20)
     })
   })
 
-  test('ctx.realValue returns actual value while animating', () => {
-    const ctx = animate({ scale: [0, 100] }, () => {})
-    expect(ctx.realValue.scale[0]).not.toBe(0)
-    expect(ctx.realValue.scale[0]).not.toBe(100)
+  test('SpringValue.current() returns a mid-flight value while animating', () => {
+    const x = spring(100)
+    animate({ scale: [sv`0`, sv`${x}`] }, () => {})
+    expect(x.current()).not.toBe(0)
+    expect(x.current()).not.toBe(100)
   })
 
-  test('ctx.realValue returns the real value when it is stopped', async () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+  test('SpringValue.current() returns the stopped value when stopped', async () => {
+    const x = spring(10)
+    const ctx = animate({ scale: [sv`0`, sv`${x}`] }, () => {}, {
       duration: 1000,
     })
     await raf()
     ctx.stop()
     await wait(100)
-    expect(ctx.realValue.scale[0]).not.toBe(0)
-    expect(ctx.realValue.scale[0]).not.toBe(10)
+    expect(x.current()).not.toBe(0)
+    expect(x.current()).not.toBe(10)
   })
 
-  test('ctx.realValue returns all values in parsed style', () => {
+  test('every SpringValue in a parsed style reaches its `to`', () => {
+    const x = spring(10)
+    const y = spring(20)
     const ctx = animate(
       {
-        translate: [`translate(0px, 10)`, `translate(10px, 20)`],
+        translate: [`translate(0px, 10)`, sv`translate(${x}px, ${y})`],
       },
       () => {},
-      {
-        duration: 10,
-      },
+      { duration: 10 },
     )
 
-    expect(ctx.realValue.translate.length).toBe(2)
     return ctx.settlingPromise.then(() => {
-      expect(ctx.realValue).toEqual({
-        translate: [10, 20],
-      })
+      expect(x.current()).toBe(10)
+      expect(y.current()).toBe(20)
     })
   })
 
-  test('ctx.realVelocity returns record of 0 after settled', () => {
-    const ctx = animate({ x: [0, 10], y: [10, 20] }, () => {}, {
-      velocity: { x: [100], y: [200] },
+  test('SpringValue in `from` is attached even when `to` is a literal', () => {
+    const x = spring(0)
+    const ctx = animate({ scale: [sv`${x}`, '10'] }, () => {}, {
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
-      expect(ctx.realVelocity).toEqual({ x: [0], y: [0] })
+      expect(x.current()).toBe(10)
     })
   })
 
-  test('ctx.realVelocity returns actual velocity while animating', () => {
-    const ctx = animate({ scale: [0, 100] }, () => {})
-    expect(ctx.realVelocity.scale[0]).not.toBe(0)
-    expect(ctx.realVelocity.scale[0]).not.toBe(100)
+  test('SpringValues in both `from` and `to` share the same animation', async () => {
+    const a = spring(0)
+    const b = spring(10)
+    const ctx = animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, {
+      duration: 1000,
+    })
+    await raf()
+    ctx.stop()
+    // After stop, both reads use the same frozen `stoppedDuration` from
+    // the shared AnimateContext, so identical values prove they're on
+    // the same animation.
+    expect(a.current()).toBe(b.current())
+    // Both report a mid-flight value, proving both are attached.
+    expect(a.current()).not.toBe(0)
+    expect(a.current()).not.toBe(10)
   })
 
-  test('ctx.realVelocity returns 0 after stopped', async () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+  test('velocity set on a `from`-side SpringValue is used as the initial velocity', () => {
+    const x = spring(0)
+    x.setVelocity(50)
+    animate({ scale: [sv`${x}`, '10'] }, () => {}, { duration: 1000 })
+    expect(x.velocity()).toBeCloseTo(50, 0)
+  })
+
+  test('velocity set on a `to`-side SpringValue is used as the initial velocity', () => {
+    const x = spring(10)
+    x.setVelocity(50)
+    animate({ scale: ['0', sv`${x}`] }, () => {}, { duration: 1000 })
+    expect(x.velocity()).toBeCloseTo(50, 0)
+  })
+
+  test('prefers the `from`-side velocity when both `from` and `to` are SpringValues with velocities', () => {
+    const a = spring(0)
+    const b = spring(10)
+    a.setVelocity(50)
+    b.setVelocity(100)
+    animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, { duration: 1000 })
+    expect(a.velocity()).toBeCloseTo(50, 0)
+    expect(b.velocity()).toBeCloseTo(50, 0)
+  })
+
+  test('SpringValue.velocity() is 0 after settled', () => {
+    const x = spring(10)
+    const y = spring(20)
+    const ctx = animate(
+      { x: [sv`0`, sv`${x}`], y: [sv`10`, sv`${y}`] },
+      () => {},
+      { velocity: { x: [100], y: [200] }, duration: 10 },
+    )
+    return ctx.settlingPromise.then(() => {
+      expect(x.velocity()).toBe(0)
+      expect(y.velocity()).toBe(0)
+    })
+  })
+
+  test('SpringValue.velocity() is non-zero while animating', () => {
+    const x = spring(100)
+    animate({ scale: [sv`0`, sv`${x}`] }, () => {})
+    expect(x.velocity()).not.toBe(0)
+    expect(x.velocity()).not.toBe(100)
+  })
+
+  test('SpringValue.velocity() is 0 after stopped', async () => {
+    const x = spring(10)
+    const ctx = animate({ scale: [sv`0`, sv`${x}`] }, () => {}, {
       velocity: { scale: [100] },
       duration: 1000,
     })
     await raf()
     ctx.stop()
-    expect(ctx.realVelocity.scale[0]).toBe(0)
+    expect(x.velocity()).toBe(0)
   })
 
-  test('ctx.realVelocity returns all velocities in parsed style', () => {
+  test('every SpringValue in a parsed style settles to 0 velocity', () => {
+    const x = spring(10)
+    const y = spring(20)
     const ctx = animate(
       {
-        translate: [`translate(0px, 10%)`, `translate(10px, 20%)`],
+        translate: [`translate(0px, 10%)`, sv`translate(${x}px, ${y}%)`],
       },
       () => {},
-      {
-        duration: 10,
-      },
+      { duration: 10 },
     )
 
-    expect(ctx.realVelocity.translate.length).toBe(2)
     return ctx.settlingPromise.then(() => {
-      expect(ctx.realVelocity).toEqual({
-        translate: [0, 0],
-      })
+      expect(x.velocity()).toBe(0)
+      expect(y.velocity()).toBe(0)
     })
   })
 

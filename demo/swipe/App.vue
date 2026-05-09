@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useSpring } from '../../src/vue'
+import { spring, springValue, sv } from '../../src/vue'
 
 const dotLeftPosition = {
   x: 100,
@@ -12,21 +12,10 @@ const dotRightPosition = {
   y: 200,
 }
 
-const position = ref({
-  ...dotLeftPosition,
-})
+const x = springValue(dotLeftPosition.x)
+const y = springValue(dotLeftPosition.y)
 
 const isDragging = ref(false)
-
-const { style, realVelocity } = useSpring(
-  () => ({
-    translate: `${position.value.x}px ${position.value.y}px`,
-  }),
-  () => ({
-    duration: 800,
-    disabled: isDragging.value,
-  }),
-)
 
 const onPointerDown = (e: PointerEvent) => {
   isDragging.value = true
@@ -38,23 +27,25 @@ const onPointerMove = (e: PointerEvent) => {
     return
   }
 
-  position.value.x = e.clientX
-  position.value.y = e.clientY
+  x.target = e.clientX
+  y.target = e.clientY
 }
 
-const onPointerUp = (e: PointerEvent) => {
+const onPointerUp = () => {
   if (!isDragging.value) {
     return
   }
   isDragging.value = false
 
-  const velocityX = realVelocity.value.translate[0]!
+  const velocityX = x.velocity()
   const threshold = (dotLeftPosition.x + dotRightPosition.x) / 2
 
-  if (position.value.x + velocityX > threshold) {
-    position.value = { ...dotRightPosition }
+  if (x.target + velocityX > threshold) {
+    x.target = dotRightPosition.x
+    y.target = dotRightPosition.y
   } else {
-    position.value = { ...dotLeftPosition }
+    x.target = dotLeftPosition.x
+    y.target = dotLeftPosition.y
   }
 }
 </script>
@@ -64,13 +55,15 @@ const onPointerUp = (e: PointerEvent) => {
     <div class="dot left"></div>
     <div class="dot right"></div>
 
-    <div
+    <spring.div
       class="ball"
-      :style="style"
+      :spring-style="{ translate: sv`${x}px ${y}px` }"
+      :duration="800"
+      :disabled="isDragging"
       @pointerdown="onPointerDown"
       @pointermove="onPointerMove"
       @pointerup="onPointerUp"
-    ></div>
+    />
   </div>
 </template>
 
