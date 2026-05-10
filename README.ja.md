@@ -1,4 +1,4 @@
-# CSS Spring Animation
+# @ktsn/spring
 
 [English](./README.md) | 日本語
 
