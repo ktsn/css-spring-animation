@@ -7,9 +7,9 @@ export default defineConfig({
 
   build: {
     lib: {
-      entry: resolve(__dirname, '../../src/vue/index.ts'),
-      name: 'CSSSpringAnimationVue',
-      fileName: 'css-spring-animation-vue',
+      entry: resolve(__dirname, 'src/vue/index.ts'),
+      name: 'KtsnSpring',
+      fileName: 'ktsn-spring',
     },
 
     rollupOptions: {

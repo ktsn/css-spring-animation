@@ -15,7 +15,7 @@ An intuitive and predictable spring animation library powered by CSS Transition.
 There is a Vue binding of the library. Install it with npm (or yarn, pnpm):
 
 ```sh
-$ npm install @css-spring-animation/vue
+$ npm install @ktsn/spring
 ```
 
 When you use `<script setup>` in a single file component, you can use `spring` higher-order component as below:
@@ -23,7 +23,7 @@ When you use `<script setup>` in a single file component, you can use `spring` h
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const moved = ref(false)
 </script>
@@ -100,7 +100,7 @@ This is because the library parses the numbers in the style value, then calculat
 
 ```vue
 <script setup>
-import { spring, springValue, sv } from '@css-spring-animation/vue'
+import { spring, springValue, sv } from '@ktsn/spring'
 
 const x = springValue(0)
 const y = springValue(0)
@@ -139,7 +139,7 @@ x.velocity()
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring, springComputed, sv } from '@css-spring-animation/vue'
+import { spring, springComputed, sv } from '@ktsn/spring'
 
 const offset = ref(0)
 
@@ -215,7 +215,7 @@ Events fire per animation cycle on the latest cycle only. If `spring-style` is u
 
 ```vue
 <script setup>
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const position = ref(0)
 
@@ -270,7 +270,7 @@ function onFinish() {
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '@css-spring-animation/vue'
+import { SpringTransition } from '@ktsn/spring'
 
 const isShow = ref(false)
 </script>
@@ -331,7 +331,7 @@ const isShow = ref(false)
 
 ```vue
 <script setup>
-import { SpringTransitionGroup } from '@css-spring-animation/vue'
+import { SpringTransitionGroup } from '@ktsn/spring'
 
 const list = ref([
   // ...
@@ -373,7 +373,7 @@ Creates a reactive holder for a single animated number. Pair with `<spring>` ele
 - `velocity(): number` — non-reactive snapshot of the live velocity. While bound, reads the animation velocity; otherwise returns `0`.
 
 ```ts
-import { springValue } from '@css-spring-animation/vue'
+import { springValue } from '@ktsn/spring'
 
 const x = springValue(0)
 x.target = 100 // trigger animation when bound
@@ -399,7 +399,7 @@ You can register the directives by using plugin object exported as `springDirect
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import { springDirectives } from '@css-spring-animation/vue'
+import { springDirectives } from '@ktsn/spring'
 
 createApp(App).use(springDirectives).mount('#app')
 ```
@@ -434,7 +434,7 @@ A utility function that generates a CSS transition string with spring animation 
 Returns a CSS transition value string that can be used in the `transition` CSS property.
 
 ```js
-import { springCSS } from '@css-spring-animation/vue'
+import { springCSS } from '@ktsn/spring'
 
 // Generate spring transition CSS
 const transition = springCSS(400, 0.1)
@@ -470,7 +470,7 @@ A utility function that creates a spring iterator for manual animation control. 
 Returns a `SpringGenerator` object with a `next(elapsedMs)` method that returns `{ value: number, done: boolean }`.
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // Create a spring iterator
 const iter = springGenerator({
@@ -487,7 +487,7 @@ result = iter.next(1200) // { value: 100, done: true }
 ```
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // Example: Custom animation loop
 const iter = springGenerator({ from: 0, to: 100, duration: 600 })
