@@ -365,6 +365,8 @@ const list = ref([
 
 ### `useSpring` composable
 
+> **非推奨**。代わりに [`<spring>` コンポーネント](#spring-component) を使用してください。`realValue` / `realVelocity` が必要な場合は [`springValue`](#springvalueinitial) を使用してください。
+
 スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
 
 第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。

@@ -36,6 +36,25 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
+let warnedUseSpring = false
+
+/**
+ * @deprecated Use the `<spring>` component instead. If you need `realValue` or
+ * `realVelocity`, use `springValue`.
+ */
+export function useSpringPublic<Style extends Record<string, AnimateValue>>(
+  styleMapper: RefOrGetter<Style>,
+  options?: MaybeRefOrGetter<UseSpringOptions>,
+): UseSpringResult<Record<keyof Style, number[]>> {
+  if (!warnedUseSpring) {
+    warnedUseSpring = true
+    console.warn(
+      '[css-spring-animation] `useSpring` is deprecated. Use the `<spring>` component instead. If you need `realValue` or `realVelocity`, use `springValue`.',
+    )
+  }
+  return useSpring(styleMapper, options)
+}
+
 export function useSpring<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions>,
