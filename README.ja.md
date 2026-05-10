@@ -15,7 +15,7 @@
 Vue 用のバインディングがあります。npm (または yarn, pnpm) でインストールします。
 
 ```sh
-$ npm install @css-spring-animation/vue
+$ npm install @ktsn/spring
 ```
 
 `<script setup>` を使っているシングルファイルコンポーネントでは以下のように `spring` コンポーネントを使うことができます。
@@ -23,7 +23,7 @@ $ npm install @css-spring-animation/vue
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const moved = ref(false)
 </script>
@@ -100,7 +100,7 @@ const moved = ref(false)
 
 ```vue
 <script setup>
-import { spring, springValue, sv } from '@css-spring-animation/vue'
+import { spring, springValue, sv } from '@ktsn/spring'
 
 const x = springValue(0)
 const y = springValue(0)
@@ -139,7 +139,7 @@ x.velocity()
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring, springComputed, sv } from '@css-spring-animation/vue'
+import { spring, springComputed, sv } from '@ktsn/spring'
 
 const offset = ref(0)
 
@@ -215,7 +215,7 @@ requestAnimationFrame(() => {
 
 ```vue
 <script setup>
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const position = ref(0)
 
@@ -270,7 +270,7 @@ function onFinish() {
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '@css-spring-animation/vue'
+import { SpringTransition } from '@ktsn/spring'
 
 const isShow = ref(false)
 </script>
@@ -331,7 +331,7 @@ const isShow = ref(false)
 
 ```vue
 <script setup>
-import { SpringTransitionGroup } from '@css-spring-animation/vue'
+import { SpringTransitionGroup } from '@ktsn/spring'
 
 const list = ref([
   // ...
@@ -391,7 +391,7 @@ const list = ref([
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import { springDirectives } from '@css-spring-animation/vue'
+import { springDirectives } from '@ktsn/spring'
 
 createApp(App).use(springDirectives).mount('#app')
 ```
@@ -426,7 +426,7 @@ createApp(App).use(springDirectives).mount('#app')
 `transition` CSS プロパティで使用できる CSS トランジション値の文字列を返します。
 
 ```js
-import { springCSS } from '@css-spring-animation/vue'
+import { springCSS } from '@ktsn/spring'
 
 // スプリングトランジション CSS を生成
 const transition = springCSS(400, 0.1)
@@ -462,7 +462,7 @@ element.style.opacity = '0.5'
 `next(elapsedMs)` メソッドを持つ `SpringGenerator` オブジェクトを返します。このメソッドは `{ value: number, done: boolean }` を返します。
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // スプリングイテレータを作成
 const iter = springGenerator({
@@ -479,7 +479,7 @@ result = iter.next(1200) // { value: 100, done: true }
 ```
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // 例: カスタムアニメーションループ
 const iter = springGenerator({ from: 0, to: 100, duration: 600 })

@@ -33,4 +33,4 @@ jobs:
         run: ./scripts/build.sh
 
       - name: Publish to npm
-        run: pnpm -r publish --access public --provenance --no-git-checks
+        run: pnpm publish --access public --provenance --no-git-checks

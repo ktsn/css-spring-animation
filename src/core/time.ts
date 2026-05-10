@@ -1,4 +1,4 @@
-export const t = '--css-spring-animation-time'
+export const t = '--ktsn-spring-time'
 
 let registered = false
 

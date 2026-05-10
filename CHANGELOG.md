@@ -1,3 +1,7 @@
+# `css-spring-animation` (v0.x)
+
+The following entries are the changelog of the `@css-spring-animation/{core,vue}` packages, prior to being renamed to `@ktsn/spring`.
+
 # [0.19.0](https://github.com/ktsn/css-spring-animation/compare/v0.18.0...v0.19.0) (2026-05-10)
 
 
