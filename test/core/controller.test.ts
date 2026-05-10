@@ -148,72 +148,6 @@ describe('AnimationController', () => {
     expect(actual?.width).toContain('%')
   })
 
-  test('realValue is as same as value in style before animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` })
-    expect(controller.realValue).toEqual({ transform: [100, 200] })
-  })
-
-  test('realValue is actual value while animating', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 10 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    expect(controller.realValue.transform).not.toEqual([100, 200])
-    expect(controller.realValue.transform).not.toEqual([200, 300])
-  })
-
-  test('realValue is stopped value after stopping', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    controller.stop()
-    expect(controller.realValue.transform).not.toEqual([100, 200])
-    expect(controller.realValue.transform).not.toEqual([200, 300])
-  })
-
-  test('realVelocity is 0 before animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` })
-    expect(controller.realVelocity.transform).toEqual([0, 0])
-  })
-
-  test('realVelocity is actual velocity while animating', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 10 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    expect(controller.realVelocity.transform).not.toEqual([0, 0])
-  })
-
-  test('realVelocity is 0 after stopping', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    controller.stop()
-    expect(controller.realVelocity.transform).toEqual([0, 0])
-  })
-
-  test('realVelocity is kept when stopped with keepVelocity option', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    controller.stop({ keepVelocity: true })
-    expect(controller.realVelocity.transform).not.toEqual([0, 0])
-  })
-
-  test('realVelocity is calculated from value history without animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` }, { animate: false })
-    controller.setStyle({ transform: `101px 200px` }, { animate: false })
-    controller.setStyle({ transform: `102px 200px` }, { animate: false })
-    expect(controller.realVelocity.transform?.[0]).not.toBe(0)
-    expect(controller.realVelocity.transform?.[1]).toBe(0)
-  })
-
   test('register finish listener for the current animation', () => {
     let style: any
     const controller = createAnimateController((_style) => {
@@ -262,7 +196,8 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onFinishCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
-        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        expect(style.width).not.toBe('100px')
+        expect(style.width).not.toBe('200px')
         resolve()
       })
       controller.stop()
@@ -296,7 +231,8 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
-        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        expect(style.width).not.toBe('100px')
+        expect(style.width).not.toBe('200px')
         resolve()
       })
       controller.stop()

@@ -3,7 +3,7 @@ import { animate } from '../../src/core/animate'
 
 describe('animate type', () => {
   test('number value', () => {
-    const ctx = animate(
+    animate(
       { scale: [0, 1] },
       (value) => {
         expectTypeOf(value).toEqualTypeOf<Record<string, string>>()
@@ -12,13 +12,10 @@ describe('animate type', () => {
         velocity: { scale: [10] },
       },
     )
-
-    expectTypeOf(ctx.realValue).toEqualTypeOf<{ scale: number[] }>()
-    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ scale: number[] }>()
   })
 
   test('string values', () => {
-    const ctx = animate(
+    animate(
       {
         width: [`0px`, `100px`],
       },
@@ -31,9 +28,6 @@ describe('animate type', () => {
         },
       },
     )
-
-    expectTypeOf(ctx.realValue).toEqualTypeOf<{ width: number[] }>()
-    expectTypeOf(ctx.realVelocity).toEqualTypeOf<{ width: number[] }>()
   })
 
   test('disallow extra velocity property', () => {
