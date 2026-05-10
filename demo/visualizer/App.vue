@@ -7,8 +7,10 @@ import {
   evaluateSpring,
   evaluateSpringBounce,
   evaluateSpringDecay,
+  sv,
 } from '../../src/core'
 import { Spring } from '../../src/core/spring'
+import { springValue } from '../../src/vue/spring-value'
 
 const from = 0
 const to = 350
@@ -206,7 +208,7 @@ function render(time: number): void {
 let intervalTimer: number | undefined
 let loopTimer: number | undefined
 let animateTimer: number | undefined
-let ctx: AnimateContext<any> | undefined
+let ctx: AnimateContext | undefined
 watchEffect(() => {
   window.clearInterval(intervalTimer)
   const { velocity, bounce, duration } = parameters.value
@@ -221,17 +223,14 @@ watchEffect(() => {
 
     ctx?.stop()
     animateTimer = requestAnimationFrame(() => {
+      const fromSv = springValue(from)
+      fromSv.setVelocity(velocity)
       ctx = animate(
-        {
-          translate: [`${from}px`, `${to}px`],
-        },
         (_style) => {
           style.value = _style
         },
+        [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }],
         {
-          velocity: {
-            translate: [velocity],
-          },
           bounce,
           duration,
         },

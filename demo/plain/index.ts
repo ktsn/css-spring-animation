@@ -5,18 +5,13 @@ let ctx: ReturnType<typeof animate> | undefined
 
 setInterval(() => {
   animate(
-    {
-      translate: [`0px 0px`, `300px 300px`],
-    },
     (style) => {
       Object.entries(style).forEach(([k, v]) => {
         demo.style.setProperty(k, v)
       })
     },
+    [{ translate: `0px 0px` }, { translate: `300px 300px` }],
     {
-      velocity: {
-        translate: [20, 20],
-      },
       duration: 1000,
       bounce: 0,
     },
