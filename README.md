@@ -365,6 +365,8 @@ const list = ref([
 
 ### `useSpring` composable
 
+> **Deprecated.** Prefer the [`<spring>` component](#spring-component). If you need access to `realValue` / `realVelocity`, use [`springValue`](#springvalueinitial) instead.
+
 A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
 
 The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
