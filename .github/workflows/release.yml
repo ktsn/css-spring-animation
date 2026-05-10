@@ -29,27 +29,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Test
-        run: pnpm test
-
-      - name: Generate type declarations
-        run: pnpm dts
-
       - name: Build
-        run: pnpm run -r build
-
-      - name: Copy UMD files
-        run: |
-          cp packages/core/dist/css-spring-animation-core.umd.cjs packages/core/dist/css-spring-animation-core.umd.js
-          cp packages/vue/dist/css-spring-animation-vue.umd.cjs packages/vue/dist/css-spring-animation-vue.umd.js
-
-      - name: Copy README files
-        run: |
-          cp README.md packages/vue/README.md
-          cp README.ja.md packages/vue/README.ja.md
+        run: ./scripts/build.sh
 
       - name: Publish to npm
         run: pnpm -r publish --access public --provenance --no-git-checks
