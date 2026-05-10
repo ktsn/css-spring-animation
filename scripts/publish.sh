@@ -29,5 +29,3 @@ cp README.ja.md packages/vue/README.ja.md
 git add .
 git commit -m "v$1"
 git tag v$1
-
-pnpm -r publish --access public
