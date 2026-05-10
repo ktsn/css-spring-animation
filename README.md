@@ -57,7 +57,7 @@ Perceptive duration (ms) of an animation. The default value is 1000.
 
 ## `disabled` and `inferVelocity`
 
-`<spring>` component and `useSpring` composable accept a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
+`<spring>` component accepts a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
 
 When animation later resumes, the spring's initial velocity comes from one of two sources, controlled by `inferVelocity`:
 
@@ -205,7 +205,6 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `duration`
 - `disabled`
 - `inferVelocity`
-- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
 
 **Events**
 
@@ -361,88 +360,6 @@ const list = ref([
     </li>
   </SpringTransitionGroup>
 </template>
-```
-
-### `useSpring` composable
-
-> **Deprecated.** Prefer the [`<spring>` component](#spring-component). If you need access to `realValue` / `realVelocity`, use [`springValue`](#springvalueinitial) instead.
-
-A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
-
-The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
-
-The options object expectes the following properties:
-
-- `bounce`
-- `duration`
-- `disabled`
-- `inferVelocity`
-- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
-
-It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, realValue, realVelocity } = useSpring(
-  () => {
-    return {
-      translate: `${position.value}px`,
-    }
-  },
-  () => {
-    return {
-      duration: 600,
-      bounce: 0.3,
-    }
-  },
-)
-</script>
-
-<template>
-  <div :style="style"></div>
-  <ul>
-    <li>realValue: {{ realValue.translate[0] }}</li>
-    <li>realVelocity: {{ realVelocity.translate[0] }}</li>
-  </ul>
-</template>
-```
-
-`useSpring` provides `onFinishCurrent` and `onSettleCurrent` functions for waiting until the current animation is finished or settled. You can register a callback function that will be called when an ongoing animation is finished/settled.
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, onFinishCurrent } = useSpring(() => {
-  return {
-    translate: `${position.value}px`,
-  }
-})
-
-function move() {
-  // Move to 100px
-  position.value = 100
-
-  // Wait for the animation is finished (duration passed) triggered by the above position update
-  onFinishCurrent(() => {
-    // Move to 0px
-    position.value = 0
-  })
-
-  // Wait for the animation is settled (visually stopped) triggered by the above position update
-  onSettleCurrent(() => {
-    console.log('settled')
-  })
-}
-</script>
 ```
 
 ### `springValue(initial)`

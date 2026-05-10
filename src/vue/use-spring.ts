@@ -9,7 +9,6 @@ import {
   toRef,
   toValue,
   watch,
-  watchEffect,
 } from 'vue'
 import { AnimateValue, SpringOptions, createAnimateController } from '../core'
 import { isSameStyle } from '../core/controller'
@@ -20,8 +19,6 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
   inferVelocity?: boolean
-  /** @deprecated Use `disabled: true` with `inferVelocity: false` instead. */
-  relocating?: boolean
 }
 
 type SpringStyleRef = Readonly<Ref<Record<string, string>>>
@@ -34,25 +31,6 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
   onSettle: (fn: (data: { stopped: boolean }) => void) => void
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
-}
-
-let warnedUseSpring = false
-
-/**
- * @deprecated Use the `<spring>` component instead. If you need `realValue` or
- * `realVelocity`, use `springValue`.
- */
-export function useSpringPublic<Style extends Record<string, AnimateValue>>(
-  styleMapper: RefOrGetter<Style>,
-  options?: MaybeRefOrGetter<UseSpringOptions>,
-): UseSpringResult<Record<keyof Style, number[]>> {
-  if (!warnedUseSpring) {
-    warnedUseSpring = true
-    console.warn(
-      '[css-spring-animation] `useSpring` is deprecated. Use the `<spring>` component instead. If you need `realValue` or `realVelocity`, use `springValue`.',
-    )
-  }
-  return useSpring(styleMapper, options)
 }
 
 export function useSpring<Style extends Record<string, AnimateValue>>(
@@ -92,28 +70,9 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   const optionsRef = computed(() => toValue(options) ?? {})
 
-  const disabled = computed(
-    () =>
-      (optionsRef.value.disabled ?? false) ||
-      (optionsRef.value.relocating ?? false),
-  )
+  const disabled = computed(() => optionsRef.value.disabled ?? false)
 
-  const inferVelocity = computed(() => {
-    if (optionsRef.value.relocating) {
-      return false
-    }
-    return optionsRef.value.inferVelocity ?? true
-  })
-
-  let warnedRelocating = false
-  watchEffect(() => {
-    if (optionsRef.value.relocating && !warnedRelocating) {
-      warnedRelocating = true
-      console.warn(
-        '[css-spring-animation] `relocating` is deprecated. Use `disabled: true` with `inferVelocity: false` instead.',
-      )
-    }
-  })
+  const inferVelocity = computed(() => optionsRef.value.inferVelocity ?? true)
 
   const style = ref<Record<string, string>>({})
 
