@@ -26,9 +26,6 @@ export interface StopOptions {
 export interface AnimationController<
   Style extends Record<string, AnimateValue>,
 > {
-  realValue: Record<keyof Style, number[]>
-  realVelocity: Record<keyof Style, number[]>
-
   setStyle: (
     style: Style,
     options?: SetStyleOptions<keyof Style>,
@@ -241,22 +238,6 @@ export function createAnimateController<
   }
 
   return {
-    get realValue() {
-      if (!liveSlots) {
-        throw new Error('style is not set yet. Call setStyle() first.')
-      }
-
-      return liveRealValue(liveSlots)
-    },
-
-    get realVelocity() {
-      if (!style) {
-        throw new Error('style is not set yet. Call setStyle() first.')
-      }
-
-      return getRealVelocity(style)
-    },
-
     stop,
     setStyle,
     setOptions,

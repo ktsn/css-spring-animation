@@ -1,12 +1,10 @@
 import {
-  DeepReadonly,
   MaybeRefOrGetter,
   Ref,
   computed,
   nextTick,
   readonly,
   ref,
-  toRef,
   toValue,
   watch,
 } from 'vue'
@@ -23,10 +21,8 @@ export interface UseSpringOptions extends SpringOptions {
 
 type SpringStyleRef = Readonly<Ref<Record<string, string>>>
 
-export interface UseSpringResult<Values extends Record<string, number[]>> {
+export interface UseSpringResult {
   style: SpringStyleRef
-  realValue: DeepReadonly<Ref<Values>>
-  realVelocity: DeepReadonly<Ref<Values>>
   onFinish: (fn: (data: { stopped: boolean }) => void) => void
   onSettle: (fn: (data: { stopped: boolean }) => void) => void
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
@@ -36,7 +32,7 @@ export interface UseSpringResult<Values extends Record<string, number[]>> {
 export function useSpring<Style extends Record<string, AnimateValue>>(
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions>,
-): UseSpringResult<Record<keyof Style, number[]>> {
+): UseSpringResult {
   const input = computed(() => toValue(styleMapper))
 
   // Reactive snapshot — reads every `SpringComputed.target` so Vue reruns
@@ -83,9 +79,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   )
   controller.setStyle(input.value)
   controller.setOptions(optionsRef.value)
-
-  const realValue = toRef(() => controller.realValue)
-  const realVelocity = toRef(() => controller.realVelocity)
 
   function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
     // Wait for the next tick to ensure that input changes in the same tick
@@ -156,8 +149,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   return {
     style: readonly(style),
-    realValue: readonly(realValue),
-    realVelocity: readonly(realVelocity),
     onFinish,
     onSettle,
     onFinishCurrent,
