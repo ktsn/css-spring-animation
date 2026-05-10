@@ -57,7 +57,7 @@ const moved = ref(false)
 
 ## `disabled` と `inferVelocity`
 
-`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
+`<spring>` コンポーネントは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
 
 アニメーションが再開する際の初速の扱いは、`inferVelocity` で切り替えられます。
 
@@ -205,7 +205,6 @@ requestAnimationFrame(() => {
 - `duration`
 - `disabled`
 - `inferVelocity`
-- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
 
 **イベント**
 
@@ -361,88 +360,6 @@ const list = ref([
     </li>
   </SpringTransitionGroup>
 </template>
-```
-
-### `useSpring` composable
-
-> **非推奨**。代わりに [`<spring>` コンポーネント](#spring-コンポーネント) を使用してください。`realValue` / `realVelocity` が必要な場合は [`springValue`](#springvalueinitial) を使用してください。
-
-スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
-
-第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
-
-オプションオブジェクトには以下のプロパティを指定できます。
-
-- `bounce`
-- `duration`
-- `disabled`
-- `inferVelocity`
-- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
-
-`<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, realValue, realVelocity } = useSpring(
-  () => {
-    return {
-      translate: `${position.value}px`,
-    }
-  },
-  () => {
-    return {
-      duration: 600,
-      bounce: 0.3,
-    }
-  },
-)
-</script>
-
-<template>
-  <div :style="style"></div>
-  <ul>
-    <li>realValue: {{ realValue.translate[0] }}</li>
-    <li>realVelocity: {{ realVelocity.translate[0] }}</li>
-  </ul>
-</template>
-```
-
-`useSpring` が返す値には、現在のアニメーションが完了、もしくは、settle するまで待つ `onFinishCurrent`、`onSettleCurrent` 関数があります。この関数には、進行中のアニメーションが完了・settle したときに呼ばれるコールバック関数を登録できます。
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, onFinishCurrent } = useSpring(() => {
-  return {
-    translate: `${position.value}px`,
-  }
-})
-
-function move() {
-  // 100px まで移動
-  position.value = 100
-
-  // 上記の position の更新によってトリガーされたアニメーションが完了（duration が経過）するまで待つ
-  onFinishCurrent(() => {
-    // 0px まで移動
-    position.value = 0
-  })
-
-  // 上記の position の更新によってトリガーされたアニメーションが settle（見た目が停止）するまで待つ
-  onSettleCurrent(() => {
-    console.log('settled')
-  })
-}
-</script>
 ```
 
 ### `springValue(initial)`

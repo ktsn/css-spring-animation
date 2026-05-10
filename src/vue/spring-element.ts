@@ -16,8 +16,6 @@ const createSpringElement = (tagName: string) => {
       duration: Number,
       disabled: Boolean,
       inferVelocity: { type: Boolean, default: true },
-      /** @deprecated Use `disabled` with `:infer-velocity="false"` instead. */
-      relocating: Boolean,
     },
 
     emits: {
@@ -34,7 +32,6 @@ const createSpringElement = (tagName: string) => {
             duration: props.duration,
             disabled: props.disabled,
             inferVelocity: props.inferVelocity,
-            relocating: props.relocating,
           }
         },
       )
