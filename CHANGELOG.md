@@ -1,3 +1,16 @@
+# [1.0.0-beta.0](https://github.com/ktsn/spring/compare/v0.19.0...v1.0.0-beta.0) (2026-05-10)
+
+
+* feat!: remove deprecated useSpring composable and relocating option (#48) ([0640b8e](https://github.com/ktsn/spring/commit/0640b8e67dddb1967807cd607b4b9790da9a7bd5)), closes [#48](https://github.com/ktsn/spring/issues/48)
+
+
+### BREAKING CHANGES
+
+* The `useSpring` public export has been removed. Use
+the `<spring>` component instead, or `springValue` for `realValue` /
+`realVelocity` access. The `relocating` option on `<spring>` and
+`useSpring` has also been removed — use `disabled` with
+`inferVelocity: false` instead.
 # `css-spring-animation` (v0.x)
 
 The following entries are the changelog of the `@css-spring-animation/{core,vue}` packages, prior to being renamed to `@ktsn/spring`.
