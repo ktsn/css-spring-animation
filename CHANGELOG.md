@@ -1,3 +1,12 @@
+# [0.19.0](https://github.com/ktsn/css-spring-animation/compare/v0.18.0...v0.19.0) (2026-05-10)
+
+
+### Features
+
+* add springValue and springComputed ([#34](https://github.com/ktsn/css-spring-animation/issues/34)) ([1a235d8](https://github.com/ktsn/css-spring-animation/commit/1a235d815b6fd599196b31737e939c06ba368dfe))
+* Deprecate useSpring composable ([#45](https://github.com/ktsn/css-spring-animation/issues/45)) ([95eebf1](https://github.com/ktsn/css-spring-animation/commit/95eebf117de3d26a4af7b536ce9c7c0b8a9a0525))
+* **element:** add finish, settle events for spring element ([#31](https://github.com/ktsn/css-spring-animation/issues/31)) ([a2915a1](https://github.com/ktsn/css-spring-animation/commit/a2915a105786f2677de53c49de51c06cc9398b83))
+* introduce `inferVelocity` option ([#32](https://github.com/ktsn/css-spring-animation/issues/32)) ([d8a4a29](https://github.com/ktsn/css-spring-animation/commit/d8a4a29b270816604b5b850a12f421e7c753e7ef))
 # [0.18.0](https://github.com/ktsn/css-spring-animation/compare/v0.17.0...v0.18.0) (2025-12-15)
 
 

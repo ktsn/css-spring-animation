@@ -55,13 +55,16 @@ const moved = ref(false)
 **duration**<br>
 アニメーションの長さ（ミリ秒）を指定します。デフォルト値は 1000 です。
 
-## `disabled` と `relocating`
+## `disabled` と `inferVelocity`
 
-`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` と `relocating` オプションを指定できます。両方とも実行中のアニメーションを止めて、以降のスタイルの変更でアニメーションを行わなくします。
+`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
 
-`disabled` はスプリングアニメーションを無効にしながら、継続的なスタイルの値の更新で要素の移動を表現し、その値の更新で計算された速度を使って再度スプリングアニメーションを行うときに使用します。[Swipe](./demo/swipe/) デモでその例を見ることができます。要素をドラッグしている間は `disabled` が `true` になり、離したときにドラッグ中の速度を引き継いでスプリングアニメーションが行われます。
+アニメーションが再開する際の初速の扱いは、`inferVelocity` で切り替えられます。
 
-`relocating` はスプリングアニメーションを実行せずにスタイルを更新し、直後に以前のアニメーションの速度を引き継いだアニメーションを行うときに使用します。[Picker](./demo/picker/) デモでは、マウスホイールでピッカーを無限に回転させることができます。これを実現するために、回転のアニメーションを維持しながら、`relocating = true` のときにピッカーを反対方向に戻す処理を行っています。
+- **`inferVelocity: true` (デフォルト)** — 直近のスタイル更新の変化量から速度を推定します。要素をドラッグなどで手動で動かしている間は `disabled` を `true` にし、離した瞬間にドラッグの速度を引き継いだスプリングアニメーションを行いたい場合に使用します。[Swipe](./demo/swipe/) デモがその例です。
+- **`inferVelocity: false`** — 速度を一切変更せず、直前のアニメーションの速度をそのまま保持します。要素の位置だけを瞬時に動かしたいが回転などの勢いは保ちたい場合に使用します。[Picker](./demo/picker/) デモでは、`disabled: true, inferVelocity: false` でピッカーを反対側へワープさせつつ、回転の勢いを維持しています。
+
+`inferVelocity` は `disabled` が `true` のときのみ有効です。`disabled` が `false` のときはアニメーションが値と速度の両方を管理するため、このオプションは無視されます。
 
 ## スタイル指定時の注意点
 
@@ -88,6 +91,75 @@ const moved = ref(false)
         : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
+</template>
+```
+
+## `springValue` と `springComputed`
+
+`springValue` はアニメーションするスタイル内の数値を管理する値で、`target` にセットした値へのアニメーションが自動的に実装されます。`sv` タグ付きテンプレートと組み合わせることで CSS 値の中に埋め込めます。
+
+```vue
+<script setup>
+import { spring, springValue, sv } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+const y = springValue(0)
+
+function move() {
+  // アニメーション先の値を `target` に代入する
+  x.target = 200
+  y.target = 100
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <!-- sv を使って Spring Value を CSS 値に埋め込む -->
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
+```
+
+Vue の `ref` を使って通常のテンプレートリテラルで CSS 値を構築してもアニメーションは実行されますが、`springValue` を使うことでアニメーション中の実際の値や速度を取得することができます。
+
+```ts
+const x = springValue(0)
+
+// 呼び出した時点のアニメーション中の実際の値と速度を取得する（リアクティブではない）
+x.current()
+x.velocity()
+```
+
+`springComputed` は Vue の `computed` の Spring Value 版です。`computed` と同様に他のリアクティブな値から Spring Value を導出できます。
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { spring, springComputed, sv } from '@css-spring-animation/vue'
+
+const offset = ref(0)
+
+// offset から派生した Spring Value を作る。target は読み取り専用。
+const x = springComputed(() => offset.value)
+const y = springComputed(() => offset.value * 2)
+
+function move() {
+  offset.value = offset.value === 0 ? 100 : 0
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
 </template>
 ```
 
@@ -132,13 +204,25 @@ requestAnimationFrame(() => {
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
+
+**イベント**
+
+- `spring-finish`: アニメーションが視覚的に完了したとき (duration が経過した時) に発火します。
+- `spring-settle`: アニメーションが完全に減衰して停止したときに発火します。
+
+イベントはアニメーションサイクル単位で、最新のサイクルに対してのみ発火します。アニメーション中に `spring-style` が再設定されて以前のサイクルが中断された場合、そのサイクルのイベントは発火しません。`disabled` 中も発火しません。
 
 ```vue
 <script setup>
 import { spring } from '@css-spring-animation/vue'
 
 const position = ref(0)
+
+function onFinish() {
+  // ...
+}
 </script>
 
 <template>
@@ -148,6 +232,7 @@ const position = ref(0)
     }"
     :duration="600"
     :bounce="0.3"
+    @spring-finish="onFinish"
   ></spring.div>
 </template>
 ```
@@ -280,6 +365,8 @@ const list = ref([
 
 ### `useSpring` composable
 
+> **非推奨**。代わりに [`<spring>` コンポーネント](#spring-コンポーネント) を使用してください。`realValue` / `realVelocity` が必要な場合は [`springValue`](#springvalueinitial) を使用してください。
+
 スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
 
 第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
@@ -289,7 +376,8 @@ const list = ref([
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
 
 `<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
 
@@ -356,6 +444,24 @@ function move() {
 }
 </script>
 ```
+
+### `springValue(initial)`
+
+単一の数値をアニメーションするためのリアクティブな値オブジェクトを作成します。`sv` タグ付きテンプレートを介して `<spring>` 要素にバインドして使用します。
+
+**戻り値** のオブジェクトの API:
+
+- `target` (number, リアクティブ値、読み書き可) — アニメーションの destination 値。`<spring>` 要素にバインドされている状態で代入するとアニメーションが起動します。バインド先の要素が `disabled: true` の場合は即座にスタイルが反映されます。
+- `current(): number` — 呼び出し時点の現在値を返すスナップショットメソッド。バインド中は spring 要素から現在値を読み、未バインド時は `target` の値を返します。
+- `velocity(): number` — 呼び出し時点の速度を返すスナップショットメソッド。バインド中はアニメーションの速度を、未バインド時は `0` を返します。
+
+### `springComputed(getter)`
+
+`springValue` の computed 版。Vue の `computed` と同じく値を導出する関数を受け取り、Spring Value を返します。インターフェースは `springValue` の値と同じですが、`target` が読み取り専用になり、getter のリアクティブな依存先から自動的に算出されます。
+
+### `sv` タグ付きテンプレート
+
+`springValue` / `springComputed` の値を埋め込んだ CSS 値を構築し、`:spring-style` 用の値を返すタグ付きテンプレートです。
 
 ### `v-spring-style`, `v-spring-options` ディレクティブ
 

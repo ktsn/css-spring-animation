@@ -55,13 +55,16 @@ Bounciness of an animation. The value is between -1 and 1. The default value is 
 **duration**<br>
 Perceptive duration (ms) of an animation. The default value is 1000.
 
-## `disabled` vs. `relocating`
+## `disabled` and `inferVelocity`
 
-`<spring>` component and `useSpring` composable have `disabled` and `relocating` options. They both stop ongoing animation and the component/composable will not trigger animations for further style changes.
+`<spring>` component and `useSpring` composable accept a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
 
-You should use `disabled` when you want to disable a spring animation but keep rendering an element move by continuously updating the style value, then trigger a spring animation again with using velocity of the style value updates. You can see the example of it in [Swipe](./demo/swipe/) demo. `disabled` is `true` while you drag an element and trigger spring animation with the inherited velocity of the dragging when releasing it.
+When animation later resumes, the spring's initial velocity comes from one of two sources, controlled by `inferVelocity`:
 
-`relocating` is used in case of updating the style value without triggering a spring animation and you will immediately trigger an animation with using the inherited velocity of the previous animation. In [Picker](./demo/picker/) demo, you can rotate the picker by mouse wheel endlessly. To do that, it rewinds the picker to the opposite side of the rotation with `relocating = true` while keeping the rotation animation.
+- **`inferVelocity: true` (default)** — velocity is inferred from the rate of recent style updates. Use this when you drive the element manually (e.g. by dragging) and want the spring to pick up momentum from your motion. See the [Swipe](./demo/swipe/) demo: while the user drags, `disabled` is `true`, and on release the spring fires with the inferred drag velocity.
+- **`inferVelocity: false`** — velocity is left untouched, preserving the velocity of the previous spring animation. Use this when you want to teleport the element without disturbing momentum. See the [Picker](./demo/picker/) demo: scrolling the wheel wraps the picker around with `disabled: true, inferVelocity: false`, preserving the rotation momentum across the wrap.
+
+`inferVelocity` only takes effect while `disabled` is `true`. When `disabled` is `false`, the animation owns both value and velocity and `inferVelocity` is ignored.
 
 ## Spring Style Caveats
 
@@ -88,6 +91,75 @@ This is because the library parses the numbers in the style value, then calculat
         : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
+</template>
+```
+
+## `springValue` and `springComputed`
+
+`springValue` holds a number that lives inside an animating style. Assigning to its `target` automatically triggers an animation toward that value. Combined with the `sv` tagged template, it can be embedded inside a CSS value.
+
+```vue
+<script setup>
+import { spring, springValue, sv } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+const y = springValue(0)
+
+function move() {
+  // Assign the animation destination to `target`
+  x.target = 200
+  y.target = 100
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <!-- Embed spring values into the CSS value via `sv` -->
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
+</template>
+```
+
+You can also build CSS values with regular template literals over a Vue `ref` and the animation will still run. Using `springValue` instead lets you read the live value and velocity during the animation.
+
+```ts
+const x = springValue(0)
+
+// Snapshot the live value and velocity at the time of the call (not reactive).
+x.current()
+x.velocity()
+```
+
+`springComputed` is the spring value counterpart of Vue's `computed`. Like `computed`, it derives a spring value from other reactive sources.
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { spring, springComputed, sv } from '@css-spring-animation/vue'
+
+const offset = ref(0)
+
+// Derive spring values from offset. `target` is read-only.
+const x = springComputed(() => offset.value)
+const y = springComputed(() => offset.value * 2)
+
+function move() {
+  offset.value = offset.value === 0 ? 100 : 0
+}
+</script>
+
+<template>
+  <button @click="move">Move</button>
+
+  <spring.div
+    :spring-style="{ translate: sv`${x}px ${y}px` }"
+    :duration="600"
+    :bounce="0.3"
+  />
 </template>
 ```
 
@@ -132,13 +204,25 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
+
+**Events**
+
+- `spring-finish`: Emitted when the animation completes visually (just after duration passes).
+- `spring-settle`: Emitted when the animation has fully settled (velocity decayed to zero).
+
+Events fire per animation cycle on the latest cycle only. If `spring-style` is updated mid-animation, the previous cycle is interrupted and its events are suppressed. Events are also suppressed while `disabled` is set.
 
 ```vue
 <script setup>
 import { spring } from '@css-spring-animation/vue'
 
 const position = ref(0)
+
+function onFinish() {
+  // ...
+}
 </script>
 
 <template>
@@ -148,6 +232,7 @@ const position = ref(0)
     }"
     :duration="600"
     :bounce="0.3"
+    @spring-finish="onFinish"
   ></spring.div>
 </template>
 ```
@@ -280,6 +365,8 @@ const list = ref([
 
 ### `useSpring` composable
 
+> **Deprecated.** Prefer the [`<spring>` component](#spring-component). If you need access to `realValue` / `realVelocity`, use [`springValue`](#springvalueinitial) instead.
+
 A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
 
 The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
@@ -289,7 +376,8 @@ The options object expectes the following properties:
 - `bounce`
 - `duration`
 - `disabled`
-- `relocating`
+- `inferVelocity`
+- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
 
 It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
 
@@ -356,6 +444,32 @@ function move() {
 }
 </script>
 ```
+
+### `springValue(initial)`
+
+Creates a reactive holder for a single animated number. Pair with `<spring>` element via the `sv` tagged template.
+
+**Returns** an object with:
+
+- `target` (number, reactive read/write) — animation destination. Assigning to it triggers an animation when bound to a `<spring>` element. Applied immediately while the bound element has `disabled: true`.
+- `current(): number` — non-reactive snapshot of the live animating value. While bound, reads through the spring element's value; otherwise returns `target`.
+- `velocity(): number` — non-reactive snapshot of the live velocity. While bound, reads the animation velocity; otherwise returns `0`.
+
+```ts
+import { springValue } from '@css-spring-animation/vue'
+
+const x = springValue(0)
+x.target = 100 // trigger animation when bound
+console.log(x.current(), x.velocity())
+```
+
+### `springComputed(getter)`
+
+The `computed` version of `springValue`. Like Vue's `computed`, it takes a getter that returns a number and produces a spring value. The shape is identical to a `springValue` except `target` is read-only and is automatically derived from the getter's reactive dependencies.
+
+### `sv` tagged template
+
+A tagged template that builds a `:spring-style` value by embedding `springValue` / `springComputed` instances into a CSS expression.
 
 ### `v-spring-style` and `v-spring-options` directivies
 
