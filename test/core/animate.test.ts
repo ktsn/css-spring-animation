@@ -198,10 +198,12 @@ describe('animate', () => {
   test('SpringValue.velocity() is 0 after settled', () => {
     const x = spring(10)
     const y = spring(20)
+    x.setVelocity(100)
+    y.setVelocity(200)
     const ctx = animate(
       { x: [sv`0`, sv`${x}`], y: [sv`10`, sv`${y}`] },
       () => {},
-      { velocity: { x: [100], y: [200] }, duration: 10 },
+      { duration: 10 },
     )
     return ctx.settlingPromise.then(() => {
       expect(x.velocity()).toBe(0)
@@ -218,8 +220,8 @@ describe('animate', () => {
 
   test('SpringValue.velocity() is 0 after stopped', async () => {
     const x = spring(10)
+    x.setVelocity(100)
     const ctx = animate({ scale: [sv`0`, sv`${x}`] }, () => {}, {
-      velocity: { scale: [100] },
       duration: 1000,
     })
     await raf()

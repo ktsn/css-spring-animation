@@ -33,12 +33,6 @@ export interface SpringOptions {
   bounce?: number
 }
 
-export interface AnimateOptions<
-  Keys extends PropertyKey,
-> extends SpringOptions {
-  velocity?: Partial<Record<Keys, number[]>>
-}
-
 export interface AnimateContext {
   finished: boolean
   settled: boolean
@@ -53,7 +47,7 @@ export interface AnimateContext {
 export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
   fromTo: T,
   set: (style: Record<string, string>) => void,
-  options: AnimateOptions<keyof T> = {},
+  options: SpringOptions = {},
 ): AnimateContext {
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
@@ -71,7 +65,10 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     SpringComputed[]
   >
 
-  const slotVelocities: Partial<Record<keyof T, (number | undefined)[]>> = {}
+  const slotVelocities: Record<keyof T, number[]> = {} as Record<
+    keyof T,
+    number[]
+  >
 
   const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
     const fromIsUserSpring = typeof from === 'object'
@@ -90,12 +87,11 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     // Choose initial velocity prioritized by follows:
     // 1. user-provided `from` SpringValue's velocity
     // 2. user-provided `to` SpringValue's velocity
-    // 3. options.velocity (will be removed in future)
     slotVelocities[key as keyof T] = liftedTo.values.map((toSlot, i) => {
       const fromSlot = liftedFrom.values[i]
       if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
       if (toIsUserSpring) return toSlot.velocity()
-      return undefined
+      return 0
     })
 
     return [snapshotSpringStyle(liftedFrom), snapshotSpringStyle(liftedTo)] as [
@@ -112,16 +108,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
     duration,
   })
 
-  const mergedVelocity: Partial<Record<keyof T, number[]>> = mapValues(
-    parsedFromTo,
-    ([_from, to], key) => {
-      const slotV = slotVelocities[key as keyof T] ?? []
-      const optV = options.velocity?.[key as keyof T] ?? []
-      return to.values.map((_v, i) => slotV[i] ?? optV[i] ?? 0)
-    },
-  )
-
-  const inputValues = groupInputValues(parsedFromTo, mergedVelocity)
+  const inputValues = groupInputValues(parsedFromTo, slotVelocities)
 
   const settlingDurationList = Object.values(inputValues).flatMap((values) => {
     return values.map(({ from, to, velocity }) => {
@@ -170,7 +157,7 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
 
   if (
     isCssLinearTimingFunctionSupported() &&
-    canUseLinearTimingFunction(parsedFromTo, mergedVelocity)
+    canUseLinearTimingFunction(parsedFromTo, slotVelocities)
   ) {
     animateWithLinearTimingFunction({
       spring,
@@ -211,7 +198,7 @@ function groupInputValues<
   FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >(
   fromTo: FromTo,
-  velocity: Partial<Record<keyof FromTo, number[]>>,
+  velocity: Record<keyof FromTo, number[]>,
 ): Record<keyof FromTo, InputValueGroup[]> {
   return mapValues(fromTo, ([from, to], key) => {
     return zip(from.values, to.values).map(([from, to], i) => {
@@ -232,12 +219,8 @@ function groupInputValues<
  */
 function canUseLinearTimingFunction(
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>,
-  velocity: Partial<Record<string, number[]>> | undefined,
+  velocity: Record<string, number[]>,
 ): boolean {
-  if (!velocity) {
-    return true
-  }
-
   return Object.keys(fromTo).every((key) => {
     const [from, to] = fromTo[key]!
     const velocities = velocity[key]

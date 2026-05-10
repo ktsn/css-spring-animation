@@ -195,10 +195,7 @@ export function createAnimateController<
       ctx.stop()
     }
 
-    ctx = animate(fromTo, set, {
-      ...options,
-      velocity: inferredVelocity,
-    })
+    ctx = animate(fromTo, set, options)
     keptVelocity = undefined
     valueHistory = []
 

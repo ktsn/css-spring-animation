@@ -14,9 +14,6 @@ setInterval(() => {
       })
     },
     {
-      velocity: {
-        translate: [20, 20],
-      },
       duration: 1000,
       bounce: 0,
     },
