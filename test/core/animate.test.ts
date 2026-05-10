@@ -25,13 +25,13 @@ function wait(ms: number) {
 
 describe('animate', () => {
   test('ctx.finished and ctx.settled equal to false on start', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {})
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }])
     expect(ctx.finished).toBe(false)
     expect(ctx.settled).toBe(false)
   })
 
   test('ctx.finished = true after duration passed', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 10,
     })
     return new Promise<void>((resolve) => {
@@ -44,7 +44,7 @@ describe('animate', () => {
   })
 
   test('ctx.finished = true after finishingPromise resolved', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 10,
     })
     return new Promise<void>((resolve) => {
@@ -57,7 +57,7 @@ describe('animate', () => {
   })
 
   test('ctx.settled = true after settlingPromise resolved', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 10,
     })
     return new Promise<void>((resolve) => {
@@ -70,7 +70,7 @@ describe('animate', () => {
   })
 
   test('ctx.stop() makes finished and settled be true', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 60000,
     })
     ctx.stop()
@@ -79,7 +79,7 @@ describe('animate', () => {
   })
 
   test('ctx.stop() force resolves finishingPromise', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 60000,
     })
     ctx.stop()
@@ -87,7 +87,7 @@ describe('animate', () => {
   })
 
   test('ctx.stop() force resolves settlingPromise', () => {
-    const ctx = animate({ scale: [0, 10] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: 0 }, { scale: 10 }], {
       duration: 60000,
     })
     ctx.stop()
@@ -98,8 +98,11 @@ describe('animate', () => {
     const x = spring(10)
     const y = spring(20)
     const ctx = animate(
-      { x: [sv`0`, sv`${x}`], y: [sv`10`, sv`${y}`] },
       () => {},
+      [
+        { x: sv`0`, y: sv`10` },
+        { x: sv`${x}`, y: sv`${y}` },
+      ],
       { duration: 10 },
     )
     return ctx.settlingPromise.then(() => {
@@ -110,14 +113,14 @@ describe('animate', () => {
 
   test('SpringValue.current() returns a mid-flight value while animating', () => {
     const x = spring(100)
-    animate({ scale: [sv`0`, sv`${x}`] }, () => {})
+    animate(() => {}, [{ scale: sv`0` }, { scale: sv`${x}` }])
     expect(x.current()).not.toBe(0)
     expect(x.current()).not.toBe(100)
   })
 
   test('SpringValue.current() returns the stopped value when stopped', async () => {
     const x = spring(10)
-    const ctx = animate({ scale: [sv`0`, sv`${x}`] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: sv`0` }, { scale: sv`${x}` }], {
       duration: 1000,
     })
     await raf()
@@ -131,10 +134,11 @@ describe('animate', () => {
     const x = spring(10)
     const y = spring(20)
     const ctx = animate(
-      {
-        translate: [`translate(0px, 10)`, sv`translate(${x}px, ${y})`],
-      },
       () => {},
+      [
+        { translate: `translate(0px, 10px)` },
+        { translate: sv`translate(${x}px, ${y}px)` },
+      ],
       { duration: 10 },
     )
 
@@ -146,7 +150,7 @@ describe('animate', () => {
 
   test('SpringValue in `from` is attached even when `to` is a literal', () => {
     const x = spring(0)
-    const ctx = animate({ scale: [sv`${x}`, '10'] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: sv`${x}` }, { scale: '10' }], {
       duration: 10,
     })
     return ctx.settlingPromise.then(() => {
@@ -157,7 +161,7 @@ describe('animate', () => {
   test('SpringValues in both `from` and `to` share the same animation', async () => {
     const a = spring(0)
     const b = spring(10)
-    const ctx = animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: sv`${a}` }, { scale: sv`${b}` }], {
       duration: 1000,
     })
     await raf()
@@ -174,14 +178,16 @@ describe('animate', () => {
   test('velocity set on a `from`-side SpringValue is used as the initial velocity', () => {
     const x = spring(0)
     x.setVelocity(50)
-    animate({ scale: [sv`${x}`, '10'] }, () => {}, { duration: 1000 })
+    animate(() => {}, [{ scale: sv`${x}` }, { scale: '10' }], {
+      duration: 1000,
+    })
     expect(x.velocity()).toBeCloseTo(50, 0)
   })
 
   test('velocity set on a `to`-side SpringValue is used as the initial velocity', () => {
     const x = spring(10)
     x.setVelocity(50)
-    animate({ scale: ['0', sv`${x}`] }, () => {}, { duration: 1000 })
+    animate(() => {}, [{ scale: '0' }, { scale: sv`${x}` }], { duration: 1000 })
     expect(x.velocity()).toBeCloseTo(50, 0)
   })
 
@@ -190,7 +196,9 @@ describe('animate', () => {
     const b = spring(10)
     a.setVelocity(50)
     b.setVelocity(100)
-    animate({ scale: [sv`${a}`, sv`${b}`] }, () => {}, { duration: 1000 })
+    animate(() => {}, [{ scale: sv`${a}` }, { scale: sv`${b}` }], {
+      duration: 1000,
+    })
     expect(a.velocity()).toBeCloseTo(50, 0)
     expect(b.velocity()).toBeCloseTo(50, 0)
   })
@@ -201,8 +209,11 @@ describe('animate', () => {
     x.setVelocity(100)
     y.setVelocity(200)
     const ctx = animate(
-      { x: [sv`0`, sv`${x}`], y: [sv`10`, sv`${y}`] },
       () => {},
+      [
+        { x: sv`0`, y: sv`10` },
+        { x: sv`${x}`, y: sv`${y}` },
+      ],
       { duration: 10 },
     )
     return ctx.settlingPromise.then(() => {
@@ -213,7 +224,7 @@ describe('animate', () => {
 
   test('SpringValue.velocity() is non-zero while animating', () => {
     const x = spring(100)
-    animate({ scale: [sv`0`, sv`${x}`] }, () => {})
+    animate(() => {}, [{ scale: sv`0` }, { scale: sv`${x}` }])
     expect(x.velocity()).not.toBe(0)
     expect(x.velocity()).not.toBe(100)
   })
@@ -221,7 +232,7 @@ describe('animate', () => {
   test('SpringValue.velocity() is 0 after stopped', async () => {
     const x = spring(10)
     x.setVelocity(100)
-    const ctx = animate({ scale: [sv`0`, sv`${x}`] }, () => {}, {
+    const ctx = animate(() => {}, [{ scale: sv`0` }, { scale: sv`${x}` }], {
       duration: 1000,
     })
     await raf()
@@ -233,10 +244,11 @@ describe('animate', () => {
     const x = spring(10)
     const y = spring(20)
     const ctx = animate(
-      {
-        translate: [`translate(0px, 10%)`, sv`translate(${x}px, ${y}%)`],
-      },
       () => {},
+      [
+        { translate: `translate(0px, 10%)` },
+        { translate: sv`translate(${x}px, ${y}%)` },
+      ],
       { duration: 10 },
     )
 
@@ -249,10 +261,13 @@ describe('animate', () => {
   test('pass compiled style value', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: [0, 10], y: [`0px`, `20px`] },
       (v) => {
         value = v
       },
+      [
+        { x: 0, y: `0px` },
+        { x: 10, y: `20px` },
+      ],
       {
         duration: 100,
       },
@@ -274,10 +289,10 @@ describe('animate', () => {
   test('pass to style value immediately if the value is not animatable (from is not animatable)', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { width: ['auto', '100px'] },
       (v) => {
         value = v
       },
+      [{ width: 'auto' }, { width: '100px' }],
       {
         duration: 10,
       },
@@ -290,10 +305,10 @@ describe('animate', () => {
   test('pass to style value immediately if the value is not animatable (to is not animatable)', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { width: ['100px', 'auto'] },
       (v) => {
         value = v
       },
+      [{ width: '100px' }, { width: 'auto' }],
       {
         duration: 10,
       },
@@ -306,10 +321,10 @@ describe('animate', () => {
   test('pass real style value after stopped', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: [`0px`, `10px`] },
       (v) => {
         value = v
       },
+      [{ x: `0px` }, { x: `10px` }],
       {
         duration: 10,
       },
@@ -323,10 +338,10 @@ describe('animate', () => {
   test('complete `to` style unit from `from` style', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: ['100%', '0'] },
       (v) => {
         value = v
       },
+      [{ x: '100%' }, { x: '0' }],
       {
         duration: 10,
       },
@@ -340,10 +355,10 @@ describe('animate', () => {
   test('complete stopped style unit from `from` style', async () => {
     let value: Record<string, string> | undefined
     const ctx = animate(
-      { x: ['100%', '0'] },
       (v) => {
         value = v
       },
+      [{ x: '100%' }, { x: '0' }],
       {
         duration: 10,
       },

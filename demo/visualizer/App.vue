@@ -226,12 +226,10 @@ watchEffect(() => {
       const fromSv = springValue(from)
       fromSv.setVelocity(velocity)
       ctx = animate(
-        {
-          translate: [sv`${fromSv}px`, `${to}px`],
-        },
         (_style) => {
           style.value = _style
         },
+        [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }],
         {
           bounce,
           duration,

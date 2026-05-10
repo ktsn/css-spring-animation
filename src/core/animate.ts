@@ -44,33 +44,27 @@ export interface AnimateContext {
   stoppedDuration: number | undefined
 }
 
-export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
-  fromTo: T,
+export function animate<Style extends Record<string, AnimateValue>>(
   set: (style: Record<string, string>) => void,
+  fromTo: [Style, Style],
   options: SpringOptions = {},
 ): AnimateContext {
+  const [fromInput, toInput] = fromTo
+
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
   // so the rest of the evaluation pipeline is uniform.
-  const slots: Record<keyof T, SpringComputed[]> = {} as Record<
-    keyof T,
-    SpringComputed[]
-  >
+  const slots = {} as Record<keyof Style, SpringComputed[]>
 
   // Mirror of `slots` for the `from` side. When the user passes a
   // SpringValue to `from`, this lets us attach it to the same Attachment
   // as the `to` slot so both follow the same animation.
-  const fromSlots: Record<keyof T, SpringComputed[]> = {} as Record<
-    keyof T,
-    SpringComputed[]
-  >
+  const fromSlots = {} as Record<keyof Style, SpringComputed[]>
 
-  const slotVelocities: Record<keyof T, number[]> = {} as Record<
-    keyof T,
-    number[]
-  >
+  const slotVelocities = {} as Record<keyof Style, number[]>
 
-  const parsedFromTo = mapValues(fromTo, ([from, to], key) => {
+  const parsedFromTo = mapValues(toInput, (to, key) => {
+    const from = fromInput[key]
     const fromIsUserSpring = typeof from === 'object'
     const toIsUserSpring = typeof to === 'object'
 
@@ -81,13 +75,13 @@ export function animate<T extends Record<string, [AnimateValue, AnimateValue]>>(
       ? to
       : liftToSpringStyle(parseStyleValue(String(to)))
 
-    slots[key as keyof T] = liftedTo.values
-    fromSlots[key as keyof T] = liftedFrom.values
+    slots[key as keyof Style] = liftedTo.values
+    fromSlots[key as keyof Style] = liftedFrom.values
 
     // Choose initial velocity prioritized by follows:
     // 1. user-provided `from` SpringValue's velocity
     // 2. user-provided `to` SpringValue's velocity
-    slotVelocities[key as keyof T] = liftedTo.values.map((toSlot, i) => {
+    slotVelocities[key as keyof Style] = liftedTo.values.map((toSlot, i) => {
       const fromSlot = liftedFrom.values[i]
       if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
       if (toIsUserSpring) return toSlot.velocity()

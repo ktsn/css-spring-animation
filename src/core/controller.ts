@@ -179,23 +179,23 @@ export function createAnimateController<
 
     liveSlots = newSlots
 
-    const fromTo = mapValues(wrappedParsedStyle, (toV, key) => {
-      // Pass `prev` as an interpolated string rather than a lifted
-      // SpringStyleValue so animate() can tell that the `from` side is
-      // controller-internal (not a user-provided SpringValue) and won't
-      // pull velocity from its fresh wrappers.
-      const prevValue = prev![key]
-      return [interpolateParsedStyle(prevValue, prevValue.values), toV] as [
-        string,
-        SpringStyleValue,
-      ]
+    // Pass `prev` as interpolated strings rather than lifted
+    // SpringStyleValues so animate() can tell that the `from` side is
+    // controller-internal (not a user-provided SpringValue) and won't
+    // pull velocity from its fresh wrappers.
+    const fromStyle = mapValues(prev, (prevValue) => {
+      return interpolateParsedStyle(prevValue, prevValue.values)
     })
 
     if (ctx && !ctx.settled) {
       ctx.stop()
     }
 
-    ctx = animate(fromTo, set, options)
+    ctx = animate<Record<keyof Style, AnimateValue>>(
+      set,
+      [fromStyle, wrappedParsedStyle],
+      options,
+    )
     keptVelocity = undefined
     valueHistory = []
 
