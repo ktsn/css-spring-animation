@@ -1,0 +1,86 @@
+name: Bundle Size
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bundle-size:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+
+      - name: Install dependencies (PR head)
+        run: pnpm install --frozen-lockfile
+
+      - name: Measure PR head bundle size
+        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/head.json"
+
+      - name: Checkout base
+        run: git checkout ${{ github.event.pull_request.base.sha }}
+
+      - name: Restore measurement scripts from PR head
+        run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size.ts scripts/bundle-size-report.ts
+
+      - name: Install dependencies (base)
+        run: pnpm install --frozen-lockfile
+
+      - name: Measure base bundle size
+        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/base.json"
+
+      - name: Generate report
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/bundle-size-report.ts "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/comment.md"
+
+      - name: Post or update PR comment
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs')
+            const path = require('path')
+            const body = fs.readFileSync(path.join(process.env.RUNNER_TEMP, 'comment.md'), 'utf8')
+            const marker = '<!-- bundle-size-report -->'
+            const finalBody = `${marker}\n${body}`
+            const { owner, repo } = context.repo
+            const issue_number = context.payload.pull_request.number
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            })
+            const existing = comments.find((c) => c.body && c.body.includes(marker))
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body: finalBody,
+              })
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: finalBody,
+              })
+            }
