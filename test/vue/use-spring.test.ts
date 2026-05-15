@@ -1,14 +1,28 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test } from 'vitest'
 import { useSpring } from '../../src/vue/use-spring'
-import { nextTick, ref } from 'vue'
+import { EffectScope, effectScope, nextTick, ref } from 'vue'
 
 describe('useSpring', () => {
+  let scope: EffectScope | undefined
+
+  afterEach(() => {
+    scope?.stop()
+    scope = undefined
+  })
+
+  function runInScope<T>(fn: () => T): T {
+    scope = effectScope()
+    return scope.run(fn) as T
+  }
+
   test('apply initial style on the element synchronously', () => {
     const el = document.createElement('div')
-    useSpring(el, () => {
-      return {
-        width: `10px`,
-      }
+    runInScope(() => {
+      useSpring(el, () => {
+        return {
+          width: `10px`,
+        }
+      })
     })
 
     expect(el.style.width).toBe('10px')
@@ -18,17 +32,19 @@ describe('useSpring', () => {
     const el = document.createElement('div')
     const value = ref(10)
 
-    useSpring(
-      el,
-      () => {
-        return {
-          width: `${value.value}px`,
-        }
-      },
-      {
-        disabled: true,
-      },
-    )
+    runInScope(() => {
+      useSpring(
+        el,
+        () => {
+          return {
+            width: `${value.value}px`,
+          }
+        },
+        {
+          disabled: true,
+        },
+      )
+    })
 
     expect(el.style.width).toBe('10px')
     value.value = 20
@@ -40,14 +56,16 @@ describe('useSpring', () => {
     const el = document.createElement('div')
     const value = ref(10)
 
-    const { onFinishCurrent } = useSpring(
-      el,
-      () => ({
-        width: `${value.value}px`,
-      }),
-      {
-        duration: 100,
-      },
+    const { onFinishCurrent } = runInScope(() =>
+      useSpring(
+        el,
+        () => ({
+          width: `${value.value}px`,
+        }),
+        {
+          duration: 100,
+        },
+      ),
     )
 
     return new Promise<void>((resolve) => {
@@ -63,14 +81,16 @@ describe('useSpring', () => {
     const el = document.createElement('div')
     const value = ref(10)
 
-    const { onSettleCurrent } = useSpring(
-      el,
-      () => ({
-        width: `${value.value}px`,
-      }),
-      {
-        duration: 100,
-      },
+    const { onSettleCurrent } = runInScope(() =>
+      useSpring(
+        el,
+        () => ({
+          width: `${value.value}px`,
+        }),
+        {
+          duration: 100,
+        },
+      ),
     )
 
     return new Promise<void>((resolve) => {
@@ -88,15 +108,17 @@ describe('useSpring', () => {
     const value = ref(10)
     const disabled = ref(false)
 
-    const { onFinishCurrent } = useSpring(
-      el,
-      () => ({
-        width: `${value.value}px`,
-      }),
-      () => ({
-        duration: 100,
-        disabled: disabled.value,
-      }),
+    const { onFinishCurrent } = runInScope(() =>
+      useSpring(
+        el,
+        () => ({
+          width: `${value.value}px`,
+        }),
+        () => ({
+          duration: 100,
+          disabled: disabled.value,
+        }),
+      ),
     )
 
     value.value = 20
@@ -115,15 +137,17 @@ describe('useSpring', () => {
     const value = ref(10)
     const disabled = ref(false)
 
-    const { onSettleCurrent } = useSpring(
-      el,
-      () => ({
-        width: `${value.value}px`,
-      }),
-      () => ({
-        duration: 100,
-        disabled: disabled.value,
-      }),
+    const { onSettleCurrent } = runInScope(() =>
+      useSpring(
+        el,
+        () => ({
+          width: `${value.value}px`,
+        }),
+        () => ({
+          duration: 100,
+          disabled: disabled.value,
+        }),
+      ),
     )
 
     value.value = 20
