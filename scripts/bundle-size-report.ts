@@ -17,7 +17,7 @@ const base = JSON.parse(readFileSync(basePath, 'utf8')) as Sizes
 const head = JSON.parse(readFileSync(headPath, 'utf8')) as Sizes
 
 function formatBytes(n: number): string {
-  if (n < 1024) return `${n} B`
+  if (Math.abs(n) < 1024) return `${n} B`
   return `${(n / 1024).toFixed(2)} KB`
 }
 
