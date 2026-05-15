@@ -9,9 +9,10 @@ describe('AnimationController', () => {
   test('set initial style', () => {
     const target = el()
     const controller = createAnimateController(target)
-    controller.setStyle({
+    const ctx = controller.setStyle({
       width: `100px`,
     })
+    expect(ctx.settled).toBe(true)
     expect(target.style.width).toEqual('100px')
   })
 
@@ -20,7 +21,8 @@ describe('AnimationController', () => {
     const controller = createAnimateController(target)
     controller.setStyle({ width: `100px` })
     expect(target.style.width).toBe('100px')
-    controller.setStyle({ width: `200px` }, { animate: false })
+    const ctx = controller.setStyle({ width: `200px` }, { animate: false })
+    expect(ctx.settled).toBe(true)
     expect(target.style.width).toBe('200px')
   })
 
@@ -32,6 +34,7 @@ describe('AnimationController', () => {
     expect(target.style.width).toEqual('100px')
 
     const ctx = controller.setStyle({ width: `200px` })
+    expect(ctx.settled).toBe(false)
     await ctx.settlingPromise
     expect(target.style.width).toBe('200px')
   })
@@ -54,7 +57,8 @@ describe('AnimationController', () => {
     controller.setStyle({ width: `100px` })
     expect(target.style.width).toBe('100px')
 
-    controller.setStyle({ width: `100px` })
+    const ctx = controller.setStyle({ width: `100px` })
+    expect(ctx.settled).toBe(true)
     expect(target.style.width).toBe('100px')
   })
 
@@ -67,6 +71,7 @@ describe('AnimationController', () => {
     expect(target.style.height).toBe('200px')
 
     const ctx = controller.setStyle({ width: `100px`, height: `100px` })
+    expect(ctx.settled).toBe(false)
     await ctx.settlingPromise
     expect(target.style.width).toBe('100px')
     expect(target.style.height).toBe('100px')
@@ -78,6 +83,7 @@ describe('AnimationController', () => {
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: '100px' })
     const ctx = controller.setStyle({ width: '0' })
+    expect(ctx.settled).toBe(false)
     await ctx.settlingPromise
     expect(target.style.width).toBe('0px')
   })
