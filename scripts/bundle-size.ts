@@ -5,13 +5,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const packageRoot = path.resolve(__dirname, '../packages/vue')
-const outFile = path.join(packageRoot, 'dist/css-spring-animation-vue.js')
+const packageRoot = path.resolve(__dirname, '..')
+const outFile = path.join(packageRoot, 'dist/ktsn-spring.js')
 
 async function buildLib(minify: boolean): Promise<void> {
   await build({
     root: packageRoot,
-    configFile: path.join(packageRoot, 'vite.config.ts'),
+    configFile: path.join(packageRoot, 'vite.lib.config.ts'),
     logLevel: 'warn',
     build: {
       minify: minify ? 'oxc' : false,
