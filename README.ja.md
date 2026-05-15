@@ -499,3 +499,56 @@ function animate(now: number) {
 
 requestAnimationFrame(animate)
 ```
+
+### `animate(target, [from, to], options)`
+
+DOM 要素のスタイルプロパティをスプリング物理で命令的にアニメーションさせる低レベル関数です。Vue コンポーネントの外でスプリングアニメーションを使いたい時に利用します。
+
+**パラメータ**
+
+- `target`: アニメーション対象の `HTMLElement` または `SVGElement`
+- `fromTo`: スタイルオブジェクトの `[from, to]` タプル。各スタイルオブジェクトは CSS プロパティ名に対して `number`、`string`、または `springValue` / `springComputed` を `sv` で埋め込んだ値をマップします。
+- `options`: スプリングオプション（省略可）
+  - `duration`: ミリ秒単位の時間（デフォルト: 1000）
+  - `bounce`: バウンス度合い（-1 から 1、デフォルト: 0）
+
+**戻り値**
+
+以下のプロパティを持つ `AnimateContext` を返します。
+
+- `finished` (boolean): `duration` 経過時にアニメーションが視覚的に完了すると `true` になります。
+- `settled` (boolean): スプリングが完全に減衰すると `true` になります。
+- `finishingPromise` (`Promise<void>`): `finished` が `true` になった時に resolve されます。
+- `settlingPromise` (`Promise<void>`): `settled` が `true` になった時に resolve されます。
+- `stop()`: アニメーションを即座にキャンセルし、現在の値を確定します。
+- `stoppedDuration` (`number | undefined`): `stop()` が呼ばれた時点の経過時間。停止されていない場合は `undefined`。
+
+```ts
+import { animate } from '@ktsn/spring'
+
+const el = document.querySelector('.rectangle') as HTMLElement
+
+const ctx = animate(
+  el,
+  [{ translate: '0px 0px' }, { translate: '300px 300px' }],
+  { duration: 1000, bounce: 0 },
+)
+
+ctx.settlingPromise.then(() => {
+  // スプリングが完全に減衰した
+})
+```
+
+`from` または `to` のスロットを `sv` で `springValue` から構築すると、そのスプリング値の `current()` と `velocity()` がアニメーション実行中の現在値・速度を返すようになります。
+
+```ts
+import { animate, springValue, sv } from '@ktsn/spring'
+
+const x = springValue(0)
+
+animate(el, [{ translate: sv`${x}px` }, { translate: '100px' }], {
+  duration: 600,
+})
+
+// x.current() / x.velocity() でアニメーション中の値・速度が読める
+```

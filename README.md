@@ -507,3 +507,56 @@ function animate(now: number) {
 
 requestAnimationFrame(animate)
 ```
+
+### `animate(target, [from, to], options)`
+
+A low-level function that imperatively animates style properties on a DOM element with spring physics. Useful when you want spring animation outside of Vue components.
+
+**Parameters**
+
+- `target`: An `HTMLElement` or `SVGElement` to animate.
+- `fromTo`: A `[from, to]` tuple of style objects. Each style object maps CSS property names to a `number`, a `string`, or a value built from `sv` over `springValue` / `springComputed`.
+- `options`: Spring options (optional)
+  - `duration`: Duration in milliseconds (default: 1000)
+  - `bounce`: Bounciness (-1 to 1, default: 0)
+
+**Return value**
+
+Returns an `AnimateContext` with:
+
+- `finished` (boolean): becomes `true` once the animation visually completes (after `duration` ms).
+- `settled` (boolean): becomes `true` once the spring has fully decayed.
+- `finishingPromise` (`Promise<void>`): resolves when `finished` flips to `true`.
+- `settlingPromise` (`Promise<void>`): resolves when `settled` flips to `true`.
+- `stop()`: cancels the animation immediately and commits the current value.
+- `stoppedDuration` (`number | undefined`): the elapsed time at the moment `stop()` was called, or `undefined` if not stopped.
+
+```ts
+import { animate } from '@ktsn/spring'
+
+const el = document.querySelector('.rectangle') as HTMLElement
+
+const ctx = animate(
+  el,
+  [{ translate: '0px 0px' }, { translate: '300px 300px' }],
+  { duration: 1000, bounce: 0 },
+)
+
+ctx.settlingPromise.then(() => {
+  // the spring has fully settled
+})
+```
+
+When a slot in `from` or `to` is built from `springValue` via `sv`, the spring value's `current()` and `velocity()` reflect the live animation while it runs:
+
+```ts
+import { animate, springValue, sv } from '@ktsn/spring'
+
+const x = springValue(0)
+
+animate(el, [{ translate: sv`${x}px` }, { translate: '100px' }], {
+  duration: 600,
+})
+
+// x.current() / x.velocity() now reflect the live animation
+```
