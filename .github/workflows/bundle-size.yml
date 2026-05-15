@@ -36,14 +36,14 @@ jobs:
       - name: Checkout base
         run: git checkout ${{ github.event.pull_request.base.sha }}
 
+      - name: Restore measurement scripts from PR head
+        run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size.ts scripts/bundle-size-report.ts
+
       - name: Install dependencies (base)
         run: pnpm install --frozen-lockfile
 
       - name: Measure base bundle size
         run: node scripts/bundle-size.ts > "$RUNNER_TEMP/base.json"
-
-      - name: Restore PR head sources for report script
-        run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size-report.ts
 
       - name: Generate report
         env:
