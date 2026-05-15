@@ -31,7 +31,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Measure PR head bundle size
-        run: node scripts/bundle-size.mjs > "$RUNNER_TEMP/head.json"
+        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/head.json"
 
       - name: Checkout base
         run: git checkout ${{ github.event.pull_request.base.sha }}
@@ -40,16 +40,16 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Measure base bundle size
-        run: node scripts/bundle-size.mjs > "$RUNNER_TEMP/base.json"
+        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/base.json"
 
       - name: Restore PR head sources for report script
-        run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size-report.mjs
+        run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size-report.ts
 
       - name: Generate report
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/bundle-size-report.mjs "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/comment.md"
+        run: node scripts/bundle-size-report.ts "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/comment.md"
 
       - name: Post or update PR comment
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1

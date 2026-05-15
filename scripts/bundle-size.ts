@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { build } from 'vite'
 import { readFileSync, statSync } from 'node:fs'
 import { gzipSync } from 'node:zlib'
@@ -9,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(__dirname, '../packages/vue')
 const outFile = path.join(packageRoot, 'dist/css-spring-animation-vue.js')
 
-async function buildLib(minify) {
+async function buildLib(minify: boolean): Promise<void> {
   await build({
     root: packageRoot,
     configFile: path.join(packageRoot, 'vite.config.ts'),
