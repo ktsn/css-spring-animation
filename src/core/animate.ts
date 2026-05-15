@@ -3,12 +3,13 @@ import {
   generateSpringExpressionStyle,
   createSpring,
   springSettlingDuration,
+  springEasingFn,
   Spring,
-  springCSSInternal,
 } from './spring'
 import {
   isCssLinearTimingFunctionSupported,
   isCssMathAnimationSupported,
+  isWebAnimationsApiSupported,
   mapValues,
   zip,
 } from './utils'
@@ -25,6 +26,8 @@ import {
   liftToSpringStyle,
   snapshotSpringStyle,
 } from './spring-value'
+
+export type AnimationTarget = HTMLElement | SVGElement
 
 export type AnimateValue = number | string | SpringStyleValue
 
@@ -45,7 +48,7 @@ export interface AnimateContext {
 }
 
 export function animate<Style extends Record<string, AnimateValue>>(
-  set: (style: Record<string, string>) => void,
+  target: AnimationTarget,
   fromTo: [Style, Style],
   options: SpringOptions = {},
 ): AnimateContext {
@@ -118,13 +121,16 @@ export function animate<Style extends Record<string, AnimateValue>>(
 
   const startTime = performance.now()
 
+  const animations: Animation[] = []
+
   const ctx = createContext({
+    target,
     slots,
     fromTo: parsedFromTo,
     startTime,
     duration,
     settlingDuration,
-    set,
+    animations,
   })
 
   // Attach animation info to every slot's SpringComputed.
@@ -149,33 +155,40 @@ export function animate<Style extends Record<string, AnimateValue>>(
     })
   }
 
+  const waapi = isWebAnimationsApiSupported()
+
   if (
+    waapi &&
     isCssLinearTimingFunctionSupported() &&
     canUseLinearTimingFunction(parsedFromTo, slotVelocities)
   ) {
-    animateWithLinearTimingFunction({
-      spring,
-      fromTo: parsedFromTo,
-      inputValues,
-      settlingDuration,
-      set,
-    })
-  } else if (isCssMathAnimationSupported()) {
-    animateWithCssCustomPropertyMath({
-      spring,
-      fromTo: parsedFromTo,
-      inputValues,
-      duration,
-      settlingDuration,
-      set,
-    })
+    animations.push(
+      ...animateWithPerPropertyEasing({
+        target,
+        spring,
+        fromTo: parsedFromTo,
+        inputValues,
+        settlingDuration,
+      }),
+    )
+  } else if (waapi && isCssMathAnimationSupported()) {
+    animations.push(
+      ...animateWithProxyTimeVariable({
+        target,
+        spring,
+        fromTo: parsedFromTo,
+        inputValues,
+        duration,
+        settlingDuration,
+      }),
+    )
   } else {
-    // Graceful degradation
+    // Graceful degradation for environments without WAAPI / linear() / CSS math.
     animateWithRaf({
+      target,
       fromTo: parsedFromTo,
       slots,
-      context: ctx,
-      set,
+      ctx,
     })
   }
 
@@ -234,167 +247,142 @@ function canUseLinearTimingFunction(
   })
 }
 
-function animateWithLinearTimingFunction({
+function animateWithPerPropertyEasing({
+  target,
   spring,
   fromTo,
   inputValues,
   settlingDuration,
-  set,
 }: {
+  target: AnimationTarget
   spring: Spring
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   inputValues: Record<string, InputValueGroup[]>
   settlingDuration: number
-  set: (style: Record<string, string>) => void
-}): void {
-  const fromStyle = mapValues(fromTo, ([from, to]) => {
-    // Skip animation if the value is not consistent
+}): Animation[] {
+  const animations: Animation[] = []
+
+  for (const key of Object.keys(fromTo)) {
+    const [from, to] = fromTo[key]!
+
     if (from.values.length !== to.values.length) {
-      return interpolateParsedStyle(to, to.values)
+      // Skip animation if the value is not consistent
+      writeStyle(target, key, interpolateParsedStyle(to, to.values))
+      continue
     }
 
-    return interpolateParsedStyle(from, from.values)
-  })
+    const completedTo = completeParsedStyleUnit(to, from)
+    const fromStr = interpolateParsedStyle(from, from.values)
+    const toStr = interpolateParsedStyle(completedTo, completedTo.values)
 
-  set({
-    ...fromStyle,
-    transition: 'none',
-  })
+    const values = inputValues[key]!
+    const normalizedVelocity = values.reduce<number | undefined>(
+      (acc, { from, to, velocity }) => {
+        if (acc !== undefined) {
+          return acc
+        }
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      const toStyle = mapValues(fromTo, ([from, to]) => {
-        const completedTo = completeParsedStyleUnit(to, from)
-        return interpolateParsedStyle(completedTo, completedTo.values)
-      })
+        if (from === to) {
+          return undefined
+        }
 
-      const transitionValues = mapValues(inputValues, (values) => {
-        const normalizedVelocity = values.reduce<number | undefined>(
-          (acc, { from, to, velocity }) => {
-            if (acc !== undefined) {
-              return acc
-            }
+        return velocity / (to - from)
+      },
+      undefined,
+    )
 
-            if (from === to) {
-              return undefined
-            }
-
-            return velocity / (to - from)
-          },
-          undefined,
-        )
-
-        return springCSSInternal({
-          spring,
-          settlingDuration,
-          normalizedVelocity: normalizedVelocity ?? 0,
-        })
-      })
-
-      const transition = Object.entries(transitionValues)
-        .map(([key, transitionValue]) => {
-          return `${key} ${transitionValue}`
-        })
-        .join(',')
-
-      set({
-        ...toStyle,
-        transition,
-      })
+    const easing = springEasingFn({
+      spring,
+      settlingDuration,
+      normalizedVelocity: normalizedVelocity ?? 0,
     })
-  })
+
+    const a = target.animate(
+      [keyframeFor(key, fromStr), keyframeFor(key, toStr)],
+      { duration: settlingDuration, easing, fill: 'forwards' },
+    )
+    animations.push(a)
+  }
+
+  return animations
 }
 
-function animateWithCssCustomPropertyMath({
+function animateWithProxyTimeVariable({
+  target,
   spring,
   fromTo,
   inputValues,
   duration,
   settlingDuration,
-  set,
 }: {
+  target: AnimationTarget
   spring: Spring
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   inputValues: Record<string, InputValueGroup[]>
   duration: number
   settlingDuration: number
-  set: (style: Record<string, string>) => void
-}): void {
+}): Animation[] {
   registerPropertyIfNeeded()
 
-  const style = mapValues(fromTo, ([from, to], key) => {
-    // Skip animation if the value is not consistent
+  for (const key of Object.keys(fromTo)) {
+    const [from, to] = fromTo[key]!
+
     if (from.values.length !== to.values.length) {
-      return interpolateParsedStyle(to, to.values)
+      writeStyle(target, key, interpolateParsedStyle(to, to.values))
+      continue
     }
 
     const values = inputValues[key]!
-
-    const style = values.map(({ from, to, velocity }) => {
-      return generateSpringExpressionStyle(spring, {
+    const exprValues = values.map(({ from, to, velocity }) =>
+      generateSpringExpressionStyle(spring, {
         from,
         to,
         initialVelocity: velocity,
-      })
-    })
-
+      }),
+    )
     const completedTo = completeParsedStyleUnit(to, from)
-    return interpolateParsedStyle(completedTo, style)
-  })
+    writeStyle(target, key, interpolateParsedStyle(completedTo, exprValues))
+  }
 
-  set({
-    ...style,
-    transition: 'none',
-    [t]: '0',
-  })
+  target.style.setProperty(t, '0')
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      set({
-        ...style,
-        transition: `${t} ${settlingDuration}ms linear`,
-        [t]: String(settlingDuration / duration),
-      })
-    })
-  })
+  const a = target.animate(
+    [{ [t]: '0' }, { [t]: String(settlingDuration / duration) }],
+    { duration: settlingDuration, easing: 'linear', fill: 'forwards' },
+  )
+  return [a]
 }
 
 function animateWithRaf({
+  target,
   fromTo,
   slots,
-  context,
-  set,
+  ctx,
 }: {
+  target: AnimationTarget
   fromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>
   slots: Record<string, SpringComputed[]>
-  context: AnimateContext
-  set: (style: Record<string, string>) => void
+  ctx: AnimateContext
 }): void {
   function render(): void {
-    if (context.settled) {
+    if (ctx.settled) {
       return
     }
 
-    const style = mapValues(fromTo, ([from, to], key) => {
-      // Skip animation if the value is not consistent
-      if (from.values.length !== to.values.length) {
-        return interpolateParsedStyle(to, to.values)
-      }
-
+    for (const key in fromTo) {
+      const [from, to] = fromTo[key]!
       const keySlots = slots[key]
-      if (!keySlots) {
-        return ''
+      if (!keySlots) continue
+
+      if (from.values.length !== to.values.length) {
+        writeStyle(target, key, interpolateParsedStyle(to, to.values))
+        continue
       }
 
-      const realValue = keySlots.map((s) => s.current())
       const completedTo = completeParsedStyleUnit(to, from)
-      return interpolateParsedStyle(completedTo, realValue)
-    })
-
-    set({
-      ...style,
-      transition: 'none',
-    })
+      const realValue = keySlots.map((s) => s.current())
+      writeStyle(target, key, interpolateParsedStyle(completedTo, realValue))
+    }
 
     requestAnimationFrame(render)
   }
@@ -405,19 +393,21 @@ function animateWithRaf({
 function createContext<
   FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
 >({
+  target,
   slots,
   fromTo,
   startTime,
   duration,
   settlingDuration,
-  set,
+  animations,
 }: {
+  target: AnimationTarget
   slots: Record<keyof FromTo, SpringComputed[]>
   fromTo: FromTo
   startTime: number
   duration: number
   settlingDuration: number
-  set: (style: Record<string, string>) => void
+  animations: Animation[]
 }): AnimateContext {
   const forceResolve: { fn: (() => void)[] } = { fn: [] }
 
@@ -427,27 +417,32 @@ function createContext<
     }
     ctx.finished = ctx.settled = true
     ctx.stoppedDuration = performance.now() - startTime
+    cancelAnimations()
     setRealStyle()
     forceResolve.fn.forEach((fn) => fn())
   }
 
-  function setRealStyle() {
-    const style = mapValues(fromTo, ([from, to], key) => {
-      const keySlots = slots[key]
-      if (!keySlots) {
-        return ''
+  function cancelAnimations() {
+    for (const a of animations) {
+      try {
+        a.cancel()
+      } catch {
+        // ignore — already cancelled or implementation-specific quirk
       }
+    }
+  }
+
+  function setRealStyle() {
+    for (const key in fromTo) {
+      const [from, to] = fromTo[key]!
+      const keySlots = slots[key]
+      if (!keySlots) continue
 
       const completedTo = completeParsedStyleUnit(to, from)
       const realValue = keySlots.map((s) => s.current())
-      return interpolateParsedStyle(completedTo, realValue)
-    })
-
-    set({
-      ...style,
-      transition: '',
-      [t]: '',
-    })
+      writeStyle(target, key, interpolateParsedStyle(completedTo, realValue))
+    }
+    target.style.removeProperty(t)
   }
 
   const ctx: AnimateContext = {
@@ -459,6 +454,7 @@ function createContext<
       ctx.finished = ctx.settled = true
 
       if (ctx.stoppedDuration === undefined) {
+        cancelAnimations()
         setRealStyle()
       }
     }),
@@ -471,4 +467,20 @@ function createContext<
   }
 
   return ctx
+}
+
+function keyframeFor(key: string, value: string): Keyframe {
+  return { [key]: value } as Keyframe
+}
+
+export function writeStyle(
+  target: AnimationTarget,
+  key: string,
+  value: string,
+): void {
+  if (key.startsWith('--')) {
+    target.style.setProperty(key, value)
+  } else {
+    target.style[key as any] = value
+  }
 }

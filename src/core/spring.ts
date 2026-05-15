@@ -237,21 +237,22 @@ export function springCSS(duration: number, bounce: number = 0): string {
     initialVelocity: 0,
   })
 
-  return springCSSInternal({
+  const easing = springEasingFn({
     spring,
     settlingDuration,
     normalizedVelocity: 0,
   })
+
+  return `${settlingDuration}ms ${easing}`
 }
 
 /**
  * @private
  *
- * Generate CSS transition string from animation-related values.
- * Only used internally.
- * @param params.normalizedVelocity initial velocity rebased to 0-1 range
+ * Returns just the `linear(...)` easing-function string usable as the
+ * `easing` option of the Web Animations API.
  */
-export function springCSSInternal(params: {
+export function springEasingFn(params: {
   spring: Spring
   settlingDuration: number
   normalizedVelocity: number
@@ -272,7 +273,7 @@ export function springCSSInternal(params: {
     return value
   })
 
-  return `${settlingDuration}ms linear(${easingValues.join(',')})`
+  return `linear(${easingValues.join(',')})`
 }
 
 /**

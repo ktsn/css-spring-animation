@@ -12,7 +12,6 @@ import {
 import {
   HTMLElementWithController,
   SpringTransitionProps,
-  createStyleSetter,
   scKey,
   springTransitionProps,
   useTransitionHooks,
@@ -167,7 +166,7 @@ const SpringTransitionGroup = defineComponent({
 
         const el = child.el as HTMLElementWithController
         if (!el[scKey]) {
-          el[scKey] = createAnimateController(createStyleSetter(el))
+          el[scKey] = createAnimateController(el)
         }
         const controller = el[scKey]
 

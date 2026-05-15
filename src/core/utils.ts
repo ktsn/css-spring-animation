@@ -26,6 +26,13 @@ export function range(start: number, end: number): number[] {
   return result
 }
 
+export function isWebAnimationsApiSupported(): boolean {
+  return (
+    typeof Element !== 'undefined' &&
+    typeof Element.prototype.animate === 'function'
+  )
+}
+
 export function isCssLinearTimingFunctionSupported(): boolean {
   return (
     typeof CSS !== 'undefined' &&

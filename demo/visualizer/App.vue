@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CSSProperties, ref, shallowRef, watchEffect } from 'vue'
+import { ref, shallowRef, watchEffect } from 'vue'
 import {
   AnimateContext,
   animate,
@@ -25,8 +25,7 @@ const parameters = ref({
 })
 
 const canvas = shallowRef<HTMLCanvasElement>()
-
-const style = ref<CSSProperties>({})
+const previewBall = shallowRef<HTMLDivElement>()
 
 function renderLines(
   ctx: CanvasRenderingContext2D,
@@ -223,12 +222,12 @@ watchEffect(() => {
 
     ctx?.stop()
     animateTimer = requestAnimationFrame(() => {
+      const ball = previewBall.value
+      if (!ball) return
       const fromSv = springValue(from)
       fromSv.setVelocity(velocity)
       ctx = animate(
-        (_style) => {
-          style.value = _style
-        },
+        ball,
         [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }],
         {
           bounce,
@@ -260,7 +259,7 @@ watchEffect(() => {
   <div class="wrapper">
     <div class="preview">
       <div class="preview-behavior">
-        <div class="preview-ball" :style="style"></div>
+        <div class="preview-ball" ref="previewBall"></div>
       </div>
 
       <div class="preview-graph">

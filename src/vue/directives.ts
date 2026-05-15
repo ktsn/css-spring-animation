@@ -48,15 +48,7 @@ function ensureController(
 ): AnimationController<Record<string, AnimateValue>> {
   let controller = el.__springController
   if (!controller) {
-    controller = createAnimateController((style) => {
-      for (const key in style) {
-        if (key.startsWith('--')) {
-          el.style.setProperty(key, style[key] ?? '')
-        } else {
-          el.style[key as any] = style[key] ?? ''
-        }
-      }
-    })
+    controller = createAnimateController(el)
     el.__springController = controller
   }
   return controller

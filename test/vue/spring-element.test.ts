@@ -90,7 +90,10 @@ describe('Spring Element', () => {
       disabled: false,
       inferVelocity: true,
     })
-    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+    expect(mockController.setStyle).toHaveBeenCalledWith(
+      { opacity: 0 },
+      { animate: true },
+    )
   })
 
   test('disable animation when disabled prop is true', async () => {
@@ -152,7 +155,10 @@ describe('Spring Element', () => {
 
     await nextTick()
 
-    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' })
+    expect(mockController.setStyle).toHaveBeenCalledWith(
+      { height: '100px' },
+      { animate: true },
+    )
     expect(vm.$el.style.height).toBe('100px')
   })
 
