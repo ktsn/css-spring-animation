@@ -1,15 +1,12 @@
 import { animate } from '../../src/core'
 
-const demo = document.getElementById('demo')!
+const demo = document.getElementById('demo') as HTMLElement
 let ctx: ReturnType<typeof animate> | undefined
 
 setInterval(() => {
-  animate(
-    (style) => {
-      Object.entries(style).forEach(([k, v]) => {
-        demo.style.setProperty(k, v)
-      })
-    },
+  ctx?.stop()
+  ctx = animate(
+    demo,
     [{ translate: `0px 0px` }, { translate: `300px 300px` }],
     {
       duration: 1000,

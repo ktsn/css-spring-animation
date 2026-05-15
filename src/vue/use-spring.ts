@@ -3,12 +3,17 @@ import {
   Ref,
   computed,
   nextTick,
-  readonly,
-  ref,
+  onScopeDispose,
   toValue,
   watch,
 } from 'vue'
-import { AnimateValue, SpringOptions, createAnimateController } from '../core'
+import {
+  AnimateValue,
+  AnimationController,
+  AnimationTarget,
+  SpringOptions,
+  createAnimateController,
+} from '../core'
 import { isSameStyle } from '../core/controller'
 import { interpolateParsedStyle } from '../core/style'
 
@@ -19,10 +24,7 @@ export interface UseSpringOptions extends SpringOptions {
   inferVelocity?: boolean
 }
 
-type SpringStyleRef = Readonly<Ref<Record<string, string>>>
-
 export interface UseSpringResult {
-  style: SpringStyleRef
   onFinish: (fn: (data: { stopped: boolean }) => void) => void
   onSettle: (fn: (data: { stopped: boolean }) => void) => void
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
@@ -30,6 +32,7 @@ export interface UseSpringResult {
 }
 
 export function useSpring<Style extends Record<string, AnimateValue>>(
+  element: MaybeRefOrGetter<AnimationTarget | null | undefined>,
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions>,
 ): UseSpringResult {
@@ -70,15 +73,39 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   const inferVelocity = computed(() => optionsRef.value.inferVelocity ?? true)
 
-  const style = ref<Record<string, string>>({})
+  let controller:
+    | AnimationController<Record<keyof Style, AnimateValue>>
+    | undefined
 
-  const controller = createAnimateController<Record<keyof Style, AnimateValue>>(
-    (_style) => {
-      style.value = _style
+  function attachController(target: AnimationTarget): void {
+    controller = createAnimateController(target)
+    controller.setStyle(input.value, { animate: false })
+    controller.setOptions(optionsRef.value)
+  }
+
+  const initialEl = toValue(element)
+  if (initialEl) {
+    attachController(initialEl)
+  }
+
+  // Track element ref changes (ref flipping null → element on mount, etc.).
+  // `flush: 'sync'` so the controller is created and the initial style is
+  // applied to the element in the same tick the template ref is populated,
+  // so callers can observe `el.style` synchronously after mount.
+  watch(
+    () => toValue(element),
+    (el, prevEl) => {
+      if (el === prevEl) return
+      if (controller) {
+        controller.dispose()
+        controller = undefined
+      }
+      if (el) {
+        attachController(el)
+      }
     },
+    { flush: 'sync' },
   )
-  controller.setStyle(input.value)
-  controller.setOptions(optionsRef.value)
 
   function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
     // Wait for the next tick to ensure that input changes in the same tick
@@ -89,20 +116,21 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     //   ...
     // })
     nextTick().then(() => {
-      controller.onFinishCurrent(fn)
+      if (controller) {
+        controller.onFinishCurrent(fn)
+      } else {
+        fn({ stopped: false })
+      }
     })
   }
 
   function onSettleCurrent(fn: (data: { stopped: boolean }) => void): void {
-    // Wait for the next tick to ensure that input changes in the same tick
-    // triggers a new animation that is a case like:
-    //
-    // springStyle.value = { width: '100px' }
-    // onSettleCurrent(() => {
-    //   ...
-    // })
     nextTick().then(() => {
-      controller.onSettleCurrent(fn)
+      if (controller) {
+        controller.onSettleCurrent(fn)
+      } else {
+        fn({ stopped: false })
+      }
     })
   }
 
@@ -124,6 +152,8 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
       () => ({ ...optionsRef.value }),
     ],
     ([disabled, snapshot, options], [prevDisabled, prevSnapshot]) => {
+      if (!controller) return
+
       if (disabled && !prevDisabled) {
         controller.stop({
           keepVelocity: !inferVelocity.value,
@@ -147,8 +177,14 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     },
   )
 
+  onScopeDispose(() => {
+    if (controller) {
+      controller.dispose()
+      controller = undefined
+    }
+  })
+
   return {
-    style: readonly(style),
     onFinish,
     onSettle,
     onFinishCurrent,

@@ -256,6 +256,20 @@ export function springCSSInternal(params: {
   settlingDuration: number
   normalizedVelocity: number
 }): string {
+  return `${params.settlingDuration}ms ${springEasingFn(params)}`
+}
+
+/**
+ * @private
+ *
+ * Returns just the `linear(...)` easing-function string usable as the
+ * `easing` option of the Web Animations API.
+ */
+export function springEasingFn(params: {
+  spring: Spring
+  settlingDuration: number
+  normalizedVelocity: number
+}): string {
   const { spring, settlingDuration, normalizedVelocity } = params
 
   // 60fps
@@ -272,7 +286,7 @@ export function springCSSInternal(params: {
     return value
   })
 
-  return `${settlingDuration}ms linear(${easingValues.join(',')})`
+  return `linear(${easingValues.join(',')})`
 }
 
 /**

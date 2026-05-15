@@ -1,4 +1,4 @@
-import { PropType, defineComponent, h } from 'vue'
+import { PropType, defineComponent, h, ref } from 'vue'
 import { AnimateValue } from '../core'
 import { useSpring } from './use-spring'
 import { SpringStyleValue } from '../core/spring-value'
@@ -24,7 +24,10 @@ const createSpringElement = (tagName: string) => {
     },
 
     setup(props, { emit, slots }) {
-      const { style, onFinish, onSettle } = useSpring(
+      const elRef = ref<HTMLElement | null>(null)
+
+      const { onFinish, onSettle } = useSpring(
+        elRef,
         () => props.springStyle,
         () => {
           return {
@@ -49,7 +52,7 @@ const createSpringElement = (tagName: string) => {
       })
 
       return () => {
-        return h(tagName, { style: style.value }, slots.default?.())
+        return h(tagName, { ref: elRef }, slots.default?.())
       }
     },
   })

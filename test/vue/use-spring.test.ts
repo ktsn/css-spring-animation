@@ -3,23 +3,26 @@ import { useSpring } from '../../src/vue/use-spring'
 import { nextTick, ref } from 'vue'
 
 describe('useSpring', () => {
-  test('return style value', () => {
-    const { style } = useSpring(() => {
+  test('apply initial style on the element synchronously', () => {
+    const el = document.createElement('div')
+    useSpring(el, () => {
       return {
-        width: 10,
+        width: `10px`,
       }
     })
 
-    expect(style.value.width).toBe('10')
+    expect(el.style.width).toBe('10px')
   })
 
   test('update style value immediately when disabled', async () => {
+    const el = document.createElement('div')
     const value = ref(10)
 
-    const { style } = useSpring(
+    useSpring(
+      el,
       () => {
         return {
-          width: value.value,
+          width: `${value.value}px`,
         }
       },
       {
@@ -27,16 +30,18 @@ describe('useSpring', () => {
       },
     )
 
-    expect(style.value.width).toBe('10')
+    expect(el.style.width).toBe('10px')
     value.value = 20
     await nextTick()
-    expect(style.value.width).toBe('20')
+    expect(el.style.width).toBe('20px')
   })
 
   test('register finish listener for the current animation', () => {
+    const el = document.createElement('div')
     const value = ref(10)
 
-    const { style, onFinishCurrent } = useSpring(
+    const { onFinishCurrent } = useSpring(
+      el,
       () => ({
         width: `${value.value}px`,
       }),
@@ -49,16 +54,17 @@ describe('useSpring', () => {
       value.value = 20
       onFinishCurrent(({ stopped }) => {
         expect(stopped).toBe(false)
-        expect(style.value.width).not.toBe('10px')
         resolve()
       })
     })
   })
 
   test('register settle listener for the current animation', () => {
+    const el = document.createElement('div')
     const value = ref(10)
 
-    const { style, onSettleCurrent } = useSpring(
+    const { onSettleCurrent } = useSpring(
+      el,
       () => ({
         width: `${value.value}px`,
       }),
@@ -71,17 +77,19 @@ describe('useSpring', () => {
       value.value = 20
       onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(false)
-        expect(style.value.width).toBe('20px')
+        expect(el.style.width).toBe('20px')
         resolve()
       })
     })
   })
 
   test('stopped == true in onFinishCurrent when animation is stopped', () => {
+    const el = document.createElement('div')
     const value = ref(10)
     const disabled = ref(false)
 
     const { onFinishCurrent } = useSpring(
+      el,
       () => ({
         width: `${value.value}px`,
       }),
@@ -103,10 +111,12 @@ describe('useSpring', () => {
   })
 
   test('stopped == true in onSettleCurrent when animation is stopped', () => {
+    const el = document.createElement('div')
     const value = ref(10)
     const disabled = ref(false)
 
     const { onSettleCurrent } = useSpring(
+      el,
       () => ({
         width: `${value.value}px`,
       }),

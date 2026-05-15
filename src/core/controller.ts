@@ -1,4 +1,11 @@
-import { AnimateContext, animate, AnimateValue, SpringOptions } from './animate'
+import {
+  AnimateContext,
+  AnimateValue,
+  AnimationTarget,
+  SpringOptions,
+  animate,
+  writeStyle,
+} from './animate'
 import {
   ParsedStyleValue,
   StyleValue,
@@ -37,6 +44,8 @@ export interface AnimationController<
 
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
+
+  dispose: () => void
 }
 
 interface ValueHistoryItem<Key extends PropertyKey> {
@@ -46,7 +55,7 @@ interface ValueHistoryItem<Key extends PropertyKey> {
 
 export function createAnimateController<
   Style extends Record<string, AnimateValue>,
->(set: (style: Record<string, string>) => void): AnimationController<Style> {
+>(target: AnimationTarget): AnimationController<Style> {
   /** Holding the snapshotted form of the most recently committed style */
   let style: Record<keyof Style, ParsedStyleValue> | undefined
 
@@ -96,6 +105,19 @@ export function createAnimateController<
     return mapValues(next, (value) => new Array(value.values.length).fill(0))
   }
 
+  function commitStaticStyle(
+    parsed: Record<keyof Style, ParsedStyleValue>,
+  ): void {
+    for (const key in parsed) {
+      writeStyle(
+        target,
+        key,
+        interpolateParsedStyle(parsed[key], parsed[key].values),
+      )
+    }
+    target.style.removeProperty(t)
+  }
+
   function stop({ keepVelocity }: StopOptions = {}): void {
     keptVelocity =
       keepVelocity && liveSlots ? liveRealVelocity(liveSlots) : undefined
@@ -106,7 +128,7 @@ export function createAnimateController<
 
     if (style) {
       style = liveSlots ? updateValues(style, liveRealValue(liveSlots)) : style
-      ctx = createContext()
+      ctx = createPseudoContext()
     }
 
     valueHistory = []
@@ -129,7 +151,7 @@ export function createAnimateController<
     const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotSpringStyle)
 
     if (style && isSameStyle(style, parsedStyleSnap)) {
-      return ctx ?? createContext()
+      return ctx ?? createPseudoContext()
     }
 
     const newSlots = mapValues(wrappedParsedStyle, (p) => p.values)
@@ -153,12 +175,8 @@ export function createAnimateController<
         ctx.stop()
       }
       liveSlots = newSlots
-      ctx = createContext()
-      set({
-        ...stringifyStyle(style),
-        transition: '',
-        [t]: '',
-      })
+      ctx = createPseudoContext()
+      commitStaticStyle(style)
 
       if (!keptVelocity) {
         valueHistory.push({
@@ -192,7 +210,7 @@ export function createAnimateController<
     }
 
     ctx = animate<Record<keyof Style, AnimateValue>>(
-      set,
+      target,
       [fromStyle, wrappedParsedStyle],
       options,
     )
@@ -234,12 +252,24 @@ export function createAnimateController<
     })
   }
 
+  function dispose(): void {
+    if (ctx && !ctx.settled) {
+      ctx.stop()
+    }
+    ctx = undefined
+    style = undefined
+    liveSlots = undefined
+    keptVelocity = undefined
+    valueHistory = []
+  }
+
   return {
     stop,
     setStyle,
     setOptions,
     onFinishCurrent,
     onSettleCurrent,
+    dispose,
   }
 }
 
@@ -283,18 +313,10 @@ function updateValues<Style extends Record<string, ParsedStyleValue>>(
   }) as Style
 }
 
-function stringifyStyle<Style extends Record<string, ParsedStyleValue>>(
-  style: Style,
-): Record<keyof Style, string> {
-  return mapValues(style, (value) =>
-    interpolateParsedStyle(value, value.values),
-  )
-}
-
 /**
  * Create a pseudo context for the state when no animation is running.
  */
-function createContext(): AnimateContext {
+function createPseudoContext(): AnimateContext {
   return {
     finished: true,
     settled: true,
