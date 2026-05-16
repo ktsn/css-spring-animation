@@ -515,7 +515,7 @@ A low-level function that imperatively animates style properties on a DOM elemen
 **Parameters**
 
 - `target`: An `HTMLElement` or `SVGElement` to animate.
-- `fromTo`: A `[from, to]` tuple of style objects. Each style object maps CSS property names to a `number`, a `string`, or a value built from `sv` over `springValue` / `springComputed`.
+- `fromTo`: A `[from, to]` tuple of style objects, or a `[to]` single-element tuple. Each style object maps CSS property names to a `number`, a `string`, or a value built from `sv` over `springValue` / `springComputed`. Entries may also be `null` or `undefined`, which is treated the same as omitting the key — see below.
 - `options`: Spring options (optional)
   - `duration`: Duration in milliseconds (default: 1000)
   - `bounce`: Bounciness (-1 to 1, default: 0)
@@ -544,6 +544,22 @@ const ctx = animate(
 
 ctx.settlingPromise.then(() => {
   // the spring has fully settled
+})
+```
+
+If a key is missing from either side (or its value is `null` / `undefined`), `animate()` fills it in by reading the element's computed style with the inline override for that property temporarily cleared. The `[to]` single-element form is shorthand for `[{}, to]` — every entry of `from` is resolved this way:
+
+```ts
+import { animate } from '@ktsn/spring'
+
+// `from` is fully implicit. The element's current visual state (without
+// any inline override on `translate`) is used as the starting point.
+animate(el, [{ translate: '300px 300px' }], { duration: 600 })
+
+// Only one side of a key may be missing too — the missing side is
+// resolved from computed style independently.
+animate(el, [{ opacity: 0 }, { opacity: 1, translate: '100px 0px' }], {
+  duration: 600,
 })
 ```
 
