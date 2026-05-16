@@ -12,9 +12,6 @@ export type { AnimationController } from './controller'
 export {
   createSpring,
   evaluateSpring,
-  evaluateSpringBounce,
-  evaluateSpringDecay,
-  evaluateSpringVelocity,
   springSettlingDuration,
   springCSS,
   springGenerator,

@@ -5,8 +5,6 @@ import {
   animate,
   createSpring,
   evaluateSpring,
-  evaluateSpringBounce,
-  evaluateSpringDecay,
   sv,
 } from '../../src/core'
 import { Spring } from '../../src/core/spring'
@@ -74,7 +72,7 @@ function renderBounceGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = evaluateSpringBounce(spring, {
+    const value = spring.bounceValue({
       time: t,
       from,
       to,
@@ -104,7 +102,7 @@ function renderDecayGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = evaluateSpringDecay(spring, {
+    const value = spring.decayValue({
       time: t,
       from,
       to,

@@ -36,7 +36,7 @@ function row(label: string, key: keyof Sizes): string {
 const lines = [
   '## Bundle size report',
   '',
-  '`@css-spring-animation/vue` (`dist/css-spring-animation-vue.js`)',
+  '`@ktsn/spring` (`dist/ktsn-spring.js`)',
   '',
   '| Metric | Size |',
   '| --- | ---: |',

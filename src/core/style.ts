@@ -1,16 +1,3 @@
-import {
-  Parser,
-  anyChar,
-  hexColor,
-  many,
-  map,
-  number,
-  optional,
-  or,
-  regexp,
-  seq,
-} from './combinator'
-
 export interface StyleTemplate {
   units: string[]
   wraps: string[]
@@ -43,67 +30,63 @@ interface HexColorToken {
   alpha: number | undefined
 }
 
-const unit = regexp(/^([a-z%]+)/)
+// Matches one of:
+//   1. Hex color (#rgb, #rgba, #rrggbb, #rrggbbaa) — longer alternatives first
+//   2. Number (with optional sign, fractional, exponent) plus optional unit
+//   3. Any single character
+const tokenRe =
+  /(#(?:[0-9a-fA-F]{2}){3,4}|#[0-9a-fA-F]{3,4})|([+-]?(?:(?:0|[1-9]\d*)(?:\.\d+)?|\.\d+)(?:[eE][+-]?(?:0|[1-9]\d*))?)([a-z%]+)?|([\s\S])/g
+
+const leadingUnitRe = /^[a-z%]+/
 
 export function parseLeadingUnit(text: string): { unit: string; rest: string } {
-  const result = unit(text)
-  if (!result.ok) {
+  const m = text.match(leadingUnitRe)
+  if (!m) {
     return { unit: '', rest: text }
   }
-  return { unit: result.value, rest: result.rest }
+  return { unit: m[0], rest: text.slice(m[0].length) }
 }
 
-const parser: Parser<Token[]> = (value) => {
-  const numberWithUnit = map(
-    seq(number, optional(unit)),
-    (value): Token => ({
-      type: 'number',
-      value: Number(value[0]),
-      unit: value[1] ?? '',
-    }),
-  )
+function tokenize(input: string): Token[] {
+  const tokens: Token[] = []
+  tokenRe.lastIndex = 0
 
-  const color = map(hexColor, (value): Token => {
-    const [red, green, blue, alpha] = value.slice(1).map((v, i) => {
-      if (!v) {
-        return undefined
+  let m: RegExpExecArray | null
+  while ((m = tokenRe.exec(input)) !== null) {
+    if (m[1] !== undefined) {
+      const hex = m[1].slice(1)
+      const double = hex.length >= 6
+      const step = double ? 2 : 1
+      const parts: number[] = []
+
+      for (let i = 0; i < hex.length; i += step) {
+        const seg = hex.slice(i, i + step)
+        parts.push(parseInt(double ? seg : seg + seg, 16))
       }
-      const filled = v.length === 1 ? v + v : v
-      const n = parseInt(filled, 16)
-      return i === 3 ? n / 0xff : n
-    })
 
-    return {
-      type: 'hexColor',
-      red: red!,
-      green: green!,
-      blue: blue!,
-      alpha,
+      tokens.push({
+        type: 'hexColor',
+        red: parts[0]!,
+        green: parts[1]!,
+        blue: parts[2]!,
+        alpha: parts[3] === undefined ? undefined : parts[3] / 0xff,
+      })
+    } else if (m[2] !== undefined) {
+      tokens.push({
+        type: 'number',
+        value: Number(m[2]),
+        unit: m[3] ?? '',
+      })
+    } else {
+      tokens.push({ type: 'char', value: m[4]! })
     }
-  })
+  }
 
-  const char = map(
-    anyChar,
-    (value): Token => ({
-      type: 'char',
-      value,
-    }),
-  )
-
-  return many(or(numberWithUnit, color, char))(value)
+  return tokens
 }
 
 export function parseStyleValue(value: string): ParsedStyleValue {
-  const parsed = parser(value)
-  if (!parsed.ok) {
-    return {
-      values: [],
-      units: [],
-      wraps: [value],
-    }
-  }
-
-  const tokens: Token[] = [...parsed.value, { type: 'char', value: '' }]
+  const tokens: Token[] = [...tokenize(value), { type: 'char', value: '' }]
 
   return tokens.reduce<ParsedStyleValue>(
     (acc, token, i) => {
@@ -128,28 +111,24 @@ export function parseStyleValue(value: string): ParsedStyleValue {
         return acc
       }
 
-      if (token.type === 'hexColor') {
-        const prefix = token.alpha === undefined ? 'rgb(' : 'rgba('
-        if (continuousWrap) {
-          acc.wraps[acc.wraps.length - 1] += prefix
-        } else {
-          acc.wraps.push(prefix)
-        }
-
-        acc.values.push(token.red, token.green, token.blue)
-        acc.units.push('', '', '')
-        acc.wraps.push(', ', ', ')
-
-        if (token.alpha !== undefined) {
-          acc.values.push(token.alpha)
-          acc.units.push('')
-          acc.wraps.push(', ')
-        }
-
-        acc.wraps.push(')')
-
-        return acc
+      const prefix = token.alpha === undefined ? 'rgb(' : 'rgba('
+      if (continuousWrap) {
+        acc.wraps[acc.wraps.length - 1] += prefix
+      } else {
+        acc.wraps.push(prefix)
       }
+
+      acc.values.push(token.red, token.green, token.blue)
+      acc.units.push('', '', '')
+      acc.wraps.push(', ', ', ')
+
+      if (token.alpha !== undefined) {
+        acc.values.push(token.alpha)
+        acc.units.push('')
+        acc.wraps.push(', ')
+      }
+
+      acc.wraps.push(')')
 
       return acc
     },

@@ -5,7 +5,7 @@ import {
   parseLeadingUnit,
   parseStyleValue,
 } from './style'
-import { Spring, evaluateSpring, evaluateSpringVelocity } from './spring'
+import { Spring, evaluateSpring } from './spring'
 
 const SPRING_VALUE_BRAND: unique symbol = Symbol('springValue')
 
@@ -47,7 +47,7 @@ function evaluateAttachmentVelocity(a: Attachment): number {
 
   const time = (performance.now() - a.startTime) / a.duration
 
-  return evaluateSpringVelocity(a.spring, {
+  return a.spring.velocity({
     from: a.from,
     to: a.to,
     initialVelocity: a.initialVelocity,
