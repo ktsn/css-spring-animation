@@ -1,4 +1,5 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { afterEach, describe, expect, test, vitest } from 'vitest'
+import type { MockInstance } from 'vitest'
 import { animate } from '../../src/core/animate'
 import { createSpringValue, sv } from '../../src/core/spring-value'
 import type { SpringComputed } from '../../src/core/spring-value'
@@ -29,6 +30,53 @@ function raf() {
 
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+const activeSpies: MockInstance[] = []
+
+afterEach(() => {
+  while (activeSpies.length) {
+    activeSpies.pop()!.mockRestore()
+  }
+})
+
+/**
+ * Spy on `getComputedStyle` so that, for the given `target`, the listed
+ * custom properties report `overrides[name]` whenever the inline style for
+ * that name has been cleared. Other properties (and other elements) pass
+ * through to the real implementation. The spy is auto-restored in afterEach.
+ */
+function mockComputedWhenInlineCleared(
+  target: HTMLElement,
+  overrides: Record<string, string>,
+): void {
+  const real = globalThis.getComputedStyle
+
+  const spy = vitest
+    .spyOn(globalThis, 'getComputedStyle')
+    .mockImplementation((elt: Element, pseudo?: string | null) => {
+      const cs = real(elt, pseudo)
+      if (elt !== target) return cs
+
+      return new Proxy(cs, {
+        get(t, prop, receiver) {
+          if (prop === 'getPropertyValue') {
+            return (name: string) => {
+              if (
+                name in overrides &&
+                target.style.getPropertyValue(name) === ''
+              ) {
+                return overrides[name]
+              }
+              return t.getPropertyValue(name)
+            }
+          }
+          return Reflect.get(t, prop, receiver)
+        },
+      }) as CSSStyleDeclaration
+    })
+
+  activeSpies.push(spy)
 }
 
 describe('animate', () => {
@@ -357,5 +405,105 @@ describe('animate', () => {
     ctx.stop()
     await ctx.settlingPromise
     expect(target.style.getPropertyValue('--x')).toContain('%')
+  })
+
+  test('reads `from` from computed style when the key is missing in `from`', async () => {
+    const target = el()
+    // Inline override that must be ignored while resolving the missing `from`.
+    target.style.setProperty('--x', '50px')
+
+    // Simulate the underlying computed style (e.g. from a stylesheet) that
+    // shows through once the inline override is cleared.
+    mockComputedWhenInlineCleared(target, { '--x': '10px' })
+
+    const calls: { keyframes: Keyframe[] }[] = []
+    target.animate = ((kf: Keyframe[], opt: KeyframeAnimationOptions) => {
+      calls.push({ keyframes: kf })
+      return Element.prototype.animate.call(target, kf, opt)
+    }) as Element['animate']
+
+    const ctx = animate(target, [{}, { '--x': '100px' }], { duration: 10 })
+
+    // After resolution the inline override is restored.
+    expect(target.style.getPropertyValue('--x')).toBe('50px')
+
+    expect(calls.length).toBe(1)
+    expect(calls[0]?.keyframes).toEqual([{ '--x': '10px' }, { '--x': '100px' }])
+
+    await ctx.settlingPromise
+    expect(target.style.getPropertyValue('--x')).toBe('100px')
+  })
+
+  test('reads `to` from computed style when the key is missing in `to`', async () => {
+    const target = el()
+    // Inline override that must be ignored while resolving the missing `to`.
+    target.style.setProperty('--x', '50px')
+
+    // Simulate the underlying computed style (e.g. from a stylesheet) that
+    // shows through once the inline override is cleared.
+    mockComputedWhenInlineCleared(target, { '--x': '20px' })
+
+    const calls: { keyframes: Keyframe[] }[] = []
+    target.animate = ((kf: Keyframe[], opt: KeyframeAnimationOptions) => {
+      calls.push({ keyframes: kf })
+      return Element.prototype.animate.call(target, kf, opt)
+    }) as Element['animate']
+
+    const ctx = animate(target, [{ '--x': '50px' }, {}], { duration: 10 })
+
+    // After resolution the inline override is restored.
+    expect(target.style.getPropertyValue('--x')).toBe('50px')
+
+    expect(calls.length).toBe(1)
+    expect(calls[0]?.keyframes).toEqual([{ '--x': '50px' }, { '--x': '20px' }])
+
+    await ctx.settlingPromise
+    expect(target.style.getPropertyValue('--x')).toBe('20px')
+  })
+
+  test('treats null / undefined values as missing on both sides', async () => {
+    const target = el()
+    target.style.setProperty('--from-only', '40px')
+    target.style.setProperty('--to-only', '60px')
+
+    mockComputedWhenInlineCleared(target, {
+      '--from-only': '5px',
+      '--to-only': '7px',
+    })
+
+    const calls: { keyframes: Keyframe[] }[] = []
+    target.animate = ((kf: Keyframe[], opt: KeyframeAnimationOptions) => {
+      calls.push({ keyframes: kf })
+      return Element.prototype.animate.call(target, kf, opt)
+    }) as Element['animate']
+
+    const ctx = animate(
+      target,
+      [
+        { '--to-only': '60px', '--from-only': null },
+        { '--from-only': '40px', '--to-only': undefined },
+      ],
+      { duration: 10 },
+    )
+
+    // Inline overrides should be restored after resolution.
+    expect(target.style.getPropertyValue('--from-only')).toBe('40px')
+    expect(target.style.getPropertyValue('--to-only')).toBe('60px')
+
+    const keyframesByKey = new Map<string, Keyframe[]>()
+    for (const c of calls) {
+      const key = Object.keys(c.keyframes[0]!)[0]!
+      keyframesByKey.set(key, c.keyframes)
+    }
+    expect(keyframesByKey.get('--from-only')).toEqual([
+      { '--from-only': '5px' },
+      { '--from-only': '40px' },
+    ])
+    expect(keyframesByKey.get('--to-only')).toEqual([
+      { '--to-only': '60px' },
+      { '--to-only': '7px' },
+    ])
+
+    await ctx.settlingPromise
   })
 })

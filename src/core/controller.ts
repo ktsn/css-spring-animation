@@ -4,8 +4,8 @@ import {
   AnimationTarget,
   SpringOptions,
   animate,
-  writeStyle,
 } from './animate'
+import { writeStyle } from './utils'
 import {
   ParsedStyleValue,
   StyleValue,
@@ -209,11 +209,7 @@ export function createAnimateController<
       ctx.stop()
     }
 
-    ctx = animate<Record<keyof Style, AnimateValue>>(
-      target,
-      [fromStyle, wrappedParsedStyle],
-      options,
-    )
+    ctx = animate(target, [fromStyle, wrappedParsedStyle], options)
     keptVelocity = undefined
     valueHistory = []
 

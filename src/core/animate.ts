@@ -7,10 +7,13 @@ import {
   Spring,
 } from './spring'
 import {
+  clearStyle,
   isCssLinearTimingFunctionSupported,
   isCssMathAnimationSupported,
   isWebAnimationsApiSupported,
   mapValues,
+  readStyle,
+  writeStyle,
   zip,
 } from './utils'
 import {
@@ -47,27 +50,30 @@ export interface AnimateContext {
   stoppedDuration: number | undefined
 }
 
-export function animate<Style extends Record<string, AnimateValue>>(
+export function animate<
+  From extends Record<string, AnimateValue | null | undefined>,
+  To extends Record<string, AnimateValue | null | undefined>,
+>(
   target: AnimationTarget,
-  fromTo: [Style, Style],
+  fromTo: [From, To],
   options: SpringOptions = {},
 ): AnimateContext {
-  const [fromInput, toInput] = fromTo
+  const { fromInput, toInput } = resolveMissingEntries(target, ...fromTo)
 
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
   // so the rest of the evaluation pipeline is uniform.
-  const slots = {} as Record<keyof Style, SpringComputed[]>
+  const slots: Record<string, SpringComputed[]> = {}
 
   // Mirror of `slots` for the `from` side. When the user passes a
   // SpringValue to `from`, this lets us attach it to the same Attachment
   // as the `to` slot so both follow the same animation.
-  const fromSlots = {} as Record<keyof Style, SpringComputed[]>
+  const fromSlots: Record<string, SpringComputed[]> = {}
 
-  const slotVelocities = {} as Record<keyof Style, number[]>
+  const slotVelocities: Record<string, number[]> = {}
 
   const parsedFromTo = mapValues(toInput, (to, key) => {
-    const from = fromInput[key]
+    const from = fromInput[key]!
     const fromIsUserSpring = typeof from === 'object'
     const toIsUserSpring = typeof to === 'object'
 
@@ -78,13 +84,13 @@ export function animate<Style extends Record<string, AnimateValue>>(
       ? to
       : liftToSpringStyle(parseStyleValue(String(to)))
 
-    slots[key as keyof Style] = liftedTo.values
-    fromSlots[key as keyof Style] = liftedFrom.values
+    slots[key] = liftedTo.values
+    fromSlots[key] = liftedFrom.values
 
     // Choose initial velocity prioritized by follows:
     // 1. user-provided `from` SpringValue's velocity
     // 2. user-provided `to` SpringValue's velocity
-    slotVelocities[key as keyof Style] = liftedTo.values.map((toSlot, i) => {
+    slotVelocities[key] = liftedTo.values.map((toSlot, i) => {
       const fromSlot = liftedFrom.values[i]
       if (fromIsUserSpring && fromSlot) return fromSlot.velocity()
       if (toIsUserSpring) return toSlot.velocity()
@@ -135,7 +141,7 @@ export function animate<Style extends Record<string, AnimateValue>>(
 
   // Attach animation info to every slot's SpringComputed.
   for (const key in slots) {
-    slots[key].forEach((slot, slotIndex) => {
+    slots[key]!.forEach((slot, slotIndex) => {
       const v = inputValues[key]?.[slotIndex]
       if (!v) return
       const attachment = {
@@ -473,14 +479,83 @@ function keyframeFor(key: string, value: string): Keyframe {
   return { [key]: value } as Keyframe
 }
 
-export function writeStyle(
+/**
+ * Return the keys that exist (non-null) in `a` but are missing (null /
+ * undefined / absent) in `b`.
+ */
+function diffKeys<T>(
+  a: Record<string, T | null | undefined>,
+  b: Record<string, T | null | undefined>,
+): string[] {
+  return Object.keys(a).filter((k) => a[k] != null && b[k] == null)
+}
+
+/**
+ * Temporarily clear the inline styles for `keys` on `target`, run `callback`,
+ * then restore the original inline values. The callback receives the live
+ * `CSSStyleDeclaration` so it can read computed values that no longer reflect
+ * the inline overrides.
+ */
+function withClearedInlineStyles(
   target: AnimationTarget,
-  key: string,
-  value: string,
+  keys: string[],
+  callback: (computed: CSSStyleDeclaration) => void,
 ): void {
-  if (key.startsWith('--')) {
-    target.style.setProperty(key, value)
-  } else {
-    target.style[key as any] = value
+  const savedInline = keys.map((k) => [k, readStyle(target.style, k)] as const)
+
+  for (const key of keys) {
+    clearStyle(target, key)
   }
+
+  callback(getComputedStyle(target))
+
+  for (const [key, value] of savedInline) {
+    if (value !== '') {
+      writeStyle(target, key, value)
+    }
+  }
+}
+
+/**
+ * Fill in entries that are missing from one side of `[from, to]` by reading
+ * the element's computed style with the inline override for that property
+ * temporarily cleared, then restored.
+ *
+ * A key is treated as "missing" when it is absent from the object OR present
+ * with a `null` / `undefined` value. Applies to both directions.
+ */
+function resolveMissingEntries(
+  target: AnimationTarget,
+  rawFrom: Record<string, AnimateValue | null | undefined>,
+  rawTo: Record<string, AnimateValue | null | undefined>,
+): {
+  fromInput: Record<string, AnimateValue>
+  toInput: Record<string, AnimateValue>
+} {
+  const fromInput: Record<string, AnimateValue> = {}
+  const toInput: Record<string, AnimateValue> = {}
+  for (const key in rawFrom) {
+    if (rawFrom[key] != null) fromInput[key] = rawFrom[key]!
+  }
+  for (const key in rawTo) {
+    if (rawTo[key] != null) toInput[key] = rawTo[key]!
+  }
+
+  const missingFromKeys = diffKeys(rawTo, rawFrom)
+  const missingToKeys = diffKeys(rawFrom, rawTo)
+  const missingKeys = [...missingFromKeys, ...missingToKeys]
+  if (missingKeys.length === 0) {
+    return { fromInput, toInput }
+  }
+
+  withClearedInlineStyles(target, missingKeys, (computed) => {
+    for (const key of missingFromKeys) {
+      fromInput[key] = readStyle(computed, key)
+    }
+    for (const key of missingToKeys) {
+      toInput[key] = readStyle(computed, key)
+    }
+  })
+
+  return { fromInput, toInput }
 }
