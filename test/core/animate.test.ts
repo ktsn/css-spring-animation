@@ -461,6 +461,32 @@ describe('animate', () => {
     expect(target.style.getPropertyValue('--x')).toBe('20px')
   })
 
+  test('treats a single-element tuple as `to` only and fills `from` from computed style', async () => {
+    const target = el()
+    // Inline override that should be cleared while resolving the implicit
+    // empty `from`.
+    target.style.setProperty('--x', '50px')
+
+    mockComputedWhenInlineCleared(target, { '--x': '10px' })
+
+    const calls: { keyframes: Keyframe[] }[] = []
+    target.animate = ((kf: Keyframe[], opt: KeyframeAnimationOptions) => {
+      calls.push({ keyframes: kf })
+      return Element.prototype.animate.call(target, kf, opt)
+    }) as Element['animate']
+
+    const ctx = animate(target, [{ '--x': '100px' }], { duration: 10 })
+
+    // After resolution the inline override is restored.
+    expect(target.style.getPropertyValue('--x')).toBe('50px')
+
+    expect(calls.length).toBe(1)
+    expect(calls[0]?.keyframes).toEqual([{ '--x': '10px' }, { '--x': '100px' }])
+
+    await ctx.settlingPromise
+    expect(target.style.getPropertyValue('--x')).toBe('100px')
+  })
+
   test('treats null / undefined values as missing on both sides', async () => {
     const target = el()
     target.style.setProperty('--from-only', '40px')

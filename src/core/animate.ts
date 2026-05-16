@@ -55,10 +55,12 @@ export function animate<
   To extends Record<string, AnimateValue | null | undefined>,
 >(
   target: AnimationTarget,
-  fromTo: [From, To],
+  fromTo: [To] | [From, To],
   options: SpringOptions = {},
 ): AnimateContext {
-  const { fromInput, toInput } = resolveMissingEntries(target, ...fromTo)
+  const [rawFrom, rawTo] =
+    fromTo.length === 1 ? [{} as From, fromTo[0]] : fromTo
+  const { fromInput, toInput } = resolveMissingEntries(target, rawFrom, rawTo)
 
   // Each slot — whether the user passed a SpringValue or a plain number —
   // is routed through a `SpringComputed`. Numeric slots get a fresh wrapper
