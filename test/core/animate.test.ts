@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, test, vitest } from 'vitest'
-import type { MockInstance } from 'vitest'
+import { afterEach, describe, expect, test, vitest } from 'vite-plus/test'
+import type { MockInstance } from 'vite-plus/test'
 
 import { animate } from '../../src/core/animate'
 import { createSpringValue, sv } from '../../src/core/spring-value'

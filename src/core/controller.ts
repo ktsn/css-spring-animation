@@ -86,7 +86,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
       })
     }
 
-    return mapValues(next, (value) => Array.from<number>({ length: value.values.length }, () => 0))
+    return mapValues(next, (value) => Array.from({ length: value.values.length }, () => 0))
   }
 
   function commitStaticStyle(parsed: Record<keyof Style, ParsedStyleValue>): void {
@@ -275,7 +275,7 @@ function updateValues<Style extends Record<string, ParsedStyleValue>>(
     return {
       wraps: value.wraps,
       units: value.units,
-      values: newValue ?? Array.from<number>({ length: value.values.length }, () => 0),
+      values: newValue ?? Array.from({ length: value.values.length }, () => 0),
     }
   }) as Style
 }
