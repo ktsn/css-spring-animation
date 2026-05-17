@@ -86,7 +86,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
       })
     }
 
-    return mapValues(next, (value) => new Array(value.values.length).fill(0))
+    return mapValues(next, (value) => Array.from<number>({ length: value.values.length }, () => 0))
   }
 
   function commitStaticStyle(parsed: Record<keyof Style, ParsedStyleValue>): void {
@@ -200,7 +200,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
     // Must store ctx to local variable because ctx in the callback of `then` can be
     // different from when the time onFinishCurrent
     const _ctx = ctx
-    _ctx.finishingPromise.then(() => {
+    void _ctx.finishingPromise.then(() => {
       fn({ stopped: _ctx.stoppedDuration !== undefined })
     })
   }
@@ -214,7 +214,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
     // Must store ctx to local variable because ctx in the callback of `then` can be
     // different from when the time onFinishCurrent
     const _ctx = ctx
-    _ctx.settlingPromise.then(() => {
+    void _ctx.settlingPromise.then(() => {
       fn({ stopped: _ctx.stoppedDuration !== undefined })
     })
   }
@@ -275,7 +275,7 @@ function updateValues<Style extends Record<string, ParsedStyleValue>>(
     return {
       wraps: value.wraps,
       units: value.units,
-      values: newValue ?? new Array(value.values.length).fill(0),
+      values: newValue ?? Array.from<number>({ length: value.values.length }, () => 0),
     }
   }) as Style
 }

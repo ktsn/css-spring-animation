@@ -68,5 +68,5 @@ export function isCssMathAnimationSupported(): boolean {
 }
 
 export function forceReflow(): void {
-  document.body.offsetHeight
+  void document.body.offsetHeight
 }

@@ -37,6 +37,8 @@
     "test": "vitest",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
+    "lint": "oxlint --deny-warnings",
+    "lint:fix": "oxlint --fix",
     "demo": "vite build",
     "publish": "./scripts/publish.sh"
   },
@@ -46,6 +48,8 @@
     "conventional-changelog-cli": "5.0.0",
     "jsdom": "29.1.1",
     "oxfmt": "0.50.0",
+    "oxlint": "1.65.0",
+    "oxlint-tsgolint": "^0.22.1",
     "typescript": "6.0.3",
     "vite": "8.0.12",
     "vitest": "4.1.6",

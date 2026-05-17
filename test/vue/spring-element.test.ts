@@ -154,8 +154,8 @@ describe('Spring Element', () => {
 
   function mountWithEvents(template: string, setupExtra?: () => any) {
     const root = document.createElement('div')
-    const finish = vitest.fn()
-    const settle = vitest.fn()
+    const finish = vitest.fn<(data: { stopped: boolean }) => void>()
+    const settle = vitest.fn<(data: { stopped: boolean }) => void>()
     const app = createApp({
       template,
       components: {
@@ -167,7 +167,7 @@ describe('Spring Element', () => {
           springStyle,
           onFinish: finish,
           onSettle: settle,
-          ...(setupExtra?.() ?? {}),
+          ...setupExtra?.(),
         }
       },
     })

@@ -15,7 +15,7 @@ describe('time', () => {
     const start = performance.now()
     const promise = wait(16)
 
-    vi.advanceTimersByTimeAsync(16)
+    await vi.advanceTimersByTimeAsync(16)
     await promise
 
     const end = performance.now()
