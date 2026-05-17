@@ -3,22 +3,22 @@
   "version": "1.0.0-beta.0",
   "description": "Spring animation library for Vue.js",
   "keywords": [
-    "spring",
     "animation",
+    "spring",
     "vue"
   ],
-  "author": "Katashin",
-  "license": "MIT",
   "homepage": "https://github.com/ktsn/spring",
+  "license": "MIT",
+  "author": "Katashin",
   "repository": {
     "type": "git",
     "url": "https://github.com/ktsn/spring.git"
   },
-  "type": "module",
   "files": [
     "dist",
     "types"
   ],
+  "type": "module",
   "main": "./dist/ktsn-spring.umd.cjs",
   "module": "./dist/ktsn-spring.js",
   "types": "./types/vue/index.d.ts",
@@ -35,25 +35,25 @@
     "dts": "vue-tsc",
     "typecheck": "vitest --typecheck",
     "test": "vitest",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
     "demo": "vite build",
     "publish": "./scripts/publish.sh"
-  },
-  "peerDependencies": {
-    "vue": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "25.7.0",
     "@vitejs/plugin-vue": "6.0.6",
     "conventional-changelog-cli": "5.0.0",
     "jsdom": "29.1.1",
-    "prettier": "3.8.3",
+    "oxfmt": "0.50.0",
     "typescript": "6.0.3",
     "vite": "8.0.12",
     "vitest": "4.1.6",
     "vue": "3.5.34",
     "vue-tsc": "3.2.8"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
   },
   "packageManager": "pnpm@11.1.1+sha512.d1fdf5f73c617b64fa1a56a81c3c8dfe0e966e33a6010aa256b517ae77be21d93e05affc0de1a83b0e4f29d569f68b446ae8f068cd7247c0bb3df0fb4d7bdf9a"
 }
