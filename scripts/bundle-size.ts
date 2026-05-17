@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { gzipSync } from 'node:zlib'
+import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 
 import { build } from 'vite'
 
@@ -33,6 +33,11 @@ process.stdout.write(
       bundled,
       minified: minifiedBuf.length,
       gzipped: gzipSync(minifiedBuf).length,
+      brotli: brotliCompressSync(minifiedBuf, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+        },
+      }).length,
     },
     null,
     2,

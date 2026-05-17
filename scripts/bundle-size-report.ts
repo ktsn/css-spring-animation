@@ -4,6 +4,7 @@ interface Sizes {
   bundled: number
   minified: number
   gzipped: number
+  brotli: number
 }
 
 const [, , basePath, headPath] = process.argv
@@ -43,6 +44,7 @@ const lines = [
   row('Bundled', 'bundled'),
   row('Minified', 'minified'),
   row('Minified + Gzipped', 'gzipped'),
+  row('Minified + Brotli', 'brotli'),
 ]
 
 const baseSha = process.env.BASE_SHA
