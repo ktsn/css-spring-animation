@@ -1,3 +1,4 @@
+import { Spring, evaluateSpring } from './spring'
 import {
   ParsedStyleValue,
   StyleValue,
@@ -5,7 +6,6 @@ import {
   parseLeadingUnit,
   parseStyleValue,
 } from './style'
-import { Spring, evaluateSpring } from './spring'
 
 const SPRING_VALUE_BRAND: unique symbol = Symbol('springValue')
 
@@ -114,9 +114,7 @@ export function createSpringValue(
     },
 
     velocity(): number {
-      return obj._attachment
-        ? evaluateAttachmentVelocity(obj._attachment)
-        : velocity
+      return obj._attachment ? evaluateAttachmentVelocity(obj._attachment) : velocity
     },
 
     setVelocity(v: number): void {
@@ -154,10 +152,7 @@ export function createSpringValue(
   return obj as InternalSpring
 }
 
-export function attachSpringValue(
-  value: SpringComputed,
-  attachment: Attachment,
-): void {
+export function attachSpringValue(value: SpringComputed, attachment: Attachment): void {
   ;(value as InternalSpring)._attachment = attachment
 }
 
@@ -181,10 +176,7 @@ export type SvInterpolation = number | string | SpringComputed
  * </template>
  * ```
  */
-export function sv(
-  strings: TemplateStringsArray,
-  ...values: SvInterpolation[]
-): SpringStyleValue {
+export function sv(strings: TemplateStringsArray, ...values: SvInterpolation[]): SpringStyleValue {
   const parts: SpringStyleValue[] = []
 
   // Parse the leading static string

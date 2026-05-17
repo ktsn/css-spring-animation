@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+
 import {
   completeParsedStyleUnit,
   interpolateParsedStyle,
@@ -301,8 +302,6 @@ describe('stringifyInterpolatedStyle', () => {
       },
       ['100 * exp(3)', '100 * exp(4)'],
     )
-    expect(actual).toBe(
-      'translate(calc(1px * (100 * exp(3))), calc(1% * (100 * exp(4))))',
-    )
+    expect(actual).toBe('translate(calc(1px * (100 * exp(3))), calc(1% * (100 * exp(4))))')
   })
 })

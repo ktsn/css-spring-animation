@@ -1,24 +1,13 @@
-import {
-  AnimateContext,
-  AnimateValue,
-  AnimationTarget,
-  SpringOptions,
-  animate,
-} from './animate'
-import { writeStyle } from './utils'
-import {
-  ParsedStyleValue,
-  StyleValue,
-  interpolateParsedStyle,
-  parseStyleValue,
-} from './style'
+import { AnimateContext, AnimateValue, AnimationTarget, SpringOptions, animate } from './animate'
 import {
   SpringComputed,
   SpringStyleValue,
   liftToSpringStyle,
   snapshotSpringStyle,
 } from './spring-value'
+import { ParsedStyleValue, StyleValue, interpolateParsedStyle, parseStyleValue } from './style'
 import { t } from './time'
+import { writeStyle } from './utils'
 import { mapValues } from './utils'
 
 export interface SetStyleOptions<StyleKey extends keyof any> {
@@ -30,13 +19,8 @@ export interface StopOptions {
   keepVelocity?: boolean
 }
 
-export interface AnimationController<
-  Style extends Record<string, AnimateValue>,
-> {
-  setStyle: (
-    style: Style,
-    options?: SetStyleOptions<keyof Style>,
-  ) => AnimateContext
+export interface AnimationController<Style extends Record<string, AnimateValue>> {
+  setStyle: (style: Style, options?: SetStyleOptions<keyof Style>) => AnimateContext
 
   setOptions: (options: SpringOptions) => void
 
@@ -53,9 +37,9 @@ interface ValueHistoryItem<Key extends PropertyKey> {
   timestamp: number
 }
 
-export function createAnimateController<
-  Style extends Record<string, AnimateValue>,
->(target: AnimationTarget): AnimationController<Style> {
+export function createAnimateController<Style extends Record<string, AnimateValue>>(
+  target: AnimationTarget,
+): AnimationController<Style> {
   /** Holding the snapshotted form of the most recently committed style */
   let style: Record<keyof Style, ParsedStyleValue> | undefined
 
@@ -105,22 +89,15 @@ export function createAnimateController<
     return mapValues(next, (value) => new Array(value.values.length).fill(0))
   }
 
-  function commitStaticStyle(
-    parsed: Record<keyof Style, ParsedStyleValue>,
-  ): void {
+  function commitStaticStyle(parsed: Record<keyof Style, ParsedStyleValue>): void {
     for (const key in parsed) {
-      writeStyle(
-        target,
-        key,
-        interpolateParsedStyle(parsed[key], parsed[key].values),
-      )
+      writeStyle(target, key, interpolateParsedStyle(parsed[key], parsed[key].values))
     }
     target.style.removeProperty(t)
   }
 
   function stop({ keepVelocity }: StopOptions = {}): void {
-    keptVelocity =
-      keepVelocity && liveSlots ? liveRealVelocity(liveSlots) : undefined
+    keptVelocity = keepVelocity && liveSlots ? liveRealVelocity(liveSlots) : undefined
 
     if (ctx && !ctx.settled) {
       ctx.stop()
@@ -134,18 +111,13 @@ export function createAnimateController<
     valueHistory = []
   }
 
-  function setStyle(
-    nextStyle: Style,
-    params: SetStyleOptions<keyof Style> = {},
-  ): AnimateContext {
+  function setStyle(nextStyle: Style, params: SetStyleOptions<keyof Style> = {}): AnimateContext {
     const isAnimate = params.animate ?? true
 
     const wrappedParsedStyle: Record<keyof Style, SpringStyleValue> = mapValues(
       nextStyle,
       (value): SpringStyleValue =>
-        typeof value === 'object'
-          ? value
-          : liftToSpringStyle(parseStyleValue(String(value))),
+        typeof value === 'object' ? value : liftToSpringStyle(parseStyleValue(String(value))),
     )
 
     const parsedStyleSnap = mapValues(wrappedParsedStyle, snapshotSpringStyle)
@@ -156,8 +128,7 @@ export function createAnimateController<
 
     const newSlots = mapValues(wrappedParsedStyle, (p) => p.values)
 
-    const inferredVelocity =
-      params.velocity ?? getRealVelocity(wrappedParsedStyle)
+    const inferredVelocity = params.velocity ?? getRealVelocity(wrappedParsedStyle)
 
     // Write inferred velocity onto every new slot
     for (const key in wrappedParsedStyle) {
@@ -323,9 +294,10 @@ function createPseudoContext(): AnimateContext {
   }
 }
 
-export function isSameStyle<
-  Style extends Record<string, number | string | StyleValue<unknown>>,
->(a: Style, b: Style): boolean {
+export function isSameStyle<Style extends Record<string, number | string | StyleValue<unknown>>>(
+  a: Style,
+  b: Style,
+): boolean {
   const keys = new Set([...Object.keys(a), ...Object.keys(b)])
 
   return Array.from(keys).every((key) => {
@@ -338,9 +310,6 @@ export function isSameStyle<
 
     const aValues = aValue.values
     const bValues = bValue.values
-    return (
-      aValues.length === bValues.length &&
-      aValues.every((value, i) => value === bValues[i])
-    )
+    return aValues.length === bValues.length && aValues.every((value, i) => value === bValues[i])
   })
 }

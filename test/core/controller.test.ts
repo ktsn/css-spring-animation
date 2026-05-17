@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+
 import { createAnimateController } from '../../src/core'
 
 function el(): HTMLElement {

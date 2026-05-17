@@ -49,9 +49,7 @@ const baseSha = process.env.BASE_SHA
 const headSha = process.env.HEAD_SHA
 if (baseSha || headSha) {
   lines.push('')
-  lines.push(
-    `Base: \`${(baseSha ?? '').slice(0, 7)}\` · Head: \`${(headSha ?? '').slice(0, 7)}\``,
-  )
+  lines.push(`Base: \`${(baseSha ?? '').slice(0, 7)}\` · Head: \`${(headSha ?? '').slice(0, 7)}\``)
 }
 
 process.stdout.write(lines.join('\n') + '\n')

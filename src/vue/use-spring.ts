@@ -1,12 +1,5 @@
-import {
-  MaybeRefOrGetter,
-  Ref,
-  computed,
-  nextTick,
-  onScopeDispose,
-  toValue,
-  watch,
-} from 'vue'
+import { MaybeRefOrGetter, Ref, computed, nextTick, onScopeDispose, toValue, watch } from 'vue'
+
 import {
   AnimateValue,
   AnimationController,
@@ -61,10 +54,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
       }
     }
 
-    return (hasSpringValue ? resolved : raw) as Record<
-      keyof Style,
-      string | number
-    >
+    return (hasSpringValue ? resolved : raw) as Record<keyof Style, string | number>
   })
 
   const optionsRef = computed(() => toValue(options) ?? {})
@@ -73,9 +63,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   const inferVelocity = computed(() => optionsRef.value.inferVelocity ?? true)
 
-  let controller:
-    | AnimationController<Record<keyof Style, AnimateValue>>
-    | undefined
+  let controller: AnimationController<Record<keyof Style, AnimateValue>> | undefined
 
   function attachController(target: AnimationTarget): void {
     controller = createAnimateController(target)
@@ -146,11 +134,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   }
 
   watch(
-    [
-      disabled,
-      () => ({ ...inputSnapshot.value }),
-      () => ({ ...optionsRef.value }),
-    ],
+    [disabled, () => ({ ...inputSnapshot.value }), () => ({ ...optionsRef.value })],
     ([disabled, snapshot, options], [prevDisabled, prevSnapshot]) => {
       if (!controller) return
 

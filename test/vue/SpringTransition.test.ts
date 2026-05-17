@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test, vitest } from 'vitest'
-import SpringTransition from '../../src/vue/SpringTransition'
-import { AnimationController } from '../../src/core'
 import { createApp, nextTick } from 'vue'
+
+import { AnimationController } from '../../src/core'
+import SpringTransition from '../../src/vue/SpringTransition'
 
 let mockController: Record<keyof AnimationController<any>, any> | undefined
 
@@ -11,9 +12,7 @@ vitest.mock('../../src/core/controller', async () => {
   return {
     ...module,
     createAnimateController: (...args: any[]) => {
-      const controller = (mockController = module.createAnimateController(
-        ...args,
-      ))
+      const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
       return controller
@@ -54,10 +53,7 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
@@ -143,10 +139,7 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = false
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
@@ -172,10 +165,7 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
 
     mockController?.setStyle.mockClear()
@@ -207,10 +197,7 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = false
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 })
 
     mockController?.setStyle.mockClear()
@@ -242,10 +229,7 @@ describe('SpringTransition', () => {
     const vm: any = app.mount(root)
     vm.isShow = true
     await nextTick()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 1 })
 
     mockController?.setStyle.mockClear()
@@ -257,10 +241,7 @@ describe('SpringTransition', () => {
     mockController?.setStyle.mockClear()
     await wait(20)
     expect(mockController?.setStyle).toHaveBeenCalledOnce()
-    expect(mockController?.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController?.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
   })
 
   test('trigger before-enter event before setting style', () => {
