@@ -3,11 +3,7 @@ export const t = '--ktsn-spring-time'
 let registered = false
 
 export function registerPropertyIfNeeded() {
-  if (
-    typeof CSS === 'undefined' ||
-    typeof CSS.registerProperty !== 'function' ||
-    registered
-  ) {
+  if (typeof CSS === 'undefined' || typeof CSS.registerProperty !== 'function' || registered) {
     return
   }
 
@@ -20,10 +16,7 @@ export function registerPropertyIfNeeded() {
   registered = true
 }
 
-export function wait(
-  duration: number,
-  forceResolve?: { fn: (() => void)[] },
-): Promise<void> {
+export function wait(duration: number, forceResolve?: { fn: (() => void)[] }): Promise<void> {
   let resolved = false
   let timer: ReturnType<typeof setTimeout>
 

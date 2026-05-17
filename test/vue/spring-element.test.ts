@@ -1,7 +1,8 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { createApp, nextTick, ref } from 'vue'
-import { spring } from '../../src/vue/spring-element'
+
 import { AnimationController } from '../../src/core'
+import { spring } from '../../src/vue/spring-element'
 
 let mockController: Record<keyof AnimationController<any>, any>
 
@@ -11,9 +12,7 @@ vitest.mock('../../src/core/controller', async () => {
   return {
     ...module,
     createAnimateController: (...args: any[]) => {
-      const controller = (mockController = module.createAnimateController(
-        ...args,
-      ))
+      const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
       return controller
@@ -90,10 +89,7 @@ describe('Spring Element', () => {
       disabled: false,
       inferVelocity: true,
     })
-    expect(mockController.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: true },
-    )
+    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: true })
   })
 
   test('disable animation when disabled prop is true', async () => {
@@ -121,10 +117,7 @@ describe('Spring Element', () => {
 
     vm.springStyle.opacity = 0
     await nextTick()
-    expect(mockController.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(vm.$el.style.opacity).toBe('0')
   })
 
@@ -155,10 +148,7 @@ describe('Spring Element', () => {
 
     await nextTick()
 
-    expect(mockController.setStyle).toHaveBeenCalledWith(
-      { height: '100px' },
-      { animate: true },
-    )
+    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' }, { animate: true })
     expect(vm.$el.style.height).toBe('100px')
   })
 

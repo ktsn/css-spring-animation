@@ -9,6 +9,8 @@ import {
   onUpdated,
   vShow,
 } from 'vue'
+
+import { createAnimateController, forceReflow } from './index.ts'
 import {
   HTMLElementWithController,
   SpringTransitionProps,
@@ -16,12 +18,8 @@ import {
   springTransitionProps,
   useTransitionHooks,
 } from './SpringTransition.ts'
-import { createAnimateController, forceReflow } from './index.ts'
 
-interface SpringTransitionGroupProps extends Omit<
-  SpringTransitionProps,
-  'mode'
-> {
+interface SpringTransitionGroupProps extends Omit<SpringTransitionProps, 'mode'> {
   tag?: string
   bounce?: number | { move?: number; enter?: number; leave?: number }
   duration?: number | { move?: number; enter?: number; leave?: number }
@@ -40,9 +38,7 @@ const springTransitionGroupProps = {
 
   tag: String,
 
-  bounce: [Number, Object] as PropType<
-    number | { move?: number; enter?: number; leave?: number }
-  >,
+  bounce: [Number, Object] as PropType<number | { move?: number; enter?: number; leave?: number }>,
 
   duration: [Number, Object] as PropType<
     number | { move?: number; enter?: number; leave?: number }
@@ -97,15 +93,11 @@ const SpringTransitionGroup = defineComponent({
     )
 
     const moveBounce = computed(() => {
-      return typeof props.bounce === 'number'
-        ? props.bounce
-        : props.bounce?.move
+      return typeof props.bounce === 'number' ? props.bounce : props.bounce?.move
     })
 
     const movedDuration = computed(() => {
-      return typeof props.duration === 'number'
-        ? props.duration
-        : props.duration?.move
+      return typeof props.duration === 'number' ? props.duration : props.duration?.move
     })
 
     onUpdated(() => {

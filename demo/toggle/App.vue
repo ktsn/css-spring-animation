@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+
 import { spring } from '../../src/vue'
 
 const moved = ref(false)

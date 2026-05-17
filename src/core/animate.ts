@@ -1,4 +1,3 @@
-import { registerPropertyIfNeeded, t, wait } from './time'
 import {
   generateSpringExpressionStyle,
   createSpring,
@@ -6,6 +5,20 @@ import {
   springEasingFn,
   Spring,
 } from './spring'
+import {
+  SpringComputed,
+  SpringStyleValue,
+  attachSpringValue,
+  liftToSpringStyle,
+  snapshotSpringStyle,
+} from './spring-value'
+import {
+  ParsedStyleValue,
+  completeParsedStyleUnit,
+  interpolateParsedStyle,
+  parseStyleValue,
+} from './style'
+import { registerPropertyIfNeeded, t, wait } from './time'
 import {
   clearStyle,
   isCssLinearTimingFunctionSupported,
@@ -16,19 +29,6 @@ import {
   writeStyle,
   zip,
 } from './utils'
-import {
-  ParsedStyleValue,
-  completeParsedStyleUnit,
-  interpolateParsedStyle,
-  parseStyleValue,
-} from './style'
-import {
-  SpringComputed,
-  SpringStyleValue,
-  attachSpringValue,
-  liftToSpringStyle,
-  snapshotSpringStyle,
-} from './spring-value'
 
 export type AnimationTarget = HTMLElement | SVGElement
 
@@ -53,13 +53,8 @@ export interface AnimateContext {
 export function animate<
   From extends Record<string, AnimateValue | null | undefined>,
   To extends Record<string, AnimateValue | null | undefined>,
->(
-  target: AnimationTarget,
-  fromTo: [To] | [From, To],
-  options: SpringOptions = {},
-): AnimateContext {
-  const [rawFrom, rawTo] =
-    fromTo.length === 1 ? [{} as From, fromTo[0]] : fromTo
+>(target: AnimationTarget, fromTo: [To] | [From, To], options: SpringOptions = {}): AnimateContext {
+  const [rawFrom, rawTo] = fromTo.length === 1 ? [{} as From, fromTo[0]] : fromTo
   const { fromInput, toInput } = resolveMissingEntries(target, rawFrom, rawTo)
 
   // Each slot — whether the user passed a SpringValue or a plain number —
@@ -209,9 +204,7 @@ interface InputValueGroup {
   velocity: number
 }
 
-function groupInputValues<
-  FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
->(
+function groupInputValues<FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>>(
   fromTo: FromTo,
   velocity: Record<keyof FromTo, number[]>,
 ): Record<keyof FromTo, InputValueGroup[]> {
@@ -284,20 +277,17 @@ function animateWithPerPropertyEasing({
     const toStr = interpolateParsedStyle(completedTo, completedTo.values)
 
     const values = inputValues[key]!
-    const normalizedVelocity = values.reduce<number | undefined>(
-      (acc, { from, to, velocity }) => {
-        if (acc !== undefined) {
-          return acc
-        }
+    const normalizedVelocity = values.reduce<number | undefined>((acc, { from, to, velocity }) => {
+      if (acc !== undefined) {
+        return acc
+      }
 
-        if (from === to) {
-          return undefined
-        }
+      if (from === to) {
+        return undefined
+      }
 
-        return velocity / (to - from)
-      },
-      undefined,
-    )
+      return velocity / (to - from)
+    }, undefined)
 
     const easing = springEasingFn({
       spring,
@@ -305,10 +295,11 @@ function animateWithPerPropertyEasing({
       normalizedVelocity: normalizedVelocity ?? 0,
     })
 
-    const a = target.animate(
-      [keyframeFor(key, fromStr), keyframeFor(key, toStr)],
-      { duration: settlingDuration, easing, fill: 'forwards' },
-    )
+    const a = target.animate([keyframeFor(key, fromStr), keyframeFor(key, toStr)], {
+      duration: settlingDuration,
+      easing,
+      fill: 'forwards',
+    })
     animations.push(a)
   }
 
@@ -354,10 +345,11 @@ function animateWithProxyTimeVariable({
 
   target.style.setProperty(t, '0')
 
-  const a = target.animate(
-    [{ [t]: '0' }, { [t]: String(settlingDuration / duration) }],
-    { duration: settlingDuration, easing: 'linear', fill: 'forwards' },
-  )
+  const a = target.animate([{ [t]: '0' }, { [t]: String(settlingDuration / duration) }], {
+    duration: settlingDuration,
+    easing: 'linear',
+    fill: 'forwards',
+  })
   return [a]
 }
 
@@ -398,9 +390,7 @@ function animateWithRaf({
   render()
 }
 
-function createContext<
-  FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>,
->({
+function createContext<FromTo extends Record<string, [ParsedStyleValue, ParsedStyleValue]>>({
   target,
   slots,
   fromTo,

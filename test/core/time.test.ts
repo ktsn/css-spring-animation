@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
+
 import { wait } from '../../src/core/time'
 
 describe('time', () => {

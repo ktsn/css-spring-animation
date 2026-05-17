@@ -86,9 +86,7 @@ const moved = ref(false)
   <!-- ✅ :spring-style のすべての数値が同じ単位、同じ順番で現れている -->
   <spring.div
     :spring-style="{
-      transform: flag
-        ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0, 0)',
+      transform: flag ? 'scale(1) translate(100px, 100px)' : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -116,11 +114,7 @@ function move() {
   <button @click="move">Move</button>
 
   <!-- sv を使って Spring Value を CSS 値に埋め込む -->
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -155,11 +149,7 @@ function move() {
 <template>
   <button @click="move">Move</button>
 
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -528,11 +518,10 @@ import { animate } from '@ktsn/spring'
 
 const el = document.querySelector('.rectangle') as HTMLElement
 
-const ctx = animate(
-  el,
-  [{ translate: '0px 0px' }, { translate: '300px 300px' }],
-  { duration: 1000, bounce: 0 },
-)
+const ctx = animate(el, [{ translate: '0px 0px' }, { translate: '300px 300px' }], {
+  duration: 1000,
+  bounce: 0,
+})
 
 ctx.settlingPromise.then(() => {
   // スプリングが完全に減衰した

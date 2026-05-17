@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vitest } from 'vitest'
 import type { MockInstance } from 'vitest'
+
 import { animate } from '../../src/core/animate'
 import { createSpringValue, sv } from '../../src/core/spring-value'
 import type { SpringComputed } from '../../src/core/spring-value'
@@ -62,10 +63,7 @@ function mockComputedWhenInlineCleared(
         get(t, prop, receiver) {
           if (prop === 'getPropertyValue') {
             return (name: string) => {
-              if (
-                name in overrides &&
-                target.style.getPropertyValue(name) === ''
-              ) {
+              if (name in overrides && target.style.getPropertyValue(name) === '') {
                 return overrides[name]
               }
               return t.getPropertyValue(name)
@@ -191,10 +189,7 @@ describe('animate', () => {
     const y = spring(20)
     const ctx = animate(
       el(),
-      [
-        { translate: `translate(0px, 10px)` },
-        { translate: sv`translate(${x}px, ${y}px)` },
-      ],
+      [{ translate: `translate(0px, 10px)` }, { translate: sv`translate(${x}px, ${y}px)` }],
       { duration: 10 },
     )
 
@@ -301,10 +296,7 @@ describe('animate', () => {
     const y = spring(20)
     const ctx = animate(
       el(),
-      [
-        { translate: `translate(0px, 10%)` },
-        { translate: sv`translate(${x}px, ${y}%)` },
-      ],
+      [{ translate: `translate(0px, 10%)` }, { translate: sv`translate(${x}px, ${y}%)` }],
       { duration: 10 },
     )
 

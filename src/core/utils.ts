@@ -1,10 +1,6 @@
 import type { AnimationTarget } from './animate'
 
-export function writeStyle(
-  target: AnimationTarget,
-  key: string,
-  value: string,
-): void {
+export function writeStyle(target: AnimationTarget, key: string, value: string): void {
   if (key.startsWith('--')) {
     target.style.setProperty(key, value)
   } else {
@@ -56,17 +52,11 @@ export function range(start: number, end: number): number[] {
 }
 
 export function isWebAnimationsApiSupported(): boolean {
-  return (
-    typeof Element !== 'undefined' &&
-    typeof Element.prototype.animate === 'function'
-  )
+  return typeof Element !== 'undefined' && typeof Element.prototype.animate === 'function'
 }
 
 export function isCssLinearTimingFunctionSupported(): boolean {
-  return (
-    typeof CSS !== 'undefined' &&
-    CSS.supports('transition-timing-function', 'linear(0, 1)')
-  )
+  return typeof CSS !== 'undefined' && CSS.supports('transition-timing-function', 'linear(0, 1)')
 }
 
 export function isCssMathAnimationSupported(): boolean {

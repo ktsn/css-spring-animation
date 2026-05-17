@@ -1,15 +1,14 @@
 import { PropType, defineComponent, h, ref } from 'vue'
+
 import { AnimateValue } from '../core'
-import { useSpring } from './use-spring'
 import { SpringStyleValue } from '../core/spring-value'
+import { useSpring } from './use-spring'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({
     props: {
       springStyle: {
-        type: Object as PropType<
-          Record<string, AnimateValue | SpringStyleValue>
-        >,
+        type: Object as PropType<Record<string, AnimateValue | SpringStyleValue>>,
         required: true,
       },
       bounce: Number,
@@ -58,10 +57,7 @@ const createSpringElement = (tagName: string) => {
   })
 }
 
-const springElementRecord: Record<
-  string,
-  ReturnType<typeof createSpringElement>
-> = {}
+const springElementRecord: Record<string, ReturnType<typeof createSpringElement>> = {}
 
 export const spring = new Proxy(springElementRecord, {
   get: (record, tagName) => {

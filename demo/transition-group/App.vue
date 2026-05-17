@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+
 import { SpringTransitionGroup } from '../../src/vue'
 
 const list = ref([1, 2, 3, 4, 5])
@@ -7,11 +8,7 @@ const list = ref([1, 2, 3, 4, 5])
 function onAdd() {
   const max = Math.max(...list.value)
   const index = Math.floor(Math.random() * list.value.length)
-  list.value = [
-    ...list.value.slice(0, index),
-    max + 1,
-    ...list.value.slice(index),
-  ]
+  list.value = [...list.value.slice(0, index), max + 1, ...list.value.slice(index)]
 }
 
 function onRemove() {

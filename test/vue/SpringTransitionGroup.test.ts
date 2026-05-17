@@ -1,8 +1,9 @@
 import { describe, expect, test, vitest } from 'vitest'
 import { createApp, nextTick } from 'vue'
-import SpringTransitionGroup from '../../src/vue/SpringTransitionGroup'
-import { scKey } from '../../src/vue/SpringTransition'
+
 import { AnimationController } from '../../src/core'
+import { scKey } from '../../src/vue/SpringTransition'
+import SpringTransitionGroup from '../../src/vue/SpringTransitionGroup'
 
 vitest.mock('../../src/core/controller', async () => {
   const module = await vitest.importActual<any>('../../src/core/controller')
@@ -50,10 +51,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller: AnimationController<any> = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
@@ -148,10 +146,7 @@ describe('SpringTransitionGroup', () => {
     vm.list = []
     await nextTick()
 
-    expect(el[scKey].setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
@@ -179,10 +174,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
     controller.setStyle.mockClear()
 
@@ -218,10 +210,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
@@ -256,20 +245,14 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
     await wait(20)
 
     expect(controller.setStyle).toHaveBeenCalledTimes(1)
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0.5 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0.5 }, { animate: false })
   })
 
   test('force finish enter animation when move processing is triggered', async () => {
@@ -388,10 +371,7 @@ describe('SpringTransitionGroup', () => {
           afterEnter() {
             try {
               const controller = this.$refs.els[0][scKey]
-              expect(controller.setStyle).toHaveBeenCalledWith(
-                { opacity: 0 },
-                { animate: false },
-              )
+              expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
               expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
               resolve()
             } catch (e) {
@@ -498,10 +478,7 @@ describe('SpringTransitionGroup', () => {
           afterLeave() {
             try {
               const controller = el[scKey]
-              expect(controller.setStyle).toHaveBeenCalledWith(
-                { opacity: 1 },
-                { animate: false },
-              )
+              expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
               expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
               resolve()
             } catch (e) {

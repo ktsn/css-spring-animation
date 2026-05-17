@@ -1,10 +1,6 @@
 import { PropType, Transition, computed, defineComponent, h } from 'vue'
-import {
-  AnimateValue,
-  AnimationController,
-  createAnimateController,
-  forceReflow,
-} from '../core'
+
+import { AnimateValue, AnimationController, createAnimateController, forceReflow } from '../core'
 
 // sc = Spring Controller
 export const scKey = Symbol('SpringController')
@@ -174,13 +170,9 @@ export const springTransitionProps = {
 
   leaveTo: Object as PropType<Record<string, AnimateValue>>,
 
-  bounce: [Number, Object] as PropType<
-    number | { enter: number; leave: number }
-  >,
+  bounce: [Number, Object] as PropType<number | { enter: number; leave: number }>,
 
-  duration: [Number, Object] as PropType<
-    number | { enter: number; leave: number }
-  >,
+  duration: [Number, Object] as PropType<number | { enter: number; leave: number }>,
 } as const
 
 const SpringTransition = defineComponent({

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+
 import { spring, springComputed, sv } from '../../src/vue'
 
 const pickerHeight = 240
@@ -18,20 +19,14 @@ const y = springComputed(() => {
     const realY = y.current()
     const normalizedY = normalizeRealPosition(realY, segmentHeight, centering)
 
-    return loopDirection.value === 'up'
-      ? normalizedY - segmentHeight
-      : normalizedY + segmentHeight
+    return loopDirection.value === 'up' ? normalizedY - segmentHeight : normalizedY + segmentHeight
   }
 
   const itemOffset = itemHeight * (hours.length + selectedIndex.value)
   return centering - itemOffset
 })
 
-function normalizeRealPosition(
-  y: number,
-  segmentHeight: number,
-  centering: number,
-): number {
+function normalizeRealPosition(y: number, segmentHeight: number, centering: number): number {
   if (y <= -segmentHeight * 3 + centering) {
     return normalizeRealPosition(y + segmentHeight, segmentHeight, centering)
   }
@@ -68,13 +63,7 @@ function onWheel(event: WheelEvent): void {
   selectByIndex(nextIndex)
 }
 
-function pickerDeltaByWheel({
-  deltaY,
-  deltaMode,
-}: {
-  deltaY: number
-  deltaMode: number
-}): number {
+function pickerDeltaByWheel({ deltaY, deltaMode }: { deltaY: number; deltaMode: number }): number {
   switch (deltaMode) {
     case WheelEvent.DOM_DELTA_PIXEL: {
       if (deltaY < 0) {
@@ -101,11 +90,7 @@ function onChange(event: Event, index: number): void {
 </script>
 
 <template>
-  <div
-    class="picker"
-    :style="{ height: `${pickerHeight}px` }"
-    @wheel.prevent="onWheel"
-  >
+  <div class="picker" :style="{ height: `${pickerHeight}px` }" @wheel.prevent="onWheel">
     <spring.div
       class="picker-slider"
       :spring-style="{ translate: sv`0px ${y}px` }"

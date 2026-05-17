@@ -1,8 +1,9 @@
-import { build } from 'vite'
 import { readFileSync, statSync } from 'node:fs'
-import { gzipSync } from 'node:zlib'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
+
+import { build } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(__dirname, '..')

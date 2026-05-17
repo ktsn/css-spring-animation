@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest'
+
 import { zip } from '../../src/core/utils'
 
 describe('zip', () => {

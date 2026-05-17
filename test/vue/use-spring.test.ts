@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'vitest'
-import { useSpring } from '../../src/vue/use-spring'
 import { EffectScope, effectScope, nextTick, ref } from 'vue'
+
+import { useSpring } from '../../src/vue/use-spring'
 
 describe('useSpring', () => {
   let scope: EffectScope | undefined

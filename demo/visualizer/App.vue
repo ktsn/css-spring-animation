@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { ref, shallowRef, watchEffect } from 'vue'
-import {
-  AnimateContext,
-  animate,
-  createSpring,
-  evaluateSpring,
-  sv,
-} from '../../src/core'
+
+import { AnimateContext, animate, createSpring, evaluateSpring, sv } from '../../src/core'
 import { Spring } from '../../src/core/spring'
 import { springValue } from '../../src/vue/spring-value'
 
@@ -224,14 +219,10 @@ watchEffect(() => {
       if (!ball) return
       const fromSv = springValue(from)
       fromSv.setVelocity(velocity)
-      ctx = animate(
-        ball,
-        [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }],
-        {
-          bounce,
-          duration,
-        },
-      )
+      ctx = animate(ball, [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }], {
+        bounce,
+        duration,
+      })
     })
 
     let start: number | undefined
@@ -291,38 +282,14 @@ watchEffect(() => {
 
       <div class="parameter">
         <label>Bounce</label>
-        <input
-          type="range"
-          min="-1"
-          max="1"
-          step="0.01"
-          v-model.number="parameters.bounce"
-        />
-        <input
-          type="number"
-          min="-1"
-          max="1"
-          step="0.1"
-          v-model.number="parameters.bounce"
-        />
+        <input type="range" min="-1" max="1" step="0.01" v-model.number="parameters.bounce" />
+        <input type="number" min="-1" max="1" step="0.1" v-model.number="parameters.bounce" />
       </div>
 
       <div class="parameter">
         <label>Duration</label>
-        <input
-          type="range"
-          min="100"
-          max="5000"
-          step="10"
-          v-model.number="parameters.duration"
-        />
-        <input
-          type="number"
-          min="100"
-          max="5000"
-          step="100"
-          v-model.number="parameters.duration"
-        />
+        <input type="range" min="100" max="5000" step="10" v-model.number="parameters.duration" />
+        <input type="number" min="100" max="5000" step="100" v-model.number="parameters.duration" />
       </div>
     </div>
   </div>

@@ -25,10 +25,7 @@ interface SpringDataAtTime extends SpringData {
   time: number
 }
 
-export function generateSpringExpressionStyle(
-  spring: Spring,
-  data: SpringData,
-): string {
+export function generateSpringExpressionStyle(spring: Spring, data: SpringData): string {
   if (isNotAnimating(data)) {
     return `calc(${data.to})`
   }
@@ -39,12 +36,7 @@ export function evaluateSpring(spring: Spring, data: SpringDataAtTime): number {
   if (isNotAnimating(data)) {
     return data.to
   }
-  return (
-    volume(data.from, data.to) *
-      spring.bounceValue(data) *
-      spring.decayValue(data) +
-    data.to
-  )
+  return volume(data.from, data.to) * spring.bounceValue(data) * spring.decayValue(data) + data.to
 }
 
 export interface SpringGeneratorResult {
@@ -62,10 +54,7 @@ export interface SpringGenerator {
  *
  * We check both the distance to 'to' value, and the velocity to calculate it.
  */
-export function springSettlingDuration(
-  spring: Spring,
-  data: SpringData,
-): number {
+export function springSettlingDuration(spring: Spring, data: SpringData): number {
   const volume = Math.abs(data.from - data.to)
 
   // Set max duration to make sure the animation eventually ends.
@@ -230,10 +219,7 @@ export function springEasingFn(params: {
 /**
  * https://developer.apple.com/videos/play/wwdc2023/10158/
  */
-export function createSpring(data: {
-  bounce: number
-  duration: number
-}): Spring {
+export function createSpring(data: { bounce: number; duration: number }): Spring {
   if (data.bounce > 0) {
     return bouncySpring(data)
   } else if (data.bounce < 0) {
@@ -381,10 +367,7 @@ function bouncySpring({ bounce, duration }: SpringTypeData): Spring {
       const time = data.time
 
       // Derivative of bouncy spring expression
-      const v =
-        -A *
-        Math.exp(-c * time) *
-        (c * Math.cos(a * time + b) + a * Math.sin(a * time + b))
+      const v = -A * Math.exp(-c * time) * (c * Math.cos(a * time + b) + a * Math.sin(a * time + b))
 
       return denormalizeVelocity(v, {
         ...data,
@@ -499,11 +482,8 @@ function flattenedSpring({ bounce, duration }: SpringTypeData): Spring {
 
       // Derivative of flattened spring expression
       const v =
-        Math.exp(-c * time) *
-          (a * A * Math.exp(a * time) - a * B * Math.exp(-a * time)) -
-        c *
-          Math.exp(-c * time) *
-          (A * Math.exp(a * time) + B * Math.exp(-a * time))
+        Math.exp(-c * time) * (a * A * Math.exp(a * time) - a * B * Math.exp(-a * time)) -
+        c * Math.exp(-c * time) * (A * Math.exp(a * time) + B * Math.exp(-a * time))
 
       return denormalizeVelocity(v, {
         ...data,
