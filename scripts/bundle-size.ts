@@ -11,7 +11,7 @@ const outFile = path.join(packageRoot, 'dist/ktsn-spring.mjs')
 function buildLib(minify: boolean): void {
   const args = ['pack', '--format', 'esm']
   if (minify) args.push('--minify')
-  const result = spawnSync('pnpm', ['exec', 'vp', ...args], {
+  const result = spawnSync('vp', args, {
     cwd: packageRoot,
     stdio: ['ignore', 'ignore', 'inherit'],
   })

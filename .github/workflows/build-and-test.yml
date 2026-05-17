@@ -15,28 +15,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@ca1c46663915d6c1042ae23bd39ab85718bfb0fa # v1
         with:
           node-version: 24
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+          cache: true
 
       - name: Format Check
-        run: pnpm format:check
+        run: vp run format:check
 
       - name: Lint
-        run: pnpm lint
+        run: vp run lint
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: vp run typecheck
 
       - name: Test
-        run: pnpm test
+        run: vp test --run
 
       - name: Build
-        run: pnpm run build
+        run: vp run build

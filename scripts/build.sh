@@ -2,6 +2,6 @@
 
 set -e
 
-pnpm run typecheck --run
-pnpm run test --run
-pnpm run build
+vp run typecheck
+vp test --run
+vp run build
