@@ -1,28 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "es2025",
-    "useDefineForClassFields": true,
-    "module": "esnext",
-    "lib": ["ES2025", "DOM"],
-    "types": [],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "emitDeclarationOnly": true,
-    "declaration": true,
-    "rootDir": "src",
-    "declarationDir": "types",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true
-  },
-  "include": ["src/**/*.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.lib.json" },
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.demo.json" }
+  ]
 }

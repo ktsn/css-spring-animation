@@ -30,6 +30,7 @@ export default defineConfig({
     setupFiles: ['./test/setup-waapi.ts'],
     typecheck: {
       checker: 'vue-tsc',
+      tsconfig: './tsconfig.test.json',
     },
   },
 })
