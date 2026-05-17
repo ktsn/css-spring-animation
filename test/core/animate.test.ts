@@ -97,30 +97,22 @@ describe('animate', () => {
     })
   })
 
-  test('ctx.finished = true after finishingPromise resolved', () => {
+  test('ctx.finished = true after finishingPromise resolved', async () => {
     const ctx = animate(el(), [{ scale: 0 }, { scale: 10 }], {
       duration: 10,
     })
-    return new Promise<void>((resolve) => {
-      ctx.finishingPromise.then(() => {
-        expect(ctx.finished).toBe(true)
-        expect(ctx.settled).toBe(false)
-        resolve()
-      })
-    })
+    await ctx.finishingPromise
+    expect(ctx.finished).toBe(true)
+    expect(ctx.settled).toBe(false)
   })
 
-  test('ctx.settled = true after settlingPromise resolved', () => {
+  test('ctx.settled = true after settlingPromise resolved', async () => {
     const ctx = animate(el(), [{ scale: 0 }, { scale: 10 }], {
       duration: 10,
     })
-    return new Promise<void>((resolve) => {
-      ctx.settlingPromise.then(() => {
-        expect(ctx.finished).toBe(true)
-        expect(ctx.settled).toBe(true)
-        resolve()
-      })
-    })
+    await ctx.settlingPromise
+    expect(ctx.finished).toBe(true)
+    expect(ctx.settled).toBe(true)
   })
 
   test('ctx.stop() makes finished and settled be true', () => {
@@ -132,20 +124,20 @@ describe('animate', () => {
     expect(ctx.settled).toBe(true)
   })
 
-  test('ctx.stop() force resolves finishingPromise', () => {
+  test('ctx.stop() force resolves finishingPromise', async () => {
     const ctx = animate(el(), [{ scale: 0 }, { scale: 10 }], {
       duration: 60000,
     })
     ctx.stop()
-    return ctx.finishingPromise
+    await expect(ctx.finishingPromise).resolves.toBeUndefined()
   })
 
-  test('ctx.stop() force resolves settlingPromise', () => {
+  test('ctx.stop() force resolves settlingPromise', async () => {
     const ctx = animate(el(), [{ scale: 0 }, { scale: 10 }], {
       duration: 60000,
     })
     ctx.stop()
-    return ctx.settlingPromise
+    await expect(ctx.settlingPromise).resolves.toBeUndefined()
   })
 
   test('SpringValue.current() reaches `to` after settled', () => {

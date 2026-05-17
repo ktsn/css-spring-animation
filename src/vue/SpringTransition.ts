@@ -62,7 +62,7 @@ export function useTransitionHooks(
     })
 
     const ctx = controller.setStyle(props.springStyle)
-    ctx.finishingPromise.then(() => {
+    void ctx.finishingPromise.then(() => {
       if (ctx.stoppedDuration === undefined) {
         done()
       }
@@ -90,7 +90,7 @@ export function useTransitionHooks(
       ...props.springStyle,
       ...leaveTo,
     })
-    ctx.finishingPromise.then(() => {
+    void ctx.finishingPromise.then(() => {
       if (ctx.stoppedDuration === undefined) {
         done()
       }

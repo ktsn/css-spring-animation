@@ -103,7 +103,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     // onFinishCurrent(() => {
     //   ...
     // })
-    nextTick().then(() => {
+    void nextTick().then(() => {
       if (controller) {
         controller.onFinishCurrent(fn)
       } else {
@@ -113,7 +113,7 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   }
 
   function onSettleCurrent(fn: (data: { stopped: boolean }) => void): void {
-    nextTick().then(() => {
+    void nextTick().then(() => {
       if (controller) {
         controller.onSettleCurrent(fn)
       } else {
