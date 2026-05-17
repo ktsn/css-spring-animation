@@ -1,30 +1,29 @@
+import { spawnSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 
-import { build } from 'vite'
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageRoot = path.resolve(__dirname, '..')
-const outFile = path.join(packageRoot, 'dist/ktsn-spring.js')
+const outFile = path.join(packageRoot, 'dist/ktsn-spring.mjs')
 
-async function buildLib(minify: boolean): Promise<void> {
-  await build({
-    root: packageRoot,
-    configFile: path.join(packageRoot, 'vite.lib.config.ts'),
-    logLevel: 'warn',
-    build: {
-      minify: minify ? 'oxc' : false,
-      emptyOutDir: true,
-    },
+function buildLib(minify: boolean): void {
+  const args = ['pack', '--format', 'esm']
+  if (minify) args.push('--minify')
+  const result = spawnSync('pnpm', ['exec', 'vp', ...args], {
+    cwd: packageRoot,
+    stdio: ['ignore', 'ignore', 'inherit'],
   })
+  if (result.status !== 0) {
+    throw new Error(`vp pack failed with status ${result.status}`)
+  }
 }
 
-await buildLib(false)
+buildLib(false)
 const bundled = statSync(outFile).size
 
-await buildLib(true)
+buildLib(true)
 const minifiedBuf = readFileSync(outFile)
 
 process.stdout.write(

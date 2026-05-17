@@ -6,7 +6,6 @@
     "useDefineForClassFields": true,
     "module": "esnext",
     "lib": ["ES2025", "DOM"],
-    "types": ["vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode */

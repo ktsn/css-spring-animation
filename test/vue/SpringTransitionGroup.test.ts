@@ -1,4 +1,4 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { describe, expect, test, vitest } from 'vite-plus/test'
 import { createApp, nextTick } from 'vue'
 
 import { AnimationController } from '../../src/core'

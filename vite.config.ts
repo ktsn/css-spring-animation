@@ -1,8 +1,7 @@
 import fs from 'node:fs'
 
 import vue from '@vitejs/plugin-vue'
-/// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   plugins: [vue()],
@@ -32,5 +31,38 @@ export default defineConfig({
       checker: 'vue-tsc',
       tsconfig: './tsconfig.test.json',
     },
+  },
+
+  pack: {
+    entry: { 'ktsn-spring': './src/vue/index.ts' },
+    format: ['esm', 'cjs', 'umd'],
+    globalName: 'KtsnSpring',
+    dts: true,
+    tsconfig: './tsconfig.lib.json',
+    outputOptions(outputOptions, format) {
+      if (format === 'umd') {
+        outputOptions.globals = { vue: 'Vue' }
+      }
+      return outputOptions
+    },
+  },
+
+  fmt: {
+    semi: false,
+    singleQuote: true,
+    sortPackageJson: true,
+    sortImports: true,
+    ignorePatterns: ['pnpm-lock.yaml', 'CHANGELOG.md'],
+  },
+
+  lint: {
+    plugins: ['oxc', 'eslint', 'typescript', 'unicorn', 'vitest', 'vue'],
+    options: {
+      typeAware: true,
+    },
+  },
+
+  staged: {
+    '*': 'vp check --fix',
   },
 })

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test } from 'vite-plus/test'
 import { EffectScope, effectScope, nextTick, ref } from 'vue'
 
 import { useSpring } from '../../src/vue/use-spring'
