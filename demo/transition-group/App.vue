@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 
 import { SpringTransitionGroup } from '../../src/vue'
@@ -41,7 +41,7 @@ function onShuffle() {
     }"
     :duration="800"
     :bounce="0"
-    @before-leave="(el) => (el.style.position = 'absolute')"
+    @before-leave="(el) => ((el as HTMLElement).style.position = 'absolute')"
   >
     <li v-for="item of list" :key="item">{{ item }}</li>
   </SpringTransitionGroup>
