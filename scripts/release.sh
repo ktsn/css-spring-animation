@@ -20,4 +20,4 @@ git add .
 git commit -m "v$1"
 git tag v$1
 
-git push --follow-tags
+git push --tags
