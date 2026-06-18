@@ -1,9 +1,51 @@
-import { describe, expect, test } from 'vite-plus/test'
+import { afterEach, describe, expect, test, vitest } from 'vite-plus/test'
+import type { MockInstance } from 'vite-plus/test'
 
 import { createAnimateController } from '../../src/core'
 
 function el(): HTMLElement {
   return document.createElement('div')
+}
+
+function raf(): Promise<unknown> {
+  return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
+const activeSpies: MockInstance[] = []
+
+afterEach(() => {
+  while (activeSpies.length) {
+    activeSpies.pop()!.mockRestore()
+  }
+})
+
+/**
+ * Spy on `getComputedStyle` so that, for `target`, any `<n>rem` width probe
+ * resolves to `<n * 16>px` (jsdom doesn't resolve units on its own). This lets
+ * the controller's mixed-unit `px` resolution run in tests.
+ */
+function mockRemResolution(target: HTMLElement): void {
+  const real = globalThis.getComputedStyle
+
+  const spy = vitest
+    .spyOn(globalThis, 'getComputedStyle')
+    .mockImplementation((elt: Element, pseudo?: string | null) => {
+      const cs = real(elt, pseudo)
+      if (elt !== target) return cs
+
+      return new Proxy(cs, {
+        get(t, prop, receiver) {
+          if (prop === 'width') {
+            const probe = target.style.width
+            const match = /^(\d+(?:\.\d+)?)rem$/.exec(probe)
+            if (match) return `${parseFloat(match[1]!) * 16}px`
+          }
+          return Reflect.get(t, prop, receiver)
+        },
+      }) as CSSStyleDeclaration
+    })
+
+  activeSpies.push(spy)
 }
 
 describe('AnimationController', () => {
@@ -111,6 +153,36 @@ describe('AnimationController', () => {
     controller.setStyle({ width: '0' })
     controller.stop()
     expect(target.style.width).toContain('%')
+  })
+
+  test('stopping a resolved mixed-unit animation hands off in px, not the authored unit', async () => {
+    const target = el()
+    mockRemResolution(target)
+
+    const controller = createAnimateController(target)
+    controller.setOptions({ duration: 1000 })
+
+    // Start at 300px, then animate toward 10rem (resolves to 160px).
+    controller.setStyle({ width: '300px' }, { animate: false })
+    controller.setStyle({ width: '10rem' })
+
+    await raf()
+    controller.stop()
+
+    // The animation was frozen at a px value between 160 and 300.
+    const stoppedWidth = parseFloat(target.style.width)
+    expect(target.style.width).toContain('px')
+    expect(stoppedWidth).toBeGreaterThan(150)
+    expect(stoppedWidth).toBeLessThan(310)
+
+    // Re-fire toward 300px. The new `from` must reuse the stopped px value as
+    // px. If it were mislabeled `rem`, the mock would resolve it to ~16x and the
+    // start value would jump into the thousands.
+    controller.setStyle({ width: '300px' })
+
+    const restartWidth = parseFloat(target.style.width)
+    expect(target.style.width).toContain('px')
+    expect(Math.abs(restartWidth - stoppedWidth)).toBeLessThan(5)
   })
 
   test('register finish listener for the current animation', () => {

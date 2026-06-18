@@ -100,6 +100,8 @@ export function animate<
     ]
   })
 
+  const resolvedFromTo = resolveUnitMismatches(target, parsedFromTo)
+
   const duration = options.duration ?? 1000
   const bounce = options.bounce ?? 0
 
@@ -108,7 +110,7 @@ export function animate<
     duration,
   })
 
-  const inputValues = groupInputValues(parsedFromTo, slotVelocities)
+  const inputValues = groupInputValues(resolvedFromTo, slotVelocities)
 
   const settlingDurationList = Object.values(inputValues).flatMap((values) => {
     return values.map(({ from, to, velocity }) => {
@@ -129,7 +131,7 @@ export function animate<
   const ctx = createContext({
     target,
     slots,
-    fromTo: parsedFromTo,
+    fromTo: resolvedFromTo,
     startTime,
     duration,
     settlingDuration,
@@ -138,6 +140,11 @@ export function animate<
 
   // Attach animation info to every slot's SpringComputed.
   for (const key in slots) {
+    const [from, to] = resolvedFromTo[key]!
+    // The unit each slot is actually rendered in.
+    // so a captured live value can be tagged with its resolved unit.
+    const renderUnits = completeParsedStyleUnit(to, from).units
+
     slots[key]!.forEach((slot, slotIndex) => {
       const v = inputValues[key]?.[slotIndex]
       if (!v) return
@@ -149,6 +156,7 @@ export function animate<
         startTime,
         duration,
         ctx,
+        unit: renderUnits[slotIndex] ?? '',
       }
       attachSpringValue(slot, attachment)
       const fromSlot = fromSlots[key]?.[slotIndex]
@@ -163,13 +171,13 @@ export function animate<
   if (
     waapi &&
     isCssLinearTimingFunctionSupported() &&
-    canUseLinearTimingFunction(parsedFromTo, slotVelocities)
+    canUseLinearTimingFunction(resolvedFromTo, slotVelocities)
   ) {
     animations.push(
       ...animateWithPerPropertyEasing({
         target,
         spring,
-        fromTo: parsedFromTo,
+        fromTo: resolvedFromTo,
         inputValues,
         settlingDuration,
       }),
@@ -179,7 +187,7 @@ export function animate<
       ...animateWithProxyTimeVariable({
         target,
         spring,
-        fromTo: parsedFromTo,
+        fromTo: resolvedFromTo,
         inputValues,
         duration,
         settlingDuration,
@@ -189,7 +197,7 @@ export function animate<
     // Graceful degradation for environments without WAAPI / linear() / CSS math.
     animateWithRaf({
       target,
-      fromTo: parsedFromTo,
+      fromTo: resolvedFromTo,
       slots,
       ctx,
     })
@@ -550,4 +558,93 @@ function resolveMissingEntries(
   })
 
   return { fromInput, toInput }
+}
+
+/**
+ * For every slot where `from`/`to` mix `px` with another non-empty length unit,
+ * resolve the non-px side to a px value by writing a probe with the side's
+ * original `<value><unit>` per slot, reading the post-resolution string from
+ * `getComputedStyle`, and re-parsing. A slot is left unchanged if the resolved
+ * string doesn't share the same `wraps` structure and only `px` / empty units
+ * in the expected places — this is what filters out `transform` (matrix
+ * expansion), shorthand expansion, keyword residue, `%`-retaining contexts, and
+ * custom properties.
+ *
+ * Returns a new map with the resolved `from`/`to` pairs; the input is left
+ * untouched.
+ */
+function resolveUnitMismatches(
+  target: AnimationTarget,
+  parsedFromTo: Record<string, [ParsedStyleValue, ParsedStyleValue]>,
+): Record<string, [ParsedStyleValue, ParsedStyleValue]> {
+  return mapValues(parsedFromTo, ([from, to], key): [ParsedStyleValue, ParsedStyleValue] => {
+    if (from.values.length !== to.values.length) return [from, to]
+
+    const fromIndices: number[] = []
+    const toIndices: number[] = []
+
+    // Record value indices that needs value completion.
+    zip(from.units, to.units).forEach(([fu, tu], i) => {
+      if (fu === tu) return
+
+      if (fu === 'px') {
+        toIndices.push(i)
+      } else if (tu === 'px') {
+        fromIndices.push(i)
+      }
+    })
+
+    if (fromIndices.length === 0 && toIndices.length === 0) return [from, to]
+
+    const resolvedFrom =
+      fromIndices.length > 0 ? resolveSide(target, key, from, fromIndices) : undefined
+    const resolvedTo = toIndices.length > 0 ? resolveSide(target, key, to, toIndices) : undefined
+
+    return [resolvedFrom ?? from, resolvedTo ?? to]
+  })
+}
+
+function resolveSide(
+  target: AnimationTarget,
+  key: string,
+  source: ParsedStyleValue,
+  indices: number[],
+): ParsedStyleValue | undefined {
+  const idxSet = new Set(indices)
+  const probe = interpolateParsedStyle(source, source.values)
+
+  // Write the probe and read computed style, then write the original style back.
+  const savedInline = readStyle(target.style, key)
+  writeStyle(target, key, probe)
+  const computedStr = readStyle(getComputedStyle(target), key)
+  if (savedInline === '') {
+    clearStyle(target, key)
+  } else {
+    writeStyle(target, key, savedInline)
+  }
+
+  const resolved = parseStyleValue(computedStr)
+
+  // Compare the structures between resolved and source style value.
+  // Do not complete if the structures are mismatched.
+  if (resolved.values.length !== source.values.length) return undefined
+  if (resolved.wraps.length !== source.wraps.length) return undefined
+  const sameWraps = zip(resolved.wraps, source.wraps).every(([rw, sw]) => rw === sw)
+  if (!sameWraps) {
+    return undefined
+  }
+
+  // Check resolved unit. Do not complete if the target slot's units are not px.
+  const resolvedAsPx = resolved.units.every((u, i) => !idxSet.has(i) || u === 'px')
+  if (!resolvedAsPx) {
+    return undefined
+  }
+
+  const newValues = source.values.slice()
+  const newUnits = source.units.slice()
+  for (const i of indices) {
+    newValues[i] = resolved.values[i]!
+    newUnits[i] = 'px'
+  }
+  return { wraps: source.wraps, units: newUnits, values: newValues }
 }

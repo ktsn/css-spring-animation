@@ -54,12 +54,6 @@ export function createAnimateController<Style extends Record<string, AnimateValu
   // Pseudo context for initial state (before triggering animation)
   let ctx: AnimateContext | undefined
 
-  function liveRealValue(
-    slots: Record<keyof Style, SpringComputed[]>,
-  ): Record<keyof Style, number[]> {
-    return mapValues(slots, (s) => s.map((v) => v.current()))
-  }
-
   function liveRealVelocity(
     slots: Record<keyof Style, SpringComputed[]>,
   ): Record<keyof Style, number[]> {
@@ -104,7 +98,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
     }
 
     if (style) {
-      style = liveSlots ? updateValues(style, liveRealValue(liveSlots)) : style
+      style = liveSlots ? updateValues(style, liveSlots) : style
       ctx = createPseudoContext()
     }
 
@@ -163,7 +157,7 @@ export function createAnimateController<Style extends Record<string, AnimateValu
     // hand off to the new ones — those become the `from` side of the new
     // animation.
     if (ctx && !ctx.settled && liveSlots) {
-      prev = updateValues(prev, liveRealValue(liveSlots))
+      prev = updateValues(prev, liveSlots)
     }
 
     liveSlots = newSlots
@@ -268,14 +262,23 @@ function velocityFromHistory<Key extends keyof any>(
 
 function updateValues<Style extends Record<string, ParsedStyleValue>>(
   springValues: Style,
-  values: Record<keyof Style, number[]>,
+  slots: Record<keyof Style, SpringComputed[]>,
 ): Style {
   return mapValues(springValues, (value, key): ParsedStyleValue => {
-    const newValue = values[key]
+    const keySlots = slots[key]
+    if (!keySlots) {
+      return {
+        wraps: value.wraps,
+        units: value.units,
+        values: Array.from({ length: value.values.length }, () => 0),
+      }
+    }
+
+    // Read the live value and its resolved unit from each slot
     return {
       wraps: value.wraps,
-      units: value.units,
-      values: newValue ?? Array.from({ length: value.values.length }, () => 0),
+      units: value.units.map((unit, i) => keySlots[i]?.unit() ?? unit),
+      values: keySlots.map((s) => s.current()),
     }
   }) as Style
 }
