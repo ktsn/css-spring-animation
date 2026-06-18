@@ -635,7 +635,7 @@ function resolveSide(
   }
 
   // Check resolved unit. Do not complete if the target slot's units are not px.
-  const resolvedAsPx = resolved.units.every((u, i) => !idxSet.has(i) || u == 'px')
+  const resolvedAsPx = resolved.units.every((u, i) => !idxSet.has(i) || u === 'px')
   if (!resolvedAsPx) {
     return undefined
   }
