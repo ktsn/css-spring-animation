@@ -140,6 +140,11 @@ export function animate<
 
   // Attach animation info to every slot's SpringComputed.
   for (const key in slots) {
+    const [from, to] = resolvedFromTo[key]!
+    // The unit each slot is actually rendered in.
+    // so a captured live value can be tagged with its resolved unit.
+    const renderUnits = completeParsedStyleUnit(to, from).units
+
     slots[key]!.forEach((slot, slotIndex) => {
       const v = inputValues[key]?.[slotIndex]
       if (!v) return
@@ -151,6 +156,7 @@ export function animate<
         startTime,
         duration,
         ctx,
+        unit: renderUnits[slotIndex] ?? '',
       }
       attachSpringValue(slot, attachment)
       const fromSlot = fromSlots[key]?.[slotIndex]
