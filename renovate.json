@@ -3,7 +3,7 @@
   "extends": ["config:best-practices", ":automergeDigest"],
   "packageRules": [
     {
-      "matchDepTypes": ["devDependencies", "packageManager"],
+      "matchDepTypes": ["devDependencies", "packageManager", "pnpm.catalog.default"],
       "matchUpdateTypes": ["minor", "patch"],
       "automerge": true
     },
