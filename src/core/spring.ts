@@ -1,95 +1,42 @@
 import { t } from './time'
-import {
-  Expression,
-  add,
-  calculate,
-  cos,
-  exp,
-  generateCSSValue,
-  mul,
-  v,
-  var_,
-} from './math'
 import { range } from './utils'
+
+const tVar = `var(${t})`
 
 export interface Spring {
   duration: number
 
-  bounce: (data: {
-    from: number
-    to: number
-    initialVelocity: number
-  }) => Expression
+  bounceCSS: (data: SpringData) => string
+  decayCSS: (data: SpringData) => string
 
-  decay: (data: {
-    from: number
-    to: number
-    initialVelocity: number
-  }) => Expression
+  bounceValue: (data: SpringDataAtTime) => number
+  decayValue: (data: SpringDataAtTime) => number
 
-  velocity: (data: {
-    time: number
-    from: number
-    to: number
-    initialVelocity: number
-  }) => number
+  velocity: (data: SpringDataAtTime) => number
 }
 
-export function generateSpringExpressionStyle(
-  spring: Spring,
-  data: { from: number; to: number; initialVelocity: number },
-): string {
-  const wrap = (exp: string) => `calc(${exp})`
-  return wrap(generateCSSValue(springExpression(spring, data)))
+interface SpringData {
+  from: number
+  to: number
+  initialVelocity: number
 }
 
-export function evaluateSpring(
-  spring: Spring,
-  data: { time: number; from: number; to: number; initialVelocity: number },
-): number {
-  const variables = {
-    [t]: data.time,
-  }
-  return calculate(springExpression(spring, data), variables)
+interface SpringDataAtTime extends SpringData {
+  time: number
 }
 
-function springExpression(
-  spring: Spring,
-  data: { from: number; to: number; initialVelocity: number },
-): Expression {
+export function generateSpringExpressionStyle(spring: Spring, data: SpringData): string {
   if (isNotAnimating(data)) {
-    return v(data.to)
+    return `calc(${data.to})`
   }
-
-  const curve = mul(spring.bounce(data), spring.decay(data))
-  return add(mul(v(volume(data.from, data.to)), curve), v(data.to))
+  return `calc(${volume(data.from, data.to)} * (${spring.bounceCSS(data)}) * (${spring.decayCSS(data)}) + ${data.to})`
 }
 
-export function evaluateSpringBounce(
-  spring: Spring,
-  data: { time: number; from: number; to: number; initialVelocity: number },
-): number {
-  const variables = {
-    [t]: data.time,
+export function evaluateSpring(spring: Spring, data: SpringDataAtTime): number {
+  if (isNotAnimating(data)) {
+    return data.to
   }
-  return calculate(spring.bounce(data), variables)
-}
-
-export function evaluateSpringDecay(
-  spring: Spring,
-  data: { time: number; from: number; to: number; initialVelocity: number },
-): number {
-  const variables = {
-    [t]: data.time,
-  }
-  return calculate(spring.decay(data), variables)
-}
-
-export function evaluateSpringVelocity(
-  spring: Spring,
-  data: { time: number; from: number; to: number; initialVelocity: number },
-): number {
-  return spring.velocity(data)
+  return volume(data.from, data.to) * spring.bounceValue(data) * spring.decayValue(data) + data.to
 }
 
 export interface SpringGeneratorResult {
@@ -107,14 +54,7 @@ export interface SpringGenerator {
  *
  * We check both the distance to 'to' value, and the velocity to calculate it.
  */
-export function springSettlingDuration(
-  spring: Spring,
-  data: {
-    from: number
-    to: number
-    initialVelocity: number
-  },
-): number {
+export function springSettlingDuration(spring: Spring, data: SpringData): number {
   const volume = Math.abs(data.from - data.to)
 
   // Set max duration to make sure the animation eventually ends.
@@ -142,7 +82,7 @@ export function springSettlingDuration(
       time,
     })
 
-    const velocity = evaluateSpringVelocity(spring, {
+    const velocity = spring.velocity({
       ...data,
       time,
     })
@@ -237,21 +177,22 @@ export function springCSS(duration: number, bounce: number = 0): string {
     initialVelocity: 0,
   })
 
-  return springCSSInternal({
+  const easing = springEasingFn({
     spring,
     settlingDuration,
     normalizedVelocity: 0,
   })
+
+  return `${settlingDuration}ms ${easing}`
 }
 
 /**
  * @private
  *
- * Generate CSS transition string from animation-related values.
- * Only used internally.
- * @param params.normalizedVelocity initial velocity rebased to 0-1 range
+ * Returns just the `linear(...)` easing-function string usable as the
+ * `easing` option of the Web Animations API.
  */
-export function springCSSInternal(params: {
+export function springEasingFn(params: {
   spring: Spring
   settlingDuration: number
   normalizedVelocity: number
@@ -272,16 +213,13 @@ export function springCSSInternal(params: {
     return value
   })
 
-  return `${settlingDuration}ms linear(${easingValues.join(',')})`
+  return `linear(${easingValues.join(',')})`
 }
 
 /**
  * https://developer.apple.com/videos/play/wwdc2023/10158/
  */
-export function createSpring(data: {
-  bounce: number
-  duration: number
-}): Spring {
+export function createSpring(data: { bounce: number; duration: number }): Spring {
   if (data.bounce > 0) {
     return bouncySpring(data)
   } else if (data.bounce < 0) {
@@ -326,29 +264,18 @@ function denormalizeVelocity(
   return v * volume(from, to) * (1000 / duration)
 }
 
-function isNotAnimating(data: {
-  from: number
-  to: number
-  initialVelocity: number
-}): boolean {
+function isNotAnimating(data: SpringData): boolean {
   return data.from === data.to && data.initialVelocity === 0
 }
 
-function bouncySpringConstants({
-  from,
-  to,
-  bounce,
-  duration,
-  initialVelocity,
-}: {
-  from: number
-  to: number
+interface SpringTypeData {
   bounce: number
   duration: number
-  initialVelocity: number
-}) {
-  const v = normalizeVelocity(initialVelocity, { from, to, duration })
-  const c = constant(bounce)
+}
+
+function bouncySpringConstants(data: SpringData & SpringTypeData) {
+  const v = normalizeVelocity(data.initialVelocity, data)
+  const c = constant(data.bounce)
   const a = 1.7 * Math.PI
   const b = Math.atan2(-c - v, a)
   const A = 1 / Math.cos(b)
@@ -361,21 +288,9 @@ function bouncySpringConstants({
   }
 }
 
-function smoothSpringConstants({
-  from,
-  to,
-  bounce,
-  duration,
-  initialVelocity,
-}: {
-  from: number
-  to: number
-  bounce: number
-  duration: number
-  initialVelocity: number
-}) {
-  const v = normalizeVelocity(initialVelocity, { from, to, duration })
-  const c = constant(bounce)
+function smoothSpringConstants(data: SpringData & SpringTypeData) {
+  const v = normalizeVelocity(data.initialVelocity, data)
+  const c = constant(data.bounce)
   const B = 1
   const A = v + B * c
 
@@ -386,21 +301,9 @@ function smoothSpringConstants({
   }
 }
 
-function flattenedSpringConstants({
-  from,
-  to,
-  bounce,
-  duration,
-  initialVelocity,
-}: {
-  from: number
-  to: number
-  bounce: number
-  duration: number
-  initialVelocity: number
-}) {
-  const v = normalizeVelocity(initialVelocity, { from, to, duration })
-  const c = constant(bounce)
+function flattenedSpringConstants(data: SpringData & SpringTypeData) {
+  const v = normalizeVelocity(data.initialVelocity, data)
+  const c = constant(data.bounce)
   const a = 0.00001
   const A = (a + c + v) / (2 * a)
   const B = (a - c - v) / (2 * a)
@@ -413,38 +316,41 @@ function flattenedSpringConstants({
   }
 }
 
+function decayCSS(c: number): string {
+  return `exp(${-c} * ${tVar})`
+}
+
+function decayValue(c: number, time: number): number {
+  return Math.exp(-c * time)
+}
+
 /**
  * Spring expression when bounce > 0
+ *
+ * value = volume * A * cos(a * t + b) * e ^ (-c * t) + to
  */
-function bouncySpring({
-  bounce,
-  duration,
-}: {
-  bounce: number
-  duration: number
-}): Spring {
-  // A * cos(a * t + b) * e ^ (-c * t)
-  const spring: Spring = {
+function bouncySpring({ bounce, duration }: SpringTypeData): Spring {
+  return {
     duration,
 
-    bounce: (data) => {
-      const { A, a, b } = bouncySpringConstants({
-        ...data,
-        bounce,
-        duration,
-      })
-
-      return mul(v(A), cos(add(mul(v(a), var_(t)), v(b))))
+    bounceCSS: (data) => {
+      const { A, a, b } = bouncySpringConstants({ ...data, bounce, duration })
+      return `${A} * cos(1rad * (${a} * ${tVar} + ${b}))`
     },
 
-    decay: (data) => {
-      const { c } = bouncySpringConstants({
-        ...data,
-        bounce,
-        duration,
-      })
+    decayCSS: (data) => {
+      const { c } = bouncySpringConstants({ ...data, bounce, duration })
+      return decayCSS(c)
+    },
 
-      return exp(mul(v(-c), var_(t)))
+    bounceValue: (data) => {
+      const { A, a, b } = bouncySpringConstants({ ...data, bounce, duration })
+      return A * Math.cos(a * data.time + b)
+    },
+
+    decayValue: (data) => {
+      const { c } = bouncySpringConstants({ ...data, bounce, duration })
+      return decayValue(c, data.time)
     },
 
     velocity: (data) => {
@@ -461,10 +367,7 @@ function bouncySpring({
       const time = data.time
 
       // Derivative of bouncy spring expression
-      const v =
-        -A *
-        Math.exp(-c * time) *
-        (c * Math.cos(a * time + b) + a * Math.sin(a * time + b))
+      const v = -A * Math.exp(-c * time) * (c * Math.cos(a * time + b) + a * Math.sin(a * time + b))
 
       return denormalizeVelocity(v, {
         ...data,
@@ -472,42 +375,35 @@ function bouncySpring({
       })
     },
   }
-
-  return spring
 }
 
 /**
  * Spring expression when bounce = 0
+ *
+ * value = volume * (A * t + B) * e ^ (-c * t) + to
  */
-function smoothSpring({
-  bounce,
-  duration,
-}: {
-  bounce: number
-  duration: number
-}): Spring {
-  // (A * t + B) * e ^ (-c * t)
-  const spring: Spring = {
+function smoothSpring({ bounce, duration }: SpringTypeData): Spring {
+  return {
     duration,
 
-    bounce: (data) => {
-      const { A, B } = smoothSpringConstants({
-        ...data,
-        bounce,
-        duration,
-      })
-
-      return add(mul(v(A), var_(t)), v(B))
+    bounceCSS: (data) => {
+      const { A, B } = smoothSpringConstants({ ...data, bounce, duration })
+      return `${A} * ${tVar} + ${B}`
     },
 
-    decay: (data) => {
-      const { c } = smoothSpringConstants({
-        ...data,
-        bounce,
-        duration,
-      })
+    decayCSS: (data) => {
+      const { c } = smoothSpringConstants({ ...data, bounce, duration })
+      return decayCSS(c)
+    },
 
-      return exp(mul(v(-c), var_(t)))
+    bounceValue: (data) => {
+      const { A, B } = smoothSpringConstants({ ...data, bounce, duration })
+      return A * data.time + B
+    },
+
+    decayValue: (data) => {
+      const { c } = smoothSpringConstants({ ...data, bounce, duration })
+      return decayValue(c, data.time)
     },
 
     velocity: (data) => {
@@ -532,45 +428,43 @@ function smoothSpring({
       })
     },
   }
-
-  return spring
 }
 
 /**
  * Spring expression when bounce < 0
+ *
+ * value = volume * (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t) + to
  */
-function flattenedSpring({
-  bounce,
-  duration,
-}: {
-  bounce: number
-  duration: number
-}): Spring {
-  // (A * e ^ (a * t) + B * e ^ (-a * t)) * e ^ (-c * t)
-  const spring: Spring = {
+function flattenedSpring({ bounce, duration }: SpringTypeData): Spring {
+  return {
     duration,
 
-    bounce: (data) => {
+    bounceCSS: (data) => {
       const { A, B, a } = flattenedSpringConstants({
         ...data,
         bounce,
         duration,
       })
-
-      const pullPart = mul(v(A), exp(mul(v(a), var_(t))))
-      const pushPart = mul(v(B), exp(mul(v(-a), var_(t))))
-
-      return add(pullPart, pushPart)
+      return `${A} * exp(${a} * ${tVar}) + ${B} * exp(${-a} * ${tVar})`
     },
 
-    decay: (data) => {
-      const { c } = flattenedSpringConstants({
+    decayCSS: (data) => {
+      const { c } = flattenedSpringConstants({ ...data, bounce, duration })
+      return decayCSS(c)
+    },
+
+    bounceValue: (data) => {
+      const { A, B, a } = flattenedSpringConstants({
         ...data,
         bounce,
         duration,
       })
+      return A * Math.exp(a * data.time) + B * Math.exp(-a * data.time)
+    },
 
-      return exp(mul(v(-c), var_(t)))
+    decayValue: (data) => {
+      const { c } = flattenedSpringConstants({ ...data, bounce, duration })
+      return decayValue(c, data.time)
     },
 
     velocity: (data) => {
@@ -588,11 +482,8 @@ function flattenedSpring({
 
       // Derivative of flattened spring expression
       const v =
-        Math.exp(-c * time) *
-          (a * A * Math.exp(a * time) - a * B * Math.exp(-a * time)) -
-        c *
-          Math.exp(-c * time) *
-          (A * Math.exp(a * time) + B * Math.exp(-a * time))
+        Math.exp(-c * time) * (a * A * Math.exp(a * time) - a * B * Math.exp(-a * time)) -
+        c * Math.exp(-c * time) * (A * Math.exp(a * time) + B * Math.exp(-a * time))
 
       return denormalizeVelocity(v, {
         ...data,
@@ -600,6 +491,4 @@ function flattenedSpring({
       })
     },
   }
-
-  return spring
 }

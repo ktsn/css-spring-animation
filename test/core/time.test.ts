@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest'
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vite-plus/test'
+
 import { wait } from '../../src/core/time'
 
 describe('time', () => {
@@ -14,7 +15,7 @@ describe('time', () => {
     const start = performance.now()
     const promise = wait(16)
 
-    vi.advanceTimersByTimeAsync(16)
+    await vi.advanceTimersByTimeAsync(16)
     await promise
 
     const end = performance.now()

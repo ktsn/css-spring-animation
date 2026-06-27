@@ -1,17 +1,12 @@
+import { MaybeRefOrGetter, Ref, computed, nextTick, onScopeDispose, toValue, watch } from 'vue'
+
 import {
-  DeepReadonly,
-  MaybeRefOrGetter,
-  Ref,
-  computed,
-  nextTick,
-  readonly,
-  ref,
-  toRef,
-  toValue,
-  watch,
-  watchEffect,
-} from 'vue'
-import { AnimateValue, SpringOptions, createAnimateController } from '../core'
+  AnimateValue,
+  AnimationController,
+  AnimationTarget,
+  SpringOptions,
+  createAnimateController,
+} from '../core'
 import { isSameStyle } from '../core/controller'
 import { interpolateParsedStyle } from '../core/style'
 
@@ -20,45 +15,20 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
   inferVelocity?: boolean
-  /** @deprecated Use `disabled: true` with `inferVelocity: false` instead. */
-  relocating?: boolean
 }
 
-type SpringStyleRef = Readonly<Ref<Record<string, string>>>
-
-export interface UseSpringResult<Values extends Record<string, number[]>> {
-  style: SpringStyleRef
-  realValue: DeepReadonly<Ref<Values>>
-  realVelocity: DeepReadonly<Ref<Values>>
+export interface UseSpringResult {
   onFinish: (fn: (data: { stopped: boolean }) => void) => void
   onSettle: (fn: (data: { stopped: boolean }) => void) => void
   onFinishCurrent: (fn: (data: { stopped: boolean }) => void) => void
   onSettleCurrent: (fn: (data: { stopped: boolean }) => void) => void
 }
 
-let warnedUseSpring = false
-
-/**
- * @deprecated Use the `<spring>` component instead. If you need `realValue` or
- * `realVelocity`, use `springValue`.
- */
-export function useSpringPublic<Style extends Record<string, AnimateValue>>(
-  styleMapper: RefOrGetter<Style>,
-  options?: MaybeRefOrGetter<UseSpringOptions>,
-): UseSpringResult<Record<keyof Style, number[]>> {
-  if (!warnedUseSpring) {
-    warnedUseSpring = true
-    console.warn(
-      '[css-spring-animation] `useSpring` is deprecated. Use the `<spring>` component instead. If you need `realValue` or `realVelocity`, use `springValue`.',
-    )
-  }
-  return useSpring(styleMapper, options)
-}
-
 export function useSpring<Style extends Record<string, AnimateValue>>(
+  element: MaybeRefOrGetter<AnimationTarget | null | undefined>,
   styleMapper: RefOrGetter<Style>,
   options?: MaybeRefOrGetter<UseSpringOptions>,
-): UseSpringResult<Record<keyof Style, number[]>> {
+): UseSpringResult {
   const input = computed(() => toValue(styleMapper))
 
   // Reactive snapshot — reads every `SpringComputed.target` so Vue reruns
@@ -84,49 +54,46 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
       }
     }
 
-    return (hasSpringValue ? resolved : raw) as Record<
-      keyof Style,
-      string | number
-    >
+    return (hasSpringValue ? resolved : raw) as Record<keyof Style, string | number>
   })
 
   const optionsRef = computed(() => toValue(options) ?? {})
 
-  const disabled = computed(
-    () =>
-      (optionsRef.value.disabled ?? false) ||
-      (optionsRef.value.relocating ?? false),
-  )
+  const disabled = computed(() => optionsRef.value.disabled ?? false)
 
-  const inferVelocity = computed(() => {
-    if (optionsRef.value.relocating) {
-      return false
-    }
-    return optionsRef.value.inferVelocity ?? true
-  })
+  const inferVelocity = computed(() => optionsRef.value.inferVelocity ?? true)
 
-  let warnedRelocating = false
-  watchEffect(() => {
-    if (optionsRef.value.relocating && !warnedRelocating) {
-      warnedRelocating = true
-      console.warn(
-        '[css-spring-animation] `relocating` is deprecated. Use `disabled: true` with `inferVelocity: false` instead.',
-      )
-    }
-  })
+  let controller: AnimationController<Record<keyof Style, AnimateValue>> | undefined
 
-  const style = ref<Record<string, string>>({})
+  function attachController(target: AnimationTarget): void {
+    controller = createAnimateController(target)
+    controller.setStyle(input.value, { animate: false })
+    controller.setOptions(optionsRef.value)
+  }
 
-  const controller = createAnimateController<Record<keyof Style, AnimateValue>>(
-    (_style) => {
-      style.value = _style
+  const initialEl = toValue(element)
+  if (initialEl) {
+    attachController(initialEl)
+  }
+
+  // Track element ref changes (ref flipping null → element on mount, etc.).
+  // `flush: 'sync'` so the controller is created and the initial style is
+  // applied to the element in the same tick the template ref is populated,
+  // so callers can observe `el.style` synchronously after mount.
+  watch(
+    () => toValue(element),
+    (el, prevEl) => {
+      if (el === prevEl) return
+      if (controller) {
+        controller.dispose()
+        controller = undefined
+      }
+      if (el) {
+        attachController(el)
+      }
     },
+    { flush: 'sync' },
   )
-  controller.setStyle(input.value)
-  controller.setOptions(optionsRef.value)
-
-  const realValue = toRef(() => controller.realValue)
-  const realVelocity = toRef(() => controller.realVelocity)
 
   function onFinishCurrent(fn: (data: { stopped: boolean }) => void): void {
     // Wait for the next tick to ensure that input changes in the same tick
@@ -136,21 +103,22 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     // onFinishCurrent(() => {
     //   ...
     // })
-    nextTick().then(() => {
-      controller.onFinishCurrent(fn)
+    void nextTick().then(() => {
+      if (controller) {
+        controller.onFinishCurrent(fn)
+      } else {
+        fn({ stopped: false })
+      }
     })
   }
 
   function onSettleCurrent(fn: (data: { stopped: boolean }) => void): void {
-    // Wait for the next tick to ensure that input changes in the same tick
-    // triggers a new animation that is a case like:
-    //
-    // springStyle.value = { width: '100px' }
-    // onSettleCurrent(() => {
-    //   ...
-    // })
-    nextTick().then(() => {
-      controller.onSettleCurrent(fn)
+    void nextTick().then(() => {
+      if (controller) {
+        controller.onSettleCurrent(fn)
+      } else {
+        fn({ stopped: false })
+      }
     })
   }
 
@@ -166,12 +134,10 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   }
 
   watch(
-    [
-      disabled,
-      () => ({ ...inputSnapshot.value }),
-      () => ({ ...optionsRef.value }),
-    ],
+    [disabled, () => ({ ...inputSnapshot.value }), () => ({ ...optionsRef.value })],
     ([disabled, snapshot, options], [prevDisabled, prevSnapshot]) => {
+      if (!controller) return
+
       if (disabled && !prevDisabled) {
         controller.stop({
           keepVelocity: !inferVelocity.value,
@@ -195,10 +161,14 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
     },
   )
 
+  onScopeDispose(() => {
+    if (controller) {
+      controller.dispose()
+      controller = undefined
+    }
+  })
+
   return {
-    style: readonly(style),
-    realValue: readonly(realValue),
-    realVelocity: readonly(realVelocity),
     onFinish,
     onSettle,
     onFinishCurrent,

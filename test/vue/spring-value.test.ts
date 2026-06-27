@@ -1,9 +1,10 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { describe, expect, test, vitest } from 'vite-plus/test'
 import { createApp, nextTick, ref, watchEffect } from 'vue'
+
+import { AnimationController } from '../../src/core'
+import { sv } from '../../src/core/spring-value'
 import { spring } from '../../src/vue/spring-element'
 import { springComputed, springValue } from '../../src/vue/spring-value'
-import { sv } from '../../src/core/spring-value'
-import { AnimationController } from '../../src/core'
 
 let mockController: Record<keyof AnimationController<any>, any>
 
@@ -13,9 +14,7 @@ vitest.mock('../../src/core/controller', async () => {
   return {
     ...module,
     createAnimateController: (...args: any[]) => {
-      const controller = (mockController = module.createAnimateController(
-        ...args,
-      ))
+      const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
       return controller

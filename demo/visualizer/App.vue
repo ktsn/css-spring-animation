@@ -1,14 +1,9 @@
 <script setup lang="ts">
-import { CSSProperties, ref, shallowRef, watchEffect } from 'vue'
-import {
-  AnimateContext,
-  animate,
-  createSpring,
-  evaluateSpring,
-  evaluateSpringBounce,
-  evaluateSpringDecay,
-} from '../../src/core'
+import { ref, shallowRef, watchEffect } from 'vue'
+
+import { AnimateContext, animate, createSpring, evaluateSpring, sv } from '../../src/core'
 import { Spring } from '../../src/core/spring'
+import { springValue } from '../../src/vue/spring-value'
 
 const from = 0
 const to = 350
@@ -23,8 +18,7 @@ const parameters = ref({
 })
 
 const canvas = shallowRef<HTMLCanvasElement>()
-
-const style = ref<CSSProperties>({})
+const previewBall = shallowRef<HTMLDivElement>()
 
 function renderLines(
   ctx: CanvasRenderingContext2D,
@@ -73,7 +67,7 @@ function renderBounceGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = evaluateSpringBounce(spring, {
+    const value = spring.bounceValue({
       time: t,
       from,
       to,
@@ -103,7 +97,7 @@ function renderDecayGraph(
 
   for (let i = 0; i < width * 2; i++) {
     const t = i / width
-    const value = evaluateSpringDecay(spring, {
+    const value = spring.decayValue({
       time: t,
       from,
       to,
@@ -206,7 +200,7 @@ function render(time: number): void {
 let intervalTimer: number | undefined
 let loopTimer: number | undefined
 let animateTimer: number | undefined
-let ctx: AnimateContext<any> | undefined
+let ctx: AnimateContext | undefined
 watchEffect(() => {
   window.clearInterval(intervalTimer)
   const { velocity, bounce, duration } = parameters.value
@@ -221,21 +215,14 @@ watchEffect(() => {
 
     ctx?.stop()
     animateTimer = requestAnimationFrame(() => {
-      ctx = animate(
-        {
-          translate: [`${from}px`, `${to}px`],
-        },
-        (_style) => {
-          style.value = _style
-        },
-        {
-          velocity: {
-            translate: [velocity],
-          },
-          bounce,
-          duration,
-        },
-      )
+      const ball = previewBall.value
+      if (!ball) return
+      const fromSv = springValue(from)
+      fromSv.setVelocity(velocity)
+      ctx = animate(ball, [{ translate: sv`${fromSv}px` }, { translate: `${to}px` }], {
+        bounce,
+        duration,
+      })
     })
 
     let start: number | undefined
@@ -261,7 +248,7 @@ watchEffect(() => {
   <div class="wrapper">
     <div class="preview">
       <div class="preview-behavior">
-        <div class="preview-ball" :style="style"></div>
+        <div class="preview-ball" ref="previewBall"></div>
       </div>
 
       <div class="preview-graph">
@@ -295,38 +282,14 @@ watchEffect(() => {
 
       <div class="parameter">
         <label>Bounce</label>
-        <input
-          type="range"
-          min="-1"
-          max="1"
-          step="0.01"
-          v-model.number="parameters.bounce"
-        />
-        <input
-          type="number"
-          min="-1"
-          max="1"
-          step="0.1"
-          v-model.number="parameters.bounce"
-        />
+        <input type="range" min="-1" max="1" step="0.01" v-model.number="parameters.bounce" />
+        <input type="number" min="-1" max="1" step="0.1" v-model.number="parameters.bounce" />
       </div>
 
       <div class="parameter">
         <label>Duration</label>
-        <input
-          type="range"
-          min="100"
-          max="5000"
-          step="10"
-          v-model.number="parameters.duration"
-        />
-        <input
-          type="number"
-          min="100"
-          max="5000"
-          step="100"
-          v-model.number="parameters.duration"
-        />
+        <input type="range" min="100" max="5000" step="10" v-model.number="parameters.duration" />
+        <input type="number" min="100" max="5000" step="100" v-model.number="parameters.duration" />
       </div>
     </div>
   </div>

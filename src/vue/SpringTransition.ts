@@ -1,27 +1,9 @@
 import { PropType, Transition, computed, defineComponent, h } from 'vue'
-import {
-  AnimateValue,
-  AnimationController,
-  createAnimateController,
-  forceReflow,
-} from '../core'
+
+import { AnimateValue, AnimationController, createAnimateController, forceReflow } from '../core'
 
 // sc = Spring Controller
 export const scKey = Symbol('SpringController')
-
-export function createStyleSetter(
-  el: HTMLElement,
-): (style: Record<string, string>) => void {
-  return (style) => {
-    for (const key in style) {
-      if (key.startsWith('--')) {
-        el.style.setProperty(key, style[key] ?? '')
-      } else {
-        el.style[key as any] = style[key] ?? ''
-      }
-    }
-  }
-}
 
 export function useTransitionHooks(
   props: Omit<SpringTransitionProps, 'mode'>,
@@ -60,7 +42,7 @@ export function useTransitionHooks(
   function onEnter(_el: Element, done: () => void): void {
     const el = _el as HTMLElementWithController
     if (!el[scKey]) {
-      el[scKey] = createAnimateController(createStyleSetter(el))
+      el[scKey] = createAnimateController(el)
 
       el[scKey].setStyle(
         {
@@ -80,7 +62,7 @@ export function useTransitionHooks(
     })
 
     const ctx = controller.setStyle(props.springStyle)
-    ctx.finishingPromise.then(() => {
+    void ctx.finishingPromise.then(() => {
       if (ctx.stoppedDuration === undefined) {
         done()
       }
@@ -90,7 +72,7 @@ export function useTransitionHooks(
   function onLeave(_el: Element, done: () => void): void {
     const el = _el as HTMLElementWithController
     if (!el[scKey]) {
-      el[scKey] = createAnimateController(createStyleSetter(el))
+      el[scKey] = createAnimateController(el)
       el[scKey].setStyle(props.springStyle, { animate: false })
 
       forceReflow()
@@ -108,7 +90,7 @@ export function useTransitionHooks(
       ...props.springStyle,
       ...leaveTo,
     })
-    ctx.finishingPromise.then(() => {
+    void ctx.finishingPromise.then(() => {
       if (ctx.stoppedDuration === undefined) {
         done()
       }
@@ -188,13 +170,9 @@ export const springTransitionProps = {
 
   leaveTo: Object as PropType<Record<string, AnimateValue>>,
 
-  bounce: [Number, Object] as PropType<
-    number | { enter: number; leave: number }
-  >,
+  bounce: [Number, Object] as PropType<number | { enter: number; leave: number }>,
 
-  duration: [Number, Object] as PropType<
-    number | { enter: number; leave: number }
-  >,
+  duration: [Number, Object] as PropType<number | { enter: number; leave: number }>,
 } as const
 
 const SpringTransition = defineComponent({

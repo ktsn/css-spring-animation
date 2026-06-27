@@ -1,10 +1,6 @@
 import { App, Directive } from 'vue'
-import {
-  AnimateValue,
-  AnimationController,
-  SpringOptions,
-  createAnimateController,
-} from '../core'
+
+import { AnimateValue, AnimationController, SpringOptions, createAnimateController } from '../core'
 
 interface HTMLElementWithController extends HTMLElement {
   __springController?: AnimationController<Record<string, AnimateValue>>
@@ -19,10 +15,11 @@ export const springDirectives = {
   install,
 }
 
-const springStyle: Directive<
-  HTMLElementWithController,
-  Record<string, AnimateValue>
-> = (el, { value }, vnode) => {
+const springStyle: Directive<HTMLElementWithController, Record<string, AnimateValue>> = (
+  el,
+  { value },
+  vnode,
+) => {
   const controller = ensureController(el)
 
   vnode.dirs?.forEach((dir) => {
@@ -48,15 +45,7 @@ function ensureController(
 ): AnimationController<Record<string, AnimateValue>> {
   let controller = el.__springController
   if (!controller) {
-    controller = createAnimateController((style) => {
-      for (const key in style) {
-        if (key.startsWith('--')) {
-          el.style.setProperty(key, style[key] ?? '')
-        } else {
-          el.style[key as any] = style[key] ?? ''
-        }
-      }
-    })
+    controller = createAnimateController(el)
     el.__springController = controller
   }
   return controller

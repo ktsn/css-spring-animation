@@ -1,3 +1,28 @@
+# [1.0.0-beta.1](https://github.com/ktsn/spring/compare/v1.0.0-beta.0...v1.0.0-beta.1) (2026-06-18)
+
+
+### Features
+
+* expose animate function as public api ([#64](https://github.com/ktsn/spring/issues/64)) ([0ff3aa6](https://github.com/ktsn/spring/commit/0ff3aa67e6ddd0272609040add244aca7671d478))
+* fill missing animate() entries from computed style ([#71](https://github.com/ktsn/spring/issues/71)) ([b6cc083](https://github.com/ktsn/spring/commit/b6cc08376d94942f0f41eb31d50b61b8f48e9015))
+* resolve mismatched units to px for animation ([#116](https://github.com/ktsn/spring/issues/116)) ([5fd312d](https://github.com/ktsn/spring/commit/5fd312d9fac386973ea98d82dc37274dfe2a128a))
+# [1.0.0-beta.0](https://github.com/ktsn/spring/compare/v0.19.0...v1.0.0-beta.0) (2026-05-10)
+
+
+* feat!: remove deprecated useSpring composable and relocating option (#48) ([0640b8e](https://github.com/ktsn/spring/commit/0640b8e67dddb1967807cd607b4b9790da9a7bd5)), closes [#48](https://github.com/ktsn/spring/issues/48)
+
+
+### BREAKING CHANGES
+
+* The `useSpring` public export has been removed. Use
+the `<spring>` component instead, or `springValue` for `realValue` /
+`realVelocity` access. The `relocating` option on `<spring>` and
+`useSpring` has also been removed — use `disabled` with
+`inferVelocity: false` instead.
+# `css-spring-animation` (v0.x)
+
+The following entries are the changelog of the `@css-spring-animation/{core,vue}` packages, prior to being renamed to `@ktsn/spring`.
+
 # [0.19.0](https://github.com/ktsn/css-spring-animation/compare/v0.18.0...v0.19.0) (2026-05-10)
 
 

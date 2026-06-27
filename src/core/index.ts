@@ -1,10 +1,5 @@
 export { animate } from './animate'
-export type {
-  AnimateOptions,
-  AnimateContext,
-  AnimateValue,
-  SpringOptions,
-} from './animate'
+export type { AnimateContext, AnimateValue, AnimationTarget, SpringOptions } from './animate'
 
 export { createAnimateController } from './controller'
 export type { AnimationController } from './controller'
@@ -12,9 +7,6 @@ export type { AnimationController } from './controller'
 export {
   createSpring,
   evaluateSpring,
-  evaluateSpringBounce,
-  evaluateSpringDecay,
-  evaluateSpringVelocity,
   springSettlingDuration,
   springCSS,
   springGenerator,
@@ -26,11 +18,6 @@ export { interpolateParsedStyle } from './style'
 export type { ParsedStyleValue } from './style'
 
 export { sv } from './spring-value'
-export type {
-  SpringComputed,
-  SpringStyleValue,
-  SpringValue,
-  SvInterpolation,
-} from './spring-value'
+export type { SpringComputed, SpringStyleValue, SpringValue, SvInterpolation } from './spring-value'
 
 export * from './utils'

@@ -1,23 +1,20 @@
-import { PropType, defineComponent, h } from 'vue'
+import { PropType, defineComponent, h, ref } from 'vue'
+
 import { AnimateValue } from '../core'
-import { useSpring } from './use-spring'
 import { SpringStyleValue } from '../core/spring-value'
+import { useSpring } from './use-spring'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({
     props: {
       springStyle: {
-        type: Object as PropType<
-          Record<string, AnimateValue | SpringStyleValue>
-        >,
+        type: Object as PropType<Record<string, AnimateValue | SpringStyleValue>>,
         required: true,
       },
       bounce: Number,
       duration: Number,
       disabled: Boolean,
       inferVelocity: { type: Boolean, default: true },
-      /** @deprecated Use `disabled` with `:infer-velocity="false"` instead. */
-      relocating: Boolean,
     },
 
     emits: {
@@ -26,7 +23,10 @@ const createSpringElement = (tagName: string) => {
     },
 
     setup(props, { emit, slots }) {
-      const { style, onFinish, onSettle } = useSpring(
+      const elRef = ref<HTMLElement | null>(null)
+
+      const { onFinish, onSettle } = useSpring(
+        elRef,
         () => props.springStyle,
         () => {
           return {
@@ -34,7 +34,6 @@ const createSpringElement = (tagName: string) => {
             duration: props.duration,
             disabled: props.disabled,
             inferVelocity: props.inferVelocity,
-            relocating: props.relocating,
           }
         },
       )
@@ -52,16 +51,13 @@ const createSpringElement = (tagName: string) => {
       })
 
       return () => {
-        return h(tagName, { style: style.value }, slots.default?.())
+        return h(tagName, { ref: elRef }, slots.default?.())
       }
     },
   })
 }
 
-const springElementRecord: Record<
-  string,
-  ReturnType<typeof createSpringElement>
-> = {}
+const springElementRecord: Record<string, ReturnType<typeof createSpringElement>> = {}
 
 export const spring = new Proxy(springElementRecord, {
   get: (record, tagName) => {

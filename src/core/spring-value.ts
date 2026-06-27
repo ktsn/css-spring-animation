@@ -1,3 +1,4 @@
+import { Spring, evaluateSpring } from './spring'
 import {
   ParsedStyleValue,
   StyleValue,
@@ -5,13 +6,12 @@ import {
   parseLeadingUnit,
   parseStyleValue,
 } from './style'
-import { Spring, evaluateSpring, evaluateSpringVelocity } from './spring'
 
 const SPRING_VALUE_BRAND: unique symbol = Symbol('springValue')
 
 /**
  * An animation info that is attached to a SpringValue.
- * When attached, a SpringValue returns its current value and velocity
+ * When attached, a SpringValue returns its current value, resolved unit and velocity
  * computed from the animation info instead of its own state.
  */
 export interface Attachment {
@@ -22,6 +22,7 @@ export interface Attachment {
   startTime: number
   duration: number
   ctx: { settled: boolean; stoppedDuration: number | undefined }
+  unit: string
 }
 
 function evaluateAttachmentValue(a: Attachment): number {
@@ -47,7 +48,7 @@ function evaluateAttachmentVelocity(a: Attachment): number {
 
   const time = (performance.now() - a.startTime) / a.duration
 
-  return evaluateSpringVelocity(a.spring, {
+  return a.spring.velocity({
     from: a.from,
     to: a.to,
     initialVelocity: a.initialVelocity,
@@ -63,6 +64,12 @@ export interface SpringComputed {
   current(): number
   velocity(): number
   setVelocity(v: number): void
+
+  /**
+   * The resolved unit of the value `current()` returns while attached to an
+   * animation, or `undefined` when not attached.
+   */
+  unit(): string | undefined
 }
 
 /**
@@ -79,6 +86,7 @@ interface InternalSpring {
   current(): number
   velocity(): number
   setVelocity(v: number): void
+  unit(): string | undefined
 }
 
 export type SpringStyleValue = StyleValue<SpringComputed>
@@ -114,9 +122,11 @@ export function createSpringValue(
     },
 
     velocity(): number {
-      return obj._attachment
-        ? evaluateAttachmentVelocity(obj._attachment)
-        : velocity
+      return obj._attachment ? evaluateAttachmentVelocity(obj._attachment) : velocity
+    },
+
+    unit(): string | undefined {
+      return obj._attachment?.unit
     },
 
     setVelocity(v: number): void {
@@ -154,10 +164,7 @@ export function createSpringValue(
   return obj as InternalSpring
 }
 
-export function attachSpringValue(
-  value: SpringComputed,
-  attachment: Attachment,
-): void {
+export function attachSpringValue(value: SpringComputed, attachment: Attachment): void {
   ;(value as InternalSpring)._attachment = attachment
 }
 
@@ -181,10 +188,7 @@ export type SvInterpolation = number | string | SpringComputed
  * </template>
  * ```
  */
-export function sv(
-  strings: TemplateStringsArray,
-  ...values: SvInterpolation[]
-): SpringStyleValue {
+export function sv(strings: TemplateStringsArray, ...values: SvInterpolation[]): SpringStyleValue {
   const parts: SpringStyleValue[] = []
 
   // Parse the leading static string

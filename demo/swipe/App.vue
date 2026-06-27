@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+
 import { spring, springValue, sv } from '../../src/vue'
 
 const dotLeftPosition = {

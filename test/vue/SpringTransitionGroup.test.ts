@@ -1,8 +1,9 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { describe, expect, test, vitest } from 'vite-plus/test'
 import { createApp, nextTick } from 'vue'
-import SpringTransitionGroup from '../../src/vue/SpringTransitionGroup'
-import { scKey } from '../../src/vue/SpringTransition'
+
 import { AnimationController } from '../../src/core'
+import { scKey } from '../../src/vue/SpringTransition'
+import SpringTransitionGroup from '../../src/vue/SpringTransitionGroup'
 
 vitest.mock('../../src/core/controller', async () => {
   const module = await vitest.importActual<any>('../../src/core/controller')
@@ -50,10 +51,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller: AnimationController<any> = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
@@ -148,10 +146,7 @@ describe('SpringTransitionGroup', () => {
     vm.list = []
     await nextTick()
 
-    expect(el[scKey].setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(el[scKey].setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
@@ -179,10 +174,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
     controller.setStyle.mockClear()
 
@@ -218,10 +210,7 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
@@ -256,20 +245,14 @@ describe('SpringTransitionGroup', () => {
     await nextTick()
 
     const controller = vm.$refs.els[0][scKey]
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 1 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
     expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
     controller.setStyle.mockClear()
 
     await wait(20)
 
     expect(controller.setStyle).toHaveBeenCalledTimes(1)
-    expect(controller.setStyle).toHaveBeenCalledWith(
-      { opacity: 0.5 },
-      { animate: false },
-    )
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0.5 }, { animate: false })
   })
 
   test('force finish enter animation when move processing is triggered', async () => {
@@ -330,223 +313,218 @@ describe('SpringTransitionGroup', () => {
     expect(el[scKey].stop).not.toHaveBeenCalled()
   })
 
-  test('trigger before-enter event before setting style', () => {
-    return new Promise<void>((resolve, reject) => {
-      const root = document.createElement('div')
+  test('trigger before-enter event before setting style', async () => {
+    const root = document.createElement('div')
+    let resolveBefore!: (els: any[]) => void
+    const beforeEntered = new Promise<any[]>((resolve) => {
+      resolveBefore = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :enter-from="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @before-enter="beforeEnter">
           <div v-for="item of list" key="item" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: [],
+        }
+      },
+      methods: {
+        beforeEnter() {
+          resolveBefore(this.$refs.els ?? [])
         },
-        data() {
-          return {
-            list: [],
-          }
-        },
-        methods: {
-          beforeEnter() {
-            try {
-              const els = this.$refs.els ?? []
-              expect(els.length).toBe(0)
-              resolve()
-            } catch (e) {
-              reject(e)
-            }
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      vm.list = ['a']
+      },
     })
+
+    const vm: any = app.mount(root)
+    vm.list = ['a']
+    const els = await beforeEntered
+    expect(els.length).toBe(0)
   })
 
-  test('trigger after-enter event after animation', () => {
-    return new Promise<void>((resolve, reject) => {
-      const root = document.createElement('div')
+  test('trigger after-enter event after animation', async () => {
+    const root = document.createElement('div')
+    let resolveAfter!: (controller: any) => void
+    const afterEntered = new Promise<any>((resolve) => {
+      resolveAfter = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :enter-from="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @after-enter="afterEnter" :duration="10">
           <div v-for="item of list" key="item" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: [],
+        }
+      },
+      methods: {
+        afterEnter() {
+          resolveAfter(this.$refs.els[0][scKey])
         },
-        data() {
-          return {
-            list: [],
-          }
-        },
-        methods: {
-          afterEnter() {
-            try {
-              const controller = this.$refs.els[0][scKey]
-              expect(controller.setStyle).toHaveBeenCalledWith(
-                { opacity: 0 },
-                { animate: false },
-              )
-              expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
-              resolve()
-            } catch (e) {
-              reject(e)
-            }
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      vm.list = ['a']
+      },
     })
+
+    const vm: any = app.mount(root)
+    vm.list = ['a']
+    const controller = await afterEntered
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 })
   })
 
-  test('trigger enter-cancelled event on cancelling animation', () => {
-    return new Promise<void>(async (resolve) => {
-      const root = document.createElement('div')
+  test('trigger enter-cancelled event on cancelling animation', async () => {
+    const root = document.createElement('div')
+    let resolveCancelled!: () => void
+    const cancelled = new Promise<void>((resolve) => {
+      resolveCancelled = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :enter-from="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @enter-cancelled="enterCancelled">
           <div v-for="item of list" key="item" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: [],
+        }
+      },
+      methods: {
+        enterCancelled() {
+          resolveCancelled()
         },
-        data() {
-          return {
-            list: [],
-          }
-        },
-        methods: {
-          enterCancelled() {
-            resolve()
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      vm.list = ['a']
-      await nextTick()
-      vm.list = []
+      },
     })
+
+    const vm: any = app.mount(root)
+    vm.list = ['a']
+    await nextTick()
+    vm.list = []
+    await cancelled
+    expect(vm.list).toEqual([])
   })
 
-  test('trigger before-leave event before setting style', () => {
-    return new Promise<void>((resolve, reject) => {
-      const root = document.createElement('div')
-      let el: any
+  test('trigger before-leave event before setting style', async () => {
+    const root = document.createElement('div')
+    let el: any
+    let resolveBefore!: (controller: any) => void
+    const beforeLeft = new Promise<any>((resolve) => {
+      resolveBefore = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :leave-to="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @before-leave="beforeLeave">
           <div v-for="item of list" key="item" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: ['a'],
+        }
+      },
+      methods: {
+        beforeLeave() {
+          resolveBefore(el[scKey])
         },
-        data() {
-          return {
-            list: ['a'],
-          }
-        },
-        methods: {
-          beforeLeave() {
-            try {
-              expect(el[scKey]).toBe(undefined)
-              resolve()
-            } catch (e) {
-              reject(e)
-            }
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      el = vm.$refs.els[0]
-      vm.list = []
+      },
     })
+
+    const vm: any = app.mount(root)
+    el = vm.$refs.els[0]
+    vm.list = []
+    const controllerAtEvent = await beforeLeft
+    expect(controllerAtEvent).toBe(undefined)
   })
 
-  test('trigger after-leave event after animation', () => {
-    return new Promise<void>((resolve, reject) => {
-      const root = document.createElement('div')
-      let el: any
+  test('trigger after-leave event after animation', async () => {
+    const root = document.createElement('div')
+    let resolveAfter!: () => void
+    const afterLeft = new Promise<void>((resolve) => {
+      resolveAfter = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :leave-to="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @after-leave="afterLeave" :duration="10">
           <div v-for="item of list" key="item" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: ['a'],
+        }
+      },
+      methods: {
+        afterLeave() {
+          resolveAfter()
         },
-        data() {
-          return {
-            list: ['a'],
-          }
-        },
-        methods: {
-          afterLeave() {
-            try {
-              const controller = el[scKey]
-              expect(controller.setStyle).toHaveBeenCalledWith(
-                { opacity: 1 },
-                { animate: false },
-              )
-              expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
-              resolve()
-            } catch (e) {
-              reject(e)
-            }
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      el = vm.$refs.els[0]
-      vm.list = []
+      },
     })
+
+    const vm: any = app.mount(root)
+    const el = vm.$refs.els[0]
+    vm.list = []
+    await afterLeft
+    const controller = el[scKey]
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 1 }, { animate: false })
+    expect(controller.setStyle).toHaveBeenCalledWith({ opacity: 0 })
   })
 
-  test('trigger leave-cancelled event on cancelling animation', () => {
-    return new Promise<void>(async (resolve) => {
-      const root = document.createElement('div')
+  test('trigger leave-cancelled event on cancelling animation', async () => {
+    const root = document.createElement('div')
+    let resolveCancelled!: () => void
+    const cancelled = new Promise<void>((resolve) => {
+      resolveCancelled = resolve
+    })
 
-      const app = createApp({
-        template: `
+    const app = createApp({
+      template: `
         <spring-transition-group :leave-to="{ opacity: 0 }" :spring-style="{ opacity: 1 }" @leave-cancelled="leaveCancelled">
           <div v-for="item of list" key="item" v-show="isShow" ref="els">{{ item }}</div>
         </spring-transition-group>
       `,
-        components: {
-          SpringTransitionGroup,
+      components: {
+        SpringTransitionGroup,
+      },
+      data() {
+        return {
+          list: ['a'],
+          isShow: true,
+        }
+      },
+      methods: {
+        leaveCancelled() {
+          resolveCancelled()
         },
-        data() {
-          return {
-            list: ['a'],
-            isShow: true,
-          }
-        },
-        methods: {
-          leaveCancelled() {
-            resolve()
-          },
-        },
-      })
-
-      const vm: any = app.mount(root)
-      vm.isShow = false
-      await nextTick()
-      vm.isShow = true
+      },
     })
+
+    const vm: any = app.mount(root)
+    vm.isShow = false
+    await nextTick()
+    vm.isShow = true
+    await cancelled
+    expect(vm.isShow).toBe(true)
   })
 })

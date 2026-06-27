@@ -1,4 +1,4 @@
-# CSS Spring Animation
+# @ktsn/spring
 
 English | [日本語](./README.ja.md)
 
@@ -15,7 +15,7 @@ An intuitive and predictable spring animation library powered by CSS Transition.
 There is a Vue binding of the library. Install it with npm (or yarn, pnpm):
 
 ```sh
-$ npm install @css-spring-animation/vue
+$ npm install @ktsn/spring
 ```
 
 When you use `<script setup>` in a single file component, you can use `spring` higher-order component as below:
@@ -23,7 +23,7 @@ When you use `<script setup>` in a single file component, you can use `spring` h
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const moved = ref(false)
 </script>
@@ -57,7 +57,7 @@ Perceptive duration (ms) of an animation. The default value is 1000.
 
 ## `disabled` and `inferVelocity`
 
-`<spring>` component and `useSpring` composable accept a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
+`<spring>` component accepts a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
 
 When animation later resumes, the spring's initial velocity comes from one of two sources, controlled by `inferVelocity`:
 
@@ -86,9 +86,7 @@ This is because the library parses the numbers in the style value, then calculat
   <!-- ✅ all numbers in the :spring-style have the same unit and are in the same order -->
   <spring.div
     :spring-style="{
-      transform: flag
-        ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0, 0)',
+      transform: flag ? 'scale(1) translate(100px, 100px)' : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -100,7 +98,7 @@ This is because the library parses the numbers in the style value, then calculat
 
 ```vue
 <script setup>
-import { spring, springValue, sv } from '@css-spring-animation/vue'
+import { spring, springValue, sv } from '@ktsn/spring'
 
 const x = springValue(0)
 const y = springValue(0)
@@ -116,11 +114,7 @@ function move() {
   <button @click="move">Move</button>
 
   <!-- Embed spring values into the CSS value via `sv` -->
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -139,7 +133,7 @@ x.velocity()
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring, springComputed, sv } from '@css-spring-animation/vue'
+import { spring, springComputed, sv } from '@ktsn/spring'
 
 const offset = ref(0)
 
@@ -155,11 +149,7 @@ function move() {
 <template>
   <button @click="move">Move</button>
 
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -205,7 +195,6 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `duration`
 - `disabled`
 - `inferVelocity`
-- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
 
 **Events**
 
@@ -216,7 +205,7 @@ Events fire per animation cycle on the latest cycle only. If `spring-style` is u
 
 ```vue
 <script setup>
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const position = ref(0)
 
@@ -271,7 +260,7 @@ function onFinish() {
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '@css-spring-animation/vue'
+import { SpringTransition } from '@ktsn/spring'
 
 const isShow = ref(false)
 </script>
@@ -332,7 +321,7 @@ const isShow = ref(false)
 
 ```vue
 <script setup>
-import { SpringTransitionGroup } from '@css-spring-animation/vue'
+import { SpringTransitionGroup } from '@ktsn/spring'
 
 const list = ref([
   // ...
@@ -363,88 +352,6 @@ const list = ref([
 </template>
 ```
 
-### `useSpring` composable
-
-> **Deprecated.** Prefer the [`<spring>` component](#spring-component). If you need access to `realValue` / `realVelocity`, use [`springValue`](#springvalueinitial) instead.
-
-A composable function to generate spring animation style. It also returns the real value and velocity of the corresponding number in the style value. They are as same shape as the style value except that its values are the array of numbers.
-
-The first argument is a function or ref that returns the style object to be animated. The second argument is an options object. It also can be a function or ref that returns the options.
-
-The options object expectes the following properties:
-
-- `bounce`
-- `duration`
-- `disabled`
-- `inferVelocity`
-- `relocating` (deprecated — use `disabled` + `inferVelocity: false`)
-
-It is expected to be used in a complex situation that `<spring>` component is not suitable to be used.
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, realValue, realVelocity } = useSpring(
-  () => {
-    return {
-      translate: `${position.value}px`,
-    }
-  },
-  () => {
-    return {
-      duration: 600,
-      bounce: 0.3,
-    }
-  },
-)
-</script>
-
-<template>
-  <div :style="style"></div>
-  <ul>
-    <li>realValue: {{ realValue.translate[0] }}</li>
-    <li>realVelocity: {{ realVelocity.translate[0] }}</li>
-  </ul>
-</template>
-```
-
-`useSpring` provides `onFinishCurrent` and `onSettleCurrent` functions for waiting until the current animation is finished or settled. You can register a callback function that will be called when an ongoing animation is finished/settled.
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, onFinishCurrent } = useSpring(() => {
-  return {
-    translate: `${position.value}px`,
-  }
-})
-
-function move() {
-  // Move to 100px
-  position.value = 100
-
-  // Wait for the animation is finished (duration passed) triggered by the above position update
-  onFinishCurrent(() => {
-    // Move to 0px
-    position.value = 0
-  })
-
-  // Wait for the animation is settled (visually stopped) triggered by the above position update
-  onSettleCurrent(() => {
-    console.log('settled')
-  })
-}
-</script>
-```
-
 ### `springValue(initial)`
 
 Creates a reactive holder for a single animated number. Pair with `<spring>` element via the `sv` tagged template.
@@ -456,7 +363,7 @@ Creates a reactive holder for a single animated number. Pair with `<spring>` ele
 - `velocity(): number` — non-reactive snapshot of the live velocity. While bound, reads the animation velocity; otherwise returns `0`.
 
 ```ts
-import { springValue } from '@css-spring-animation/vue'
+import { springValue } from '@ktsn/spring'
 
 const x = springValue(0)
 x.target = 100 // trigger animation when bound
@@ -482,7 +389,7 @@ You can register the directives by using plugin object exported as `springDirect
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import { springDirectives } from '@css-spring-animation/vue'
+import { springDirectives } from '@ktsn/spring'
 
 createApp(App).use(springDirectives).mount('#app')
 ```
@@ -517,7 +424,7 @@ A utility function that generates a CSS transition string with spring animation 
 Returns a CSS transition value string that can be used in the `transition` CSS property.
 
 ```js
-import { springCSS } from '@css-spring-animation/vue'
+import { springCSS } from '@ktsn/spring'
 
 // Generate spring transition CSS
 const transition = springCSS(400, 0.1)
@@ -553,7 +460,7 @@ A utility function that creates a spring iterator for manual animation control. 
 Returns a `SpringGenerator` object with a `next(elapsedMs)` method that returns `{ value: number, done: boolean }`.
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // Create a spring iterator
 const iter = springGenerator({
@@ -570,7 +477,7 @@ result = iter.next(1200) // { value: 100, done: true }
 ```
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // Example: Custom animation loop
 const iter = springGenerator({ from: 0, to: 100, duration: 600 })
@@ -589,4 +496,72 @@ function animate(now: number) {
 }
 
 requestAnimationFrame(animate)
+```
+
+### `animate(target, [from, to], options)`
+
+A low-level function that imperatively animates style properties on a DOM element with spring physics. Useful when you want spring animation outside of Vue components.
+
+**Parameters**
+
+- `target`: An `HTMLElement` or `SVGElement` to animate.
+- `fromTo`: A `[from, to]` tuple of style objects, or a `[to]` single-element tuple. Each style object maps CSS property names to a `number`, a `string`, or a value built from `sv` over `springValue` / `springComputed`. Entries may also be `null` or `undefined`, which is treated the same as omitting the key — see below.
+- `options`: Spring options (optional)
+  - `duration`: Duration in milliseconds (default: 1000)
+  - `bounce`: Bounciness (-1 to 1, default: 0)
+
+**Return value**
+
+Returns an `AnimateContext` with:
+
+- `finished` (boolean): becomes `true` once the animation visually completes (after `duration` ms).
+- `settled` (boolean): becomes `true` once the spring has fully decayed.
+- `finishingPromise` (`Promise<void>`): resolves when `finished` flips to `true`.
+- `settlingPromise` (`Promise<void>`): resolves when `settled` flips to `true`.
+- `stop()`: cancels the animation immediately and commits the current value.
+- `stoppedDuration` (`number | undefined`): the elapsed time at the moment `stop()` was called, or `undefined` if not stopped.
+
+```ts
+import { animate } from '@ktsn/spring'
+
+const el = document.querySelector('.rectangle') as HTMLElement
+
+const ctx = animate(el, [{ translate: '0px 0px' }, { translate: '300px 300px' }], {
+  duration: 1000,
+  bounce: 0,
+})
+
+ctx.settlingPromise.then(() => {
+  // the spring has fully settled
+})
+```
+
+If a key is missing from either side (or its value is `null` / `undefined`), `animate()` fills it in by reading the element's computed style with the inline override for that property temporarily cleared. The `[to]` single-element form is shorthand for `[{}, to]` — every entry of `from` is resolved this way:
+
+```ts
+import { animate } from '@ktsn/spring'
+
+// `from` is fully implicit. The element's current visual state (without
+// any inline override on `translate`) is used as the starting point.
+animate(el, [{ translate: '300px 300px' }], { duration: 600 })
+
+// Only one side of a key may be missing too — the missing side is
+// resolved from computed style independently.
+animate(el, [{ opacity: 0 }, { opacity: 1, translate: '100px 0px' }], {
+  duration: 600,
+})
+```
+
+When a slot in `from` or `to` is built from `springValue` via `sv`, the spring value's `current()` and `velocity()` reflect the live animation while it runs:
+
+```ts
+import { animate, springValue, sv } from '@ktsn/spring'
+
+const x = springValue(0)
+
+animate(el, [{ translate: sv`${x}px` }, { translate: '100px' }], {
+  duration: 600,
+})
+
+// x.current() / x.velocity() now reflect the live animation
 ```

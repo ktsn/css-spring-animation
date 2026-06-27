@@ -1,224 +1,193 @@
-import { describe, expect, test, vi, vitest } from 'vitest'
-import { createAnimateController } from '../../src/core'
-import { t } from '../../src/core/time'
+import { afterEach, describe, expect, test, vitest } from 'vite-plus/test'
+import type { MockInstance } from 'vite-plus/test'
 
-vitest.mock('../../src/core/utils', async () => {
-  const actual = await vitest.importActual<object>('../../src/core/utils')
-  return {
-    ...actual,
-    isCssLinearTimingFunctionSupported: () => true,
+import { createAnimateController } from '../../src/core'
+
+function el(): HTMLElement {
+  return document.createElement('div')
+}
+
+function raf(): Promise<unknown> {
+  return new Promise((resolve) => requestAnimationFrame(resolve))
+}
+
+const activeSpies: MockInstance[] = []
+
+afterEach(() => {
+  while (activeSpies.length) {
+    activeSpies.pop()!.mockRestore()
   }
 })
 
-function raf(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => resolve()))
+/**
+ * Spy on `getComputedStyle` so that, for `target`, any `<n>rem` width probe
+ * resolves to `<n * 16>px` (jsdom doesn't resolve units on its own). This lets
+ * the controller's mixed-unit `px` resolution run in tests.
+ */
+function mockRemResolution(target: HTMLElement): void {
+  const real = globalThis.getComputedStyle
+
+  const spy = vitest
+    .spyOn(globalThis, 'getComputedStyle')
+    .mockImplementation((elt: Element, pseudo?: string | null) => {
+      const cs = real(elt, pseudo)
+      if (elt !== target) return cs
+
+      return new Proxy(cs, {
+        get(t, prop, receiver) {
+          if (prop === 'width') {
+            const probe = target.style.width
+            const match = /^(\d+(?:\.\d+)?)rem$/.exec(probe)
+            if (match) return `${parseFloat(match[1]!) * 16}px`
+          }
+          return Reflect.get(t, prop, receiver)
+        },
+      }) as CSSStyleDeclaration
+    })
+
+  activeSpies.push(spy)
 }
 
 describe('AnimationController', () => {
   test('set initial style', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
-    controller.setStyle({
+    const target = el()
+    const controller = createAnimateController(target)
+    const ctx = controller.setStyle({
       width: `100px`,
     })
-    expect(actual?.width).toEqual('100px')
+    expect(ctx.settled).toBe(true)
+    expect(target.style.width).toEqual('100px')
   })
 
   test('set style without animation', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setStyle({ width: `100px` })
-    expect(actual).toEqual({ width: '100px', transition: '', [t]: '' })
-    controller.setStyle({ width: `200px` }, { animate: false })
-    expect(actual).toEqual({ width: '200px', transition: '', [t]: '' })
+    expect(target.style.width).toBe('100px')
+    const ctx = controller.setStyle({ width: `200px` }, { animate: false })
+    expect(ctx.settled).toBe(true)
+    expect(target.style.width).toBe('200px')
   })
 
-  test('set style with animation', async () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+  test('set style with animation reaches the to value after settling', async () => {
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: `100px` })
-    expect(actual?.width).toEqual('100px')
+    expect(target.style.width).toEqual('100px')
 
-    controller.setStyle({ width: `200px` })
-    expect(actual?.width).toBe('100px')
-    expect(actual?.transition).toBe('none')
-    await raf()
-    await raf()
-    expect(actual?.width).toBe('200px')
-    expect(actual?.[t]).not.toBe('none')
+    const ctx = controller.setStyle({ width: `200px` })
+    expect(ctx.settled).toBe(false)
+    await ctx.settlingPromise
+    expect(target.style.width).toBe('200px')
   })
 
   test('set style without animation if the value is not animatable', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: `auto` })
-    expect(actual?.width).toBe('auto')
+    expect(target.style.width).toBe('auto')
 
     controller.setStyle({ width: `100px` })
-    expect(actual?.width).toBe('100px')
+    expect(target.style.width).toBe('100px')
   })
 
   test('do not trigger animation by setting the same style value', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: `100px` })
-    expect(actual?.width).toBe('100px')
+    expect(target.style.width).toBe('100px')
 
-    controller.setStyle({ width: `100px` })
-    expect(actual?.width).toBe('100px')
-    expect(actual?.transition).toBe('')
-    expect(actual?.[t]).toBe('')
+    const ctx = controller.setStyle({ width: `100px` })
+    expect(ctx.settled).toBe(true)
+    expect(target.style.width).toBe('100px')
   })
 
   test('trigger animation if any style value is different', async () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: '100px', height: '200px' })
-    expect(actual?.width).toBe('100px')
-    expect(actual?.height).toBe('200px')
+    expect(target.style.width).toBe('100px')
+    expect(target.style.height).toBe('200px')
 
-    controller.setStyle({ width: `100px`, height: `100px` })
-    expect(actual?.width).toBe('100px')
-    expect(actual?.height).toBe('200px')
-    expect(actual?.transition).toBe('none')
-    await raf()
-    await raf()
-    expect(actual?.width).toBe('100px')
-    expect(actual?.height).toBe('100px')
-    expect(actual?.transition).not.toBe('none')
+    const ctx = controller.setStyle({ width: `100px`, height: `100px` })
+    expect(ctx.settled).toBe(false)
+    await ctx.settlingPromise
+    expect(target.style.width).toBe('100px')
+    expect(target.style.height).toBe('100px')
   })
 
-  test('complete style unit if the value is 0 without unit', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+  test('complete style unit if the value is 0 without unit', async () => {
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 10 })
     controller.setStyle({ width: '100px' })
-    controller.setStyle({ width: '0' })
-    expect(actual?.width).toContain('px')
-
-    return vi.waitFor(() => {
-      expect(actual?.width).toBe('0px')
-    })
+    const ctx = controller.setStyle({ width: '0' })
+    expect(ctx.settled).toBe(false)
+    await ctx.settlingPromise
+    expect(target.style.width).toBe('0px')
   })
 
   test('stop animation', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 1000 })
     controller.setStyle({ width: `100px` })
-    expect(actual?.width).toEqual('100px')
+    expect(target.style.width).toEqual('100px')
 
     controller.setStyle({ width: `200px` })
     controller.stop()
-    expect(actual?.width).not.toBe('100px')
-    expect(actual?.width).not.toBe('200px')
-    expect(actual?.transition).toBe('')
-    expect(actual?.[t]).toBe('')
+    expect(target.style.width).not.toBe('100px')
+    expect(target.style.width).not.toBe('200px')
+    expect(target.style.width).toContain('px')
   })
 
   test('complete stopped style unit from the previous style unit', () => {
-    let actual: Record<string, string> | undefined
-    const controller = createAnimateController((style) => {
-      actual = style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 1000 })
     controller.setStyle({ width: '100%' })
     controller.setStyle({ width: '0' })
     controller.stop()
-    expect(actual?.width).toContain('%')
+    expect(target.style.width).toContain('%')
   })
 
-  test('realValue is as same as value in style before animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` })
-    expect(controller.realValue).toEqual({ transform: [100, 200] })
-  })
+  test('stopping a resolved mixed-unit animation hands off in px, not the authored unit', async () => {
+    const target = el()
+    mockRemResolution(target)
 
-  test('realValue is actual value while animating', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 10 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    expect(controller.realValue.transform).not.toEqual([100, 200])
-    expect(controller.realValue.transform).not.toEqual([200, 300])
-  })
+    const controller = createAnimateController(target)
+    controller.setOptions({ duration: 1000 })
 
-  test('realValue is stopped value after stopping', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
+    // Start at 300px, then animate toward 10rem (resolves to 160px).
+    controller.setStyle({ width: '300px' }, { animate: false })
+    controller.setStyle({ width: '10rem' })
+
+    await raf()
     controller.stop()
-    expect(controller.realValue.transform).not.toEqual([100, 200])
-    expect(controller.realValue.transform).not.toEqual([200, 300])
-  })
 
-  test('realVelocity is 0 before animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` })
-    expect(controller.realVelocity.transform).toEqual([0, 0])
-  })
+    // The animation was frozen at a px value between 160 and 300.
+    const stoppedWidth = parseFloat(target.style.width)
+    expect(target.style.width).toContain('px')
+    expect(stoppedWidth).toBeGreaterThan(150)
+    expect(stoppedWidth).toBeLessThan(310)
 
-  test('realVelocity is actual velocity while animating', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 10 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    expect(controller.realVelocity.transform).not.toEqual([0, 0])
-  })
+    // Re-fire toward 300px. The new `from` must reuse the stopped px value as
+    // px. If it were mislabeled `rem`, the mock would resolve it to ~16x and the
+    // start value would jump into the thousands.
+    controller.setStyle({ width: '300px' })
 
-  test('realVelocity is 0 after stopping', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    controller.stop()
-    expect(controller.realVelocity.transform).toEqual([0, 0])
-  })
-
-  test('realVelocity is kept when stopped with keepVelocity option', () => {
-    const controller = createAnimateController(() => {})
-    controller.setOptions({ duration: 100 })
-    controller.setStyle({ transform: `100px 200px` })
-    controller.setStyle({ transform: `200px 300px` })
-    controller.stop({ keepVelocity: true })
-    expect(controller.realVelocity.transform).not.toEqual([0, 0])
-  })
-
-  test('realVelocity is calculated from value history without animation', () => {
-    const controller = createAnimateController(() => {})
-    controller.setStyle({ transform: `100px 200px` }, { animate: false })
-    controller.setStyle({ transform: `101px 200px` }, { animate: false })
-    controller.setStyle({ transform: `102px 200px` }, { animate: false })
-    expect(controller.realVelocity.transform?.[0]).not.toBe(0)
-    expect(controller.realVelocity.transform?.[1]).toBe(0)
+    const restartWidth = parseFloat(target.style.width)
+    expect(target.style.width).toContain('px')
+    expect(Math.abs(restartWidth - stoppedWidth)).toBeLessThan(5)
   })
 
   test('register finish listener for the current animation', () => {
-    let style: any
-    const controller = createAnimateController((_style) => {
-      style = _style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -226,17 +195,14 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onFinishCurrent(({ stopped }) => {
         expect(stopped).toBe(false)
-        expect(style.width).not.toBe('100px')
         resolve()
       })
     })
   })
 
   test('register settle listener for the current animation', () => {
-    let style: any
-    const controller = createAnimateController((_style) => {
-      style = _style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -244,17 +210,15 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(false)
-        expect(style.width).toBe('200px')
+        expect(target.style.width).toBe('200px')
         resolve()
       })
     })
   })
 
   test('stopped == true in onFinishCurrent when animation is stopped by stop()', () => {
-    let style: any
-    const controller = createAnimateController((_style) => {
-      style = _style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -262,7 +226,8 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onFinishCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
-        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        expect(target.style.width).not.toBe('100px')
+        expect(target.style.width).not.toBe('200px')
         resolve()
       })
       controller.stop()
@@ -270,7 +235,7 @@ describe('AnimationController', () => {
   })
 
   test('stopped == true in onFinishCurrent when animation is stopped by a new animation', () => {
-    const controller = createAnimateController(() => {})
+    const controller = createAnimateController(el())
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -285,10 +250,8 @@ describe('AnimationController', () => {
   })
 
   test('stopped == true in onSettleCurrent when animation is stopped by stop()', () => {
-    let style: any
-    const controller = createAnimateController((_style) => {
-      style = _style
-    })
+    const target = el()
+    const controller = createAnimateController(target)
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -296,7 +259,8 @@ describe('AnimationController', () => {
     return new Promise<void>((resolve) => {
       controller.onSettleCurrent(({ stopped }) => {
         expect(stopped).toBe(true)
-        expect(style.width).toBe(controller.realValue.width![0] + 'px')
+        expect(target.style.width).not.toBe('100px')
+        expect(target.style.width).not.toBe('200px')
         resolve()
       })
       controller.stop()
@@ -304,7 +268,7 @@ describe('AnimationController', () => {
   })
 
   test('stopped == true in onSettleCurrent when animation is stopped by a new animation', () => {
-    const controller = createAnimateController(() => {})
+    const controller = createAnimateController(el())
     controller.setOptions({ duration: 100 })
     controller.setStyle({ width: '100px' }, { animate: false })
     controller.setStyle({ width: '200px' })
@@ -316,5 +280,15 @@ describe('AnimationController', () => {
       })
       controller.setStyle({ width: '300px' })
     })
+  })
+
+  test('dispose stops in-flight animation and clears state', () => {
+    const target = el()
+    const controller = createAnimateController(target)
+    controller.setOptions({ duration: 1000 })
+    controller.setStyle({ width: '100px' })
+    const ctx = controller.setStyle({ width: '200px' })
+    controller.dispose()
+    expect(ctx.settled).toBe(true)
   })
 })

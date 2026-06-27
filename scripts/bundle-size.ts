@@ -1,29 +1,29 @@
-import { build } from 'vite'
+import { spawnSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
-import { gzipSync } from 'node:zlib'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { brotliCompressSync, constants, gzipSync } from 'node:zlib'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const packageRoot = path.resolve(__dirname, '../packages/vue')
-const outFile = path.join(packageRoot, 'dist/css-spring-animation-vue.js')
+const packageRoot = path.resolve(__dirname, '..')
+const outFile = path.join(packageRoot, 'dist/ktsn-spring.mjs')
 
-async function buildLib(minify: boolean): Promise<void> {
-  await build({
-    root: packageRoot,
-    configFile: path.join(packageRoot, 'vite.config.ts'),
-    logLevel: 'warn',
-    build: {
-      minify: minify ? 'oxc' : false,
-      emptyOutDir: true,
-    },
+function buildLib(minify: boolean): void {
+  const args = ['pack', '--format', 'esm']
+  if (minify) args.push('--minify')
+  const result = spawnSync('vp', args, {
+    cwd: packageRoot,
+    stdio: ['ignore', 'ignore', 'inherit'],
   })
+  if (result.status !== 0) {
+    throw new Error(`vp pack failed with status ${result.status}`)
+  }
 }
 
-await buildLib(false)
+buildLib(false)
 const bundled = statSync(outFile).size
 
-await buildLib(true)
+buildLib(true)
 const minifiedBuf = readFileSync(outFile)
 
 process.stdout.write(
@@ -32,6 +32,11 @@ process.stdout.write(
       bundled,
       minified: minifiedBuf.length,
       gzipped: gzipSync(minifiedBuf).length,
+      brotli: brotliCompressSync(minifiedBuf, {
+        params: {
+          [constants.BROTLI_PARAM_QUALITY]: constants.BROTLI_MAX_QUALITY,
+        },
+      }).length,
     },
     null,
     2,

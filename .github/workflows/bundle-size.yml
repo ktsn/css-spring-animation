@@ -19,19 +19,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
 
-      - name: Setup Node.js
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@ca1c46663915d6c1042ae23bd39ab85718bfb0fa # v1
         with:
           node-version: 24
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
-
-      - name: Install dependencies (PR head)
-        run: pnpm install --frozen-lockfile
+          cache: true
 
       - name: Measure PR head bundle size
-        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/head.json"
+        run: vp node scripts/bundle-size.ts > "$RUNNER_TEMP/head.json"
 
       - name: Checkout base
         run: git checkout ${{ github.event.pull_request.base.sha }}
@@ -40,16 +35,16 @@ jobs:
         run: git checkout ${{ github.event.pull_request.head.sha }} -- scripts/bundle-size.ts scripts/bundle-size-report.ts
 
       - name: Install dependencies (base)
-        run: pnpm install --frozen-lockfile
+        run: vp install
 
       - name: Measure base bundle size
-        run: node scripts/bundle-size.ts > "$RUNNER_TEMP/base.json"
+        run: vp node scripts/bundle-size.ts > "$RUNNER_TEMP/base.json"
 
       - name: Generate report
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node scripts/bundle-size-report.ts "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/comment.md"
+        run: vp node scripts/bundle-size-report.ts "$RUNNER_TEMP/base.json" "$RUNNER_TEMP/head.json" > "$RUNNER_TEMP/comment.md"
 
       - name: Post or update PR comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0

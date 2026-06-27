@@ -1,7 +1,8 @@
-import { describe, expect, test, vitest } from 'vitest'
+import { describe, expect, test, vitest } from 'vite-plus/test'
 import { createApp, nextTick, ref } from 'vue'
-import { spring } from '../../src/vue/spring-element'
+
 import { AnimationController } from '../../src/core'
+import { spring } from '../../src/vue/spring-element'
 
 let mockController: Record<keyof AnimationController<any>, any>
 
@@ -11,9 +12,7 @@ vitest.mock('../../src/core/controller', async () => {
   return {
     ...module,
     createAnimateController: (...args: any[]) => {
-      const controller = (mockController = module.createAnimateController(
-        ...args,
-      ))
+      const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
       return controller
@@ -89,9 +88,8 @@ describe('Spring Element', () => {
       duration: 800,
       disabled: false,
       inferVelocity: true,
-      relocating: false,
     })
-    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 })
+    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: true })
   })
 
   test('disable animation when disabled prop is true', async () => {
@@ -119,44 +117,7 @@ describe('Spring Element', () => {
 
     vm.springStyle.opacity = 0
     await nextTick()
-    expect(mockController.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
-    expect(vm.$el.style.opacity).toBe('0')
-  })
-
-  test('disable animation when relocating prop is true', async () => {
-    const root = document.createElement('div')
-    const app = createApp({
-      template: `
-        <springp :spring-style="springStyle" :relocating="relocating">
-          Hello
-        </springp>
-      `,
-
-      components: {
-        springp: spring.p!,
-      },
-
-      setup() {
-        const springStyle = ref({ opacity: 1 })
-        const relocating = ref(true)
-        return {
-          springStyle,
-          relocating,
-        }
-      },
-    })
-    const vm: any = app.mount(root)
-    expect(vm.$el.style.opacity).toBe('1')
-
-    vm.springStyle.opacity = 0
-    await nextTick()
-    expect(mockController.setStyle).toHaveBeenCalledWith(
-      { opacity: 0 },
-      { animate: false },
-    )
+    expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(vm.$el.style.opacity).toBe('0')
   })
 
@@ -187,14 +148,14 @@ describe('Spring Element', () => {
 
     await nextTick()
 
-    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' })
+    expect(mockController.setStyle).toHaveBeenCalledWith({ height: '100px' }, { animate: true })
     expect(vm.$el.style.height).toBe('100px')
   })
 
   function mountWithEvents(template: string, setupExtra?: () => any) {
     const root = document.createElement('div')
-    const finish = vitest.fn()
-    const settle = vitest.fn()
+    const finish = vitest.fn<(data: { stopped: boolean }) => void>()
+    const settle = vitest.fn<(data: { stopped: boolean }) => void>()
     const app = createApp({
       template,
       components: {
@@ -206,7 +167,7 @@ describe('Spring Element', () => {
           springStyle,
           onFinish: finish,
           onSettle: settle,
-          ...(setupExtra?.() ?? {}),
+          ...setupExtra?.(),
         }
       },
     })
@@ -268,28 +229,6 @@ describe('Spring Element', () => {
           :spring-style="springStyle"
           :duration="10"
           disabled
-          @spring-finish="onFinish"
-          @spring-settle="onSettle"
-        />
-      `,
-    )
-
-    vm.springStyle = { width: '20px' }
-    await nextTick()
-    await nextTick()
-    await waitForCurrentCycleSettled()
-
-    expect(finish).not.toHaveBeenCalled()
-    expect(settle).not.toHaveBeenCalled()
-  })
-
-  test('do not emit when relocating', async () => {
-    const { vm, finish, settle } = mountWithEvents(
-      `
-        <springp
-          :spring-style="springStyle"
-          :duration="10"
-          relocating
           @spring-finish="onFinish"
           @spring-settle="onSettle"
         />

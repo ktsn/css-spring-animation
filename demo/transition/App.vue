@@ -1,5 +1,6 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
+
 import { SpringTransition } from '../../src/vue'
 
 const isShow = ref(false)

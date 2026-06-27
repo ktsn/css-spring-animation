@@ -1,4 +1,4 @@
-# CSS Spring Animation
+# @ktsn/spring
 
 [English](./README.md) | 日本語
 
@@ -15,7 +15,7 @@
 Vue 用のバインディングがあります。npm (または yarn, pnpm) でインストールします。
 
 ```sh
-$ npm install @css-spring-animation/vue
+$ npm install @ktsn/spring
 ```
 
 `<script setup>` を使っているシングルファイルコンポーネントでは以下のように `spring` コンポーネントを使うことができます。
@@ -23,7 +23,7 @@ $ npm install @css-spring-animation/vue
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const moved = ref(false)
 </script>
@@ -57,7 +57,7 @@ const moved = ref(false)
 
 ## `disabled` と `inferVelocity`
 
-`<spring>` コンポーネントと `useSpring` コンポーザブルは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
+`<spring>` コンポーネントは `disabled` オプションを指定できます。`disabled` が `true` の間は実行中のアニメーションが停止し、以降のスタイル変更ではアニメーションを発火させずに値だけを即座に更新します。
 
 アニメーションが再開する際の初速の扱いは、`inferVelocity` で切り替えられます。
 
@@ -86,9 +86,7 @@ const moved = ref(false)
   <!-- ✅ :spring-style のすべての数値が同じ単位、同じ順番で現れている -->
   <spring.div
     :spring-style="{
-      transform: flag
-        ? 'scale(1) translate(100px, 100px)'
-        : 'scale(2) translate(0, 0)',
+      transform: flag ? 'scale(1) translate(100px, 100px)' : 'scale(2) translate(0, 0)',
     }"
   ></spring.div>
 </template>
@@ -100,7 +98,7 @@ const moved = ref(false)
 
 ```vue
 <script setup>
-import { spring, springValue, sv } from '@css-spring-animation/vue'
+import { spring, springValue, sv } from '@ktsn/spring'
 
 const x = springValue(0)
 const y = springValue(0)
@@ -116,11 +114,7 @@ function move() {
   <button @click="move">Move</button>
 
   <!-- sv を使って Spring Value を CSS 値に埋め込む -->
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -139,7 +133,7 @@ x.velocity()
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { spring, springComputed, sv } from '@css-spring-animation/vue'
+import { spring, springComputed, sv } from '@ktsn/spring'
 
 const offset = ref(0)
 
@@ -155,11 +149,7 @@ function move() {
 <template>
   <button @click="move">Move</button>
 
-  <spring.div
-    :spring-style="{ translate: sv`${x}px ${y}px` }"
-    :duration="600"
-    :bounce="0.3"
-  />
+  <spring.div :spring-style="{ translate: sv`${x}px ${y}px` }" :duration="600" :bounce="0.3" />
 </template>
 ```
 
@@ -205,7 +195,6 @@ requestAnimationFrame(() => {
 - `duration`
 - `disabled`
 - `inferVelocity`
-- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
 
 **イベント**
 
@@ -216,7 +205,7 @@ requestAnimationFrame(() => {
 
 ```vue
 <script setup>
-import { spring } from '@css-spring-animation/vue'
+import { spring } from '@ktsn/spring'
 
 const position = ref(0)
 
@@ -271,7 +260,7 @@ function onFinish() {
 ```vue
 <script setup>
 import { ref } from 'vue'
-import { SpringTransition } from '@css-spring-animation/vue'
+import { SpringTransition } from '@ktsn/spring'
 
 const isShow = ref(false)
 </script>
@@ -332,7 +321,7 @@ const isShow = ref(false)
 
 ```vue
 <script setup>
-import { SpringTransitionGroup } from '@css-spring-animation/vue'
+import { SpringTransitionGroup } from '@ktsn/spring'
 
 const list = ref([
   // ...
@@ -361,88 +350,6 @@ const list = ref([
     </li>
   </SpringTransitionGroup>
 </template>
-```
-
-### `useSpring` composable
-
-> **非推奨**。代わりに [`<spring>` コンポーネント](#spring-コンポーネント) を使用してください。`realValue` / `realVelocity` が必要な場合は [`springValue`](#springvalueinitial) を使用してください。
-
-スプリングアニメーションを適用した style オブジェクトを返す composable 関数です。また、現在のスタイル中の数値の実際の値と、速度も返します。これらは、スタイルオブジェクトと同じ形式のオブジェクトで、値が数値の配列になっています。
-
-第一引数はアニメーションさせるスタイルを返す関数、または ref です。第二引数はオプションオブジェクトです。これも関数、または ref にすることができます。
-
-オプションオブジェクトには以下のプロパティを指定できます。
-
-- `bounce`
-- `duration`
-- `disabled`
-- `inferVelocity`
-- `relocating` （deprecated — `disabled` と `inferVelocity: false` を使用してください）
-
-`<spring>` コンポーネントでは実装できない複雑なユースケースで使うことを想定しています。
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, realValue, realVelocity } = useSpring(
-  () => {
-    return {
-      translate: `${position.value}px`,
-    }
-  },
-  () => {
-    return {
-      duration: 600,
-      bounce: 0.3,
-    }
-  },
-)
-</script>
-
-<template>
-  <div :style="style"></div>
-  <ul>
-    <li>realValue: {{ realValue.translate[0] }}</li>
-    <li>realVelocity: {{ realVelocity.translate[0] }}</li>
-  </ul>
-</template>
-```
-
-`useSpring` が返す値には、現在のアニメーションが完了、もしくは、settle するまで待つ `onFinishCurrent`、`onSettleCurrent` 関数があります。この関数には、進行中のアニメーションが完了・settle したときに呼ばれるコールバック関数を登録できます。
-
-```vue
-<script setup>
-import { ref } from 'vue'
-import { useSpring } from '@css-spring-animation/vue'
-
-const position = ref(0)
-
-const { style, onFinishCurrent } = useSpring(() => {
-  return {
-    translate: `${position.value}px`,
-  }
-})
-
-function move() {
-  // 100px まで移動
-  position.value = 100
-
-  // 上記の position の更新によってトリガーされたアニメーションが完了（duration が経過）するまで待つ
-  onFinishCurrent(() => {
-    // 0px まで移動
-    position.value = 0
-  })
-
-  // 上記の position の更新によってトリガーされたアニメーションが settle（見た目が停止）するまで待つ
-  onSettleCurrent(() => {
-    console.log('settled')
-  })
-}
-</script>
 ```
 
 ### `springValue(initial)`
@@ -474,7 +381,7 @@ function move() {
 ```js
 import { createApp } from 'vue'
 import App from './App.vue'
-import { springDirectives } from '@css-spring-animation/vue'
+import { springDirectives } from '@ktsn/spring'
 
 createApp(App).use(springDirectives).mount('#app')
 ```
@@ -509,7 +416,7 @@ createApp(App).use(springDirectives).mount('#app')
 `transition` CSS プロパティで使用できる CSS トランジション値の文字列を返します。
 
 ```js
-import { springCSS } from '@css-spring-animation/vue'
+import { springCSS } from '@ktsn/spring'
 
 // スプリングトランジション CSS を生成
 const transition = springCSS(400, 0.1)
@@ -545,7 +452,7 @@ element.style.opacity = '0.5'
 `next(elapsedMs)` メソッドを持つ `SpringGenerator` オブジェクトを返します。このメソッドは `{ value: number, done: boolean }` を返します。
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // スプリングイテレータを作成
 const iter = springGenerator({
@@ -562,7 +469,7 @@ result = iter.next(1200) // { value: 100, done: true }
 ```
 
 ```ts
-import { springGenerator } from '@css-spring-animation/vue'
+import { springGenerator } from '@ktsn/spring'
 
 // 例: カスタムアニメーションループ
 const iter = springGenerator({ from: 0, to: 100, duration: 600 })
@@ -581,4 +488,72 @@ function animate(now: number) {
 }
 
 requestAnimationFrame(animate)
+```
+
+### `animate(target, [from, to], options)`
+
+DOM 要素のスタイルプロパティをスプリング物理で命令的にアニメーションさせる低レベル関数です。Vue コンポーネントの外でスプリングアニメーションを使いたい時に利用します。
+
+**パラメータ**
+
+- `target`: アニメーション対象の `HTMLElement` または `SVGElement`
+- `fromTo`: スタイルオブジェクトの `[from, to]` タプル、または `[to]` の 1 要素タプル。各スタイルオブジェクトは CSS プロパティ名に対して `number`、`string`、または `springValue` / `springComputed` を `sv` で埋め込んだ値をマップします。各エントリは `null` / `undefined` でもよく、その場合はキーが省略されているのと同じ扱いになります（下記参照）。
+- `options`: スプリングオプション（省略可）
+  - `duration`: ミリ秒単位の時間（デフォルト: 1000）
+  - `bounce`: バウンス度合い（-1 から 1、デフォルト: 0）
+
+**戻り値**
+
+以下のプロパティを持つ `AnimateContext` を返します。
+
+- `finished` (boolean): `duration` 経過時にアニメーションが視覚的に完了すると `true` になります。
+- `settled` (boolean): スプリングが完全に減衰すると `true` になります。
+- `finishingPromise` (`Promise<void>`): `finished` が `true` になった時に resolve されます。
+- `settlingPromise` (`Promise<void>`): `settled` が `true` になった時に resolve されます。
+- `stop()`: アニメーションを即座にキャンセルし、現在の値を確定します。
+- `stoppedDuration` (`number | undefined`): `stop()` が呼ばれた時点の経過時間。停止されていない場合は `undefined`。
+
+```ts
+import { animate } from '@ktsn/spring'
+
+const el = document.querySelector('.rectangle') as HTMLElement
+
+const ctx = animate(el, [{ translate: '0px 0px' }, { translate: '300px 300px' }], {
+  duration: 1000,
+  bounce: 0,
+})
+
+ctx.settlingPromise.then(() => {
+  // スプリングが完全に減衰した
+})
+```
+
+`from` または `to` のどちらかにキーが存在しない（あるいは値が `null` / `undefined` の）場合、`animate()` はそのプロパティのインラインスタイルを一時的に外したうえで computed style を読み取り、欠けている側の値として用います。`[to]` の 1 要素形式は `[{}, to]` のショートハンドで、`from` 側のすべてのエントリがこの方法で補完されます。
+
+```ts
+import { animate } from '@ktsn/spring'
+
+// `from` は省略。要素の現在の見た目（`translate` のインライン上書きを
+// 取り除いた状態）を始点として扱います。
+animate(el, [{ translate: '300px 300px' }], { duration: 600 })
+
+// 片方のキーだけが欠けていてもよく、欠けている側はそのキー単位で
+// computed style から補完されます。
+animate(el, [{ opacity: 0 }, { opacity: 1, translate: '100px 0px' }], {
+  duration: 600,
+})
+```
+
+`from` または `to` のスロットを `sv` で `springValue` から構築すると、そのスプリング値の `current()` と `velocity()` がアニメーション実行中の現在値・速度を返すようになります。
+
+```ts
+import { animate, springValue, sv } from '@ktsn/spring'
+
+const x = springValue(0)
+
+animate(el, [{ translate: sv`${x}px` }, { translate: '100px' }], {
+  duration: 600,
+})
+
+// x.current() / x.velocity() でアニメーション中の値・速度が読める
 ```

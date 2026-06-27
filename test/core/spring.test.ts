@@ -1,9 +1,9 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
+
 import {
   createSpring,
   springSettlingDuration,
   evaluateSpring,
-  evaluateSpringVelocity,
   springCSS,
   springGenerator,
 } from '../../src/core/spring'
@@ -112,7 +112,7 @@ describe('spring', () => {
       })
 
       expect(
-        evaluateSpringVelocity(spring, {
+        spring.velocity({
           from: 100,
           to: 100,
           initialVelocity: 0,
@@ -121,7 +121,7 @@ describe('spring', () => {
       ).toBeCloseTo(0)
 
       expect(
-        evaluateSpringVelocity(spring, {
+        spring.velocity({
           from: 100,
           to: 100,
           initialVelocity: 1000,
@@ -138,7 +138,7 @@ describe('spring', () => {
         })
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -147,7 +147,7 @@ describe('spring', () => {
         ).toBeCloseTo(0)
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 1000,
@@ -163,7 +163,7 @@ describe('spring', () => {
         })
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -172,7 +172,7 @@ describe('spring', () => {
         ).toBeCloseTo(0)
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 1000,
@@ -188,7 +188,7 @@ describe('spring', () => {
         })
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 0,
@@ -197,7 +197,7 @@ describe('spring', () => {
         ).toBeCloseTo(0)
 
         expect(
-          evaluateSpringVelocity(spring, {
+          spring.velocity({
             from: 0,
             to: 100,
             initialVelocity: 1000,

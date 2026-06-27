@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'vitest'
+import { describe, expect, test } from 'vite-plus/test'
+
 import {
   completeParsedStyleUnit,
   interpolateParsedStyle,
@@ -221,12 +222,10 @@ describe('completeParsedStyleUnit', () => {
     },
   ]
 
-  for (const { name, value, context, expected } of properties) {
-    test(name, () => {
-      const actual = completeParsedStyleUnit(value, context)
-      expect(actual).toEqual(expected)
-    })
-  }
+  test.each(properties)('$name', ({ value, context, expected }) => {
+    const actual = completeParsedStyleUnit(value, context)
+    expect(actual).toEqual(expected)
+  })
 })
 
 describe('joinStyleValues', () => {
@@ -301,8 +300,6 @@ describe('stringifyInterpolatedStyle', () => {
       },
       ['100 * exp(3)', '100 * exp(4)'],
     )
-    expect(actual).toBe(
-      'translate(calc(1px * (100 * exp(3))), calc(1% * (100 * exp(4))))',
-    )
+    expect(actual).toBe('translate(calc(1px * (100 * exp(3))), calc(1% * (100 * exp(4))))')
   })
 })

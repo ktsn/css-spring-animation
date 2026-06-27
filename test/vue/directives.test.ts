@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, test, vitest } from 'vitest'
+import { beforeEach, describe, expect, test, vitest } from 'vite-plus/test'
 import { createApp, nextTick, ref } from 'vue'
-import { springDirectives } from '../../src/vue/directives'
+
 import { AnimationController } from '../../src/core'
+import { springDirectives } from '../../src/vue/directives'
 
 let mockController: Record<keyof AnimationController<any>, any>
 
@@ -11,9 +12,7 @@ vitest.mock('../../src/core/controller', async () => {
   return {
     ...module,
     createAnimateController: (...args: any[]) => {
-      const controller = (mockController = module.createAnimateController(
-        ...args,
-      ))
+      const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
       return controller
@@ -38,8 +37,7 @@ describe('directives', () => {
   test('set both style and options', async () => {
     const root = document.createElement('div')
     const app = createApp({
-      template:
-        '<div v-spring-style="{ opacity: 0 }" v-spring-options="{ bounce: 0.2 }"></div>',
+      template: '<div v-spring-style="{ opacity: 0 }" v-spring-options="{ bounce: 0.2 }"></div>',
     })
     app.use(springDirectives).mount(root)
     expect(mockController.setOptions).toHaveBeenCalledWith({ bounce: 0.2 })
@@ -52,8 +50,7 @@ describe('directives', () => {
 
     const root = document.createElement('div')
     const app = createApp({
-      template:
-        '<div v-spring-style="{ opacity }" v-spring-options="{ bounce }"></div>',
+      template: '<div v-spring-style="{ opacity }" v-spring-options="{ bounce }"></div>',
       setup() {
         return {
           opacity,
@@ -76,8 +73,7 @@ describe('directives', () => {
   test('set style property with lower camel case', () => {
     const root = document.createElement('div')
     const app = createApp({
-      template:
-        "<div v-spring-style=\"{ width: '100%', backgroundColor: '#fff' }\"></div>",
+      template: "<div v-spring-style=\"{ width: '100%', backgroundColor: '#fff' }\"></div>",
     })
     const vm = app.use(springDirectives).mount(root)
     expect(vm.$el.style.width).toBe('100%')

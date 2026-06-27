@@ -4,6 +4,7 @@ interface Sizes {
   bundled: number
   minified: number
   gzipped: number
+  brotli: number
 }
 
 const [, , basePath, headPath] = process.argv
@@ -36,22 +37,21 @@ function row(label: string, key: keyof Sizes): string {
 const lines = [
   '## Bundle size report',
   '',
-  '`@css-spring-animation/vue` (`dist/css-spring-animation-vue.js`)',
+  '`@ktsn/spring` (`dist/ktsn-spring.js`)',
   '',
   '| Metric | Size |',
   '| --- | ---: |',
   row('Bundled', 'bundled'),
   row('Minified', 'minified'),
   row('Minified + Gzipped', 'gzipped'),
+  row('Minified + Brotli', 'brotli'),
 ]
 
 const baseSha = process.env.BASE_SHA
 const headSha = process.env.HEAD_SHA
 if (baseSha || headSha) {
   lines.push('')
-  lines.push(
-    `Base: \`${(baseSha ?? '').slice(0, 7)}\` · Head: \`${(headSha ?? '').slice(0, 7)}\``,
-  )
+  lines.push(`Base: \`${(baseSha ?? '').slice(0, 7)}\` · Head: \`${(headSha ?? '').slice(0, 7)}\``)
 }
 
 process.stdout.write(lines.join('\n') + '\n')
