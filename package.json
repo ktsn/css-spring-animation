@@ -7,12 +7,12 @@
     "spring",
     "vue"
   ],
-  "homepage": "https://github.com/ktsn/css-spring-animation",
+  "homepage": "https://github.com/ktsn/spring",
   "license": "MIT",
   "author": "Katashin",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ktsn/css-spring-animation.git"
+    "url": "https://github.com/ktsn/spring.git"
   },
   "files": [
     "dist"
