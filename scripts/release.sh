@@ -14,7 +14,7 @@ fi
 
 npm version $1 --git-tag-version false
 
-conventional-changelog -p angular -i CHANGELOG.md -s
+conventional-changelog -p angular -i CHANGELOG.md
 
 git add .
 git commit -m "v$1"
