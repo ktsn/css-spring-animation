@@ -53,7 +53,7 @@
     "jsdom": "29.1.1",
     "typescript": "6.0.3",
     "vite-plus": "catalog:",
-    "vue": "3.5.34",
+    "vue": "3.5.38",
     "vue-tsc": "3.2.8"
   },
   "peerDependencies": {
