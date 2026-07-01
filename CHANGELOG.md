@@ -1,3 +1,8 @@
+# [1.0.0-beta.3](https://github.com/ktsn/spring/compare/v1.0.0-beta.2...v1.0.0-beta.3) (2026-07-01)
+
+### Features
+
+* add tag prop to spring element to override rendered element ([#136](https://github.com/ktsn/spring/issues/136)) ([3362f29](https://github.com/ktsn/spring/commit/3362f29ffebc731f67dfca5c6bda20fc29dc7d98))
 
 # [1.0.0-beta.2](https://github.com/ktsn/spring/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2026-07-01)
 
