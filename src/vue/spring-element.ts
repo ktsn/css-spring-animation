@@ -14,7 +14,6 @@ const createSpringElement = (tagName: string) => {
       bounce: Number,
       duration: Number,
       disabled: Boolean,
-      inferVelocity: { type: Boolean, default: true },
     },
 
     emits: {
@@ -33,7 +32,6 @@ const createSpringElement = (tagName: string) => {
             bounce: props.bounce,
             duration: props.duration,
             disabled: props.disabled,
-            inferVelocity: props.inferVelocity,
           }
         },
       )
