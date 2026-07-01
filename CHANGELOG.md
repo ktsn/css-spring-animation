@@ -1,3 +1,10 @@
+
+# [1.0.0-beta.2](https://github.com/ktsn/spring/compare/v1.0.0-beta.1...v1.0.0-beta.2) (2026-07-01)
+
+### BREAKING CHANGES
+
+* let in-progress animation complete when disabled & remove `inferVelocity` (#135)
+
 # [1.0.0-beta.1](https://github.com/ktsn/spring/compare/v1.0.0-beta.0...v1.0.0-beta.1) (2026-06-18)
 
 
