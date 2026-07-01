@@ -97,7 +97,6 @@ function onChange(event: Event, index: number): void {
       :bounce="-0.2"
       :duration="300"
       :disabled="loopDirection !== undefined"
-      :infer-velocity="false"
     >
       <label
         v-for="(hour, index) of [...hours, ...hours, ...hours]"

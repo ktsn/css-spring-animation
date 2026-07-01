@@ -14,7 +14,6 @@ type RefOrGetter<T> = Ref<T> | (() => T)
 
 export interface UseSpringOptions extends SpringOptions {
   disabled?: boolean
-  inferVelocity?: boolean
 }
 
 export interface UseSpringResult {
@@ -60,8 +59,6 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
   const optionsRef = computed(() => toValue(options) ?? {})
 
   const disabled = computed(() => optionsRef.value.disabled ?? false)
-
-  const inferVelocity = computed(() => optionsRef.value.inferVelocity ?? true)
 
   let controller: AnimationController<Record<keyof Style, AnimateValue>> | undefined
 
@@ -135,14 +132,8 @@ export function useSpring<Style extends Record<string, AnimateValue>>(
 
   watch(
     [disabled, () => ({ ...inputSnapshot.value }), () => ({ ...optionsRef.value })],
-    ([disabled, snapshot, options], [prevDisabled, prevSnapshot]) => {
+    ([disabled, snapshot, options], [, prevSnapshot]) => {
       if (!controller) return
-
-      if (disabled && !prevDisabled) {
-        controller.stop({
-          keepVelocity: !inferVelocity.value,
-        })
-      }
 
       controller.setOptions(options)
 

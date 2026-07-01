@@ -15,6 +15,7 @@ vitest.mock('../../src/core/controller', async () => {
       const controller = (mockController = module.createAnimateController(...args))
       vitest.spyOn(controller, 'setStyle')
       vitest.spyOn(controller, 'setOptions')
+      vitest.spyOn(controller, 'stop')
       return controller
     },
   }
@@ -87,7 +88,6 @@ describe('Spring Element', () => {
       bounce: 0.2,
       duration: 800,
       disabled: false,
-      inferVelocity: true,
     })
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: true })
   })
@@ -119,6 +119,38 @@ describe('Spring Element', () => {
     await nextTick()
     expect(mockController.setStyle).toHaveBeenCalledWith({ opacity: 0 }, { animate: false })
     expect(vm.$el.style.opacity).toBe('0')
+  })
+
+  test('does not stop the running animation on disable', async () => {
+    const root = document.createElement('div')
+    const app = createApp({
+      template: `
+        <springp :spring-style="springStyle" :disabled="disabled">
+          Hello
+        </springp>
+      `,
+
+      components: {
+        springp: spring.p!,
+      },
+
+      setup() {
+        const springStyle = ref({ opacity: 1 })
+        const disabled = ref(false)
+        return {
+          springStyle,
+          disabled,
+        }
+      },
+    })
+    const vm: any = app.mount(root)
+
+    vm.springStyle.opacity = 0
+    await nextTick()
+
+    vm.disabled = true
+    await nextTick()
+    expect(mockController.stop).not.toHaveBeenCalled()
   })
 
   test('just update style when cannot be animated', async () => {

@@ -104,7 +104,7 @@ describe('useSpring', () => {
     })
   })
 
-  test('stopped == true in onFinishCurrent when animation is stopped', () => {
+  test('running animation completes when disabled', async () => {
     const el = document.createElement('div')
     const value = ref(10)
     const disabled = ref(false)
@@ -122,18 +122,20 @@ describe('useSpring', () => {
       ),
     )
 
+    // Start the animation, then disable it while it is still running.
     value.value = 20
+    await nextTick()
+    disabled.value = true
 
     return new Promise<void>((resolve) => {
-      disabled.value = true
       onFinishCurrent(({ stopped }) => {
-        expect(stopped).toBe(true)
+        expect(stopped).toBe(false)
         resolve()
       })
     })
   })
 
-  test('stopped == true in onSettleCurrent when animation is stopped', () => {
+  test('running animation settles when disabled', async () => {
     const el = document.createElement('div')
     const value = ref(10)
     const disabled = ref(false)
@@ -151,14 +153,53 @@ describe('useSpring', () => {
       ),
     )
 
+    // Start the animation, then disable it while it is still running.
     value.value = 20
+    await nextTick()
+    disabled.value = true
 
     return new Promise<void>((resolve) => {
-      disabled.value = true
       onSettleCurrent(({ stopped }) => {
-        expect(stopped).toBe(true)
+        expect(stopped).toBe(false)
+        expect(el.style.width).toBe('20px')
         resolve()
       })
     })
+  })
+
+  test('assigning a style value while disabled stops the in-progress animation', async () => {
+    const el = document.createElement('div')
+    const value = ref(10)
+    const disabled = ref(false)
+
+    runInScope(() =>
+      useSpring(
+        el,
+        () => ({
+          width: `${value.value}px`,
+        }),
+        () => ({
+          duration: 100,
+          disabled: disabled.value,
+        }),
+      ),
+    )
+
+    // Start the animation and let it run for a tick.
+    value.value = 20
+    await nextTick()
+
+    // The animation is in progress: the value is between the start and target.
+    expect(el.style.width).not.toBe('10px')
+    expect(el.style.width).not.toBe('20px')
+
+    // Disable, then assign a new value to stop the running animation.
+    disabled.value = true
+    value.value = 30
+    await nextTick()
+
+    // The value snaps to the assigned value immediately instead of animating,
+    // which means the in-progress animation was stopped.
+    expect(el.style.width).toBe('30px')
   })
 })

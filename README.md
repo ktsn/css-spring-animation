@@ -55,16 +55,11 @@ Bounciness of an animation. The value is between -1 and 1. The default value is 
 **duration**<br>
 Perceptive duration (ms) of an animation. The default value is 1000.
 
-## `disabled` and `inferVelocity`
+## Behavior on `disabled`
 
-`<spring>` component accepts a `disabled` option. While `disabled` is `true`, ongoing animation is stopped and further style changes update the value immediately without triggering a new animation.
+`<spring>` component accepts a `disabled` option. While `disabled` is `true`, style changes update the value immediately without triggering a new animation. Disabling does **not** stop an animation that is already running — the in-flight animation is left to complete on its own. To stop a running animation, assign the style value explicitly, which immediately snaps the value while `disabled`.
 
-When animation later resumes, the spring's initial velocity comes from one of two sources, controlled by `inferVelocity`:
-
-- **`inferVelocity: true` (default)** — velocity is inferred from the rate of recent style updates. Use this when you drive the element manually (e.g. by dragging) and want the spring to pick up momentum from your motion. See the [Swipe](./demo/swipe/) demo: while the user drags, `disabled` is `true`, and on release the spring fires with the inferred drag velocity.
-- **`inferVelocity: false`** — velocity is left untouched, preserving the velocity of the previous spring animation. Use this when you want to teleport the element without disturbing momentum. See the [Picker](./demo/picker/) demo: scrolling the wheel wraps the picker around with `disabled: true, inferVelocity: false`, preserving the rotation momentum across the wrap.
-
-`inferVelocity` only takes effect while `disabled` is `true`. When `disabled` is `false`, the animation owns both value and velocity and `inferVelocity` is ignored.
+When animation later resumes, the spring's initial velocity is carried over automatically from the takeover point. If you drive the element manually (e.g. by dragging) while `disabled`, the spring picks up momentum from the recent style updates. See the [Swipe](./demo/swipe/) demo: while the user drags, `disabled` is `true`, and on release the spring fires with the inferred drag velocity. Momentum is likewise preserved when you teleport an element mid-animation, as in the [Picker](./demo/picker/) demo where scrolling the wheel wraps the picker around while keeping its rotation momentum.
 
 ## Spring Style Caveats
 
@@ -194,7 +189,6 @@ It renders a native HTML element as same tag name as the property name (e.g. `<s
 - `bounce`
 - `duration`
 - `disabled`
-- `inferVelocity`
 
 **Events**
 
