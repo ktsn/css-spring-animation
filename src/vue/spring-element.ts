@@ -6,7 +6,13 @@ import { useSpring } from './use-spring'
 
 const createSpringElement = (tagName: string) => {
   return defineComponent({
+    name: 'SpringElement',
+
     props: {
+      tag: {
+        type: String,
+        default: tagName,
+      },
       springStyle: {
         type: Object as PropType<Record<string, AnimateValue | SpringStyleValue>>,
         required: true,
@@ -49,7 +55,7 @@ const createSpringElement = (tagName: string) => {
       })
 
       return () => {
-        return h(tagName, { ref: elRef }, slots.default?.())
+        return h(props.tag, { ref: elRef }, slots.default?.())
       }
     },
   })
@@ -57,6 +63,10 @@ const createSpringElement = (tagName: string) => {
 
 const springElementRecord: Record<string, ReturnType<typeof createSpringElement>> = {}
 
+/**
+ * Render native HTML element with spring animation support.
+ * Specify target element type as a property access (e.g. `spring.div`)
+ */
 export const spring = new Proxy(springElementRecord, {
   get: (record, tagName) => {
     const springElement = record[tagName as string]
